@@ -1,0 +1,4 @@
+**/*.pem
+**/*.pk
+**/*.key
+**/storage/app/private/
