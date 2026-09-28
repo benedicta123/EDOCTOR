@@ -1,0 +1,10 @@
+[phases.build]
+cmds = [
+  "composer install --no-dev --optimize-autoloader --no-interaction",
+  "npm install --ignore-scripts",
+  "npm run build",
+  "chmod +x start.sh"
+]
+
+[start]
+cmd = "./start.sh"
