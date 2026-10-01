@@ -1,0 +1,16 @@
+nom_medicament;dosage;forme;categorie;quantite;prix_fcfa;sur_ordonnance
+Amlodipine Pfizer;5mg;Comprimé;Cardiologie / Hypertension;80;3200;oui
+Atorvastatine Mylan;20mg;Comprimé pelliculé;Cardiologie / Cholestérol;50;4500;oui
+Metformine Glucophage;850mg;Comprimé;Diabétologie;100;1800;oui
+Glibenclamide;5mg;Comprimé;Diabétologie;60;1400;oui
+Salbutamol Ventoline;100mcg/dose;Flacon aérosol;Pneumologie / Asthme;40;3600;oui
+Cétirizine Biogaran;10mg;Comprimé sécable;Anti-allergique;120;1200;non
+Doliprane Pédiatrique;2.4% 100ml;Suspension buvable;Pédiatrie / Antalgique;95;1350;non
+Ambroxol Muxol;0.3% 200ml;Sirop toux;Pneumologie / Toux;70;1900;non
+Collyre Tobramycine;0.3% 5ml;Flacon compte-gouttes;Ophtalmologie;30;2800;oui
+Crème Dermocorticoïde Hydrocortisone;1% 15g;Tube;Dermatologie;45;1500;oui
+Lopéramide Imodium;2mg;Gélule;Gastro-entérologie / Diarrhée;110;1300;non
+Smecta (Diosmectite);3g;Sachet poudre suspension;Gastro-entérologie;140;800;non
+Multivitamines B-Complexe;Comprimé;Gélule;Complément alimentaire;150;950;non
+Dakin Stabilisé;0.5% 250ml;Flacon;Antiseptique local;60;1400;non
+Gants Médicaux en Latex;Taille M - Boîte de 100;Boîte;Consommable / Dispositif médical;35;4500;non

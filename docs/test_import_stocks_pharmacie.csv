@@ -1,0 +1,16 @@
+nom_medicament;dosage;forme;categorie;quantite;prix_fcfa;sur_ordonnance
+Paracétamol Biogaran;500mg;Comprimé;Antalgique / Antipyrétique;150;500;non
+Efferalgan;1g;Comprimé effervescent;Antalgique;80;1200;non
+Coartem (Artéméther / Luméfantrine);20/120mg;Comprimé;Antipaludique;120;2200;non
+Malocur;50/500mg;Comprimé;Antipaludique;60;1800;non
+Amoxicilline Teva;500mg;Gélule;Antibiotique;90;1500;oui
+Augmentin (Amoxicilline / Acide Clavulanique);1g/125mg;Poudre pour suspension;Antibiotique;45;4800;oui
+Ibuprofène Mylan;400mg;Comprimé;Anti-inflammatoire;110;1100;non
+Ciprofloxacine;500mg;Comprimé pelliculé;Antibiotique;35;3200;oui
+Vitamine C UPSA;1000mg;Comprimé à croquer;Complément vitaminique;200;850;non
+Sérum Physiologique Gilbert;0.9% 500ml;Flacon plastique;Soluté de perfusion;50;950;non
+Spasfon (Phloroglucinol);80mg;Comprimé lyophilisé;Antispasmodique;75;1750;non
+Oméprazole Biogaran;20mg;Gélule gastro-résistante;Gastro-entérologie;65;2400;non
+Azithromycine;500mg;Comprimé;Antibiotique;30;3900;oui
+Bétadine Dermique;10% 125ml;Flacon;Antiseptique local;40;1600;non
+Zinc Sulfate;20mg;Comprimé dispersible;Complément / Pédiatrie;150;600;non
