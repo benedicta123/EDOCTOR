@@ -33,8 +33,8 @@ return [
     // Domaine JaaS (compte déjà créé).
     'domain' => env('JAAS_DOMAIN', '8x8.vc'),
 
-    // Durée de validité du JWT en secondes (courte durée imposée).
-    'token_ttl' => (int) env('JAAS_TOKEN_TTL', 7200),
+    // Durée de validité du JWT en secondes : 50 minutes (3000 s) correspondant à une consultation complète.
+    'token_ttl' => (int) env('JAAS_TOKEN_TTL', 3000),
 
     // Chemin openssl.cnf (Windows surtout). Vide = détection automatique.
     'openssl_cnf' => env('JAAS_OPENSSL_CNF'),

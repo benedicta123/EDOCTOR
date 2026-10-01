@@ -7,6 +7,7 @@ import '../../core/widgets/patient_bottom_nav.dart';
 import '../../data/models/patient_dossier_model.dart';
 import '../../data/models/user_model.dart';
 import '../prescriptions/prescriptions_screen.dart';
+import '../lab_examinations/lab_examinations_screen.dart';
 
 class PatientDossierScreen extends StatefulWidget {
   final ValueChanged<int>? onNavSelected;
@@ -375,7 +376,7 @@ class _PatientDossierScreenState extends State<PatientDossierScreen> {
                             i++) ...[
                           _buildItemRow(
                             label:
-                                '#${dossier.consultations[i].id} — ${dossier.consultations[i].doctorName}',
+                                '${dossier.consultations[i].displayCode} — ${dossier.consultations[i].doctorName}',
                             detail:
                                 '${dossier.consultations[i].doctorSpecialty ?? 'Médecine'} • ${dossier.consultations[i].displayDate}',
                             badge: dossier.consultations[i].status
@@ -431,6 +432,51 @@ class _PatientDossierScreenState extends State<PatientDossierScreen> {
                         ],
                       ],
                     ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Bilans & Examens complémentaires
+            _buildSectionCard(
+              icon: Icons.biotech_rounded,
+              iconColor: const Color(0xFF0284C7),
+              title: 'Bilans & Examens complémentaires',
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Retrouvez vos prescriptions d’analyses de laboratoire et d’imagerie médicale, téléchargez vos ordonnances certifiées et transmettez vos résultats au médecin traitant.',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const LabExaminationsScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.folder_shared_rounded, size: 17),
+                    label: const Text(
+                      'Accéder à mes bilans & résultats',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 16),

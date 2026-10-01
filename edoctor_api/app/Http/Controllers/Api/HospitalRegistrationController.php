@@ -54,7 +54,7 @@ class HospitalRegistrationController extends Controller
         $initialStatus = $autoVerify ? 'verifie' : 'en_attente';
         $verifiedAt = $autoVerify ? now() : null;
 
-        $result = DB::transaction(function () use ($validated, $documentPath, $initialStatus, $verifiedAt) {
+        $result = DB::transaction(function () use ($validated, $documentPath, $initialStatus, $verifiedAt, $coordinates) {
             $hospital = Hospital::create([
                 'name' => $validated['hospital_name'],
                 'address' => $validated['address'],
@@ -78,7 +78,7 @@ class HospitalRegistrationController extends Controller
                 'phone' => $validated['admin_phone'] ?? null,
             ]);
 
-            $token = $admin->createToken('admin-api-token')->plainTextToken;
+            $token = $admin->createAccessToken('admin-api-token')->plainTextToken;
 
             return [
                 'hospital' => $hospital,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/api_service.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -10,71 +11,94 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   int _selectedFilter = 0; // 0: Toutes, 1: En cours, 2: Terminées
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _orders = [];
 
-  final List<Map<String, dynamic>> _orders = [
-    {
-      'id': 'CMD-2026-0841',
-      'pharmacyName': 'Grande Pharmacie Centrale de Démo',
-      'pharmacyAddress': 'Avenue Chardy, Plateau, Abidjan',
-      'pharmacyPhone': '+225 27 20 00 00 00',
-      'date': 'Aujourd\'hui à 10:15',
-      'status': 'en_preparation',
-      'statusLabel': 'En préparation',
-      'statusColor': AppColors.warning,
-      'statusBg': AppColors.warningLight,
-      'isDelivery': true,
-      'deliveryAddress': 'Cocody Angré 8ème Tranche, Abidjan',
-      'items': [
-        {'name': 'Amoxicilline 500mg', 'qty': 2, 'price': 3200},
-        {'name': 'Paracétamol 1000mg', 'qty': 1, 'price': 1500},
-      ],
-      'total': 7900, // avec 0 livraison
-    },
-    {
-      'id': 'CMD-2026-0792',
-      'pharmacyName': 'Pharmacie de la Paix & Espérance',
-      'pharmacyAddress': 'Boulevard de Marseille, Zone 4, Abidjan',
-      'pharmacyPhone': '+225 27 21 00 00 01',
-      'date': 'Hier à 16:40',
-      'status': 'prete',
-      'statusLabel': 'Prête à retirer',
-      'statusColor': AppColors.primary,
-      'statusBg': AppColors.primaryContainer,
-      'isDelivery': false,
-      'deliveryAddress': 'Retrait en officine',
-      'items': [
-        {'name': 'Vitamine C 1000mg', 'qty': 2, 'price': 1850},
-        {'name': 'Ibuprofène 400mg', 'qty': 1, 'price': 2050},
-      ],
-      'total': 5750,
-    },
-    {
-      'id': 'CMD-2026-0650',
-      'pharmacyName': 'Pharmacie Sainte-Marie',
-      'pharmacyAddress': 'Boulevard Latrille, Cocody Angré',
-      'pharmacyPhone': '+225 27 22 00 00 02',
-      'date': '05 Sept. 2026',
-      'status': 'livree',
-      'statusLabel': 'Livrée avec succès',
-      'statusColor': AppColors.success,
-      'statusBg': AppColors.successLight,
-      'isDelivery': true,
-      'deliveryAddress': 'Marcory Zone 4, Abidjan',
-      'items': [
-        {'name': 'Azithromycine 250mg', 'qty': 1, 'price': 5600},
-      ],
-      'total': 5600,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchLiveOrders();
+  }
+
+  Future<void> _fetchLiveOrders() async {
+    setState(() => _isLoading = true);
+    try {
+      final list = await ApiService.getOrders();
+      if (!mounted) return;
+      setState(() {
+        _orders = list.map((o) {
+          final id = o['id'];
+          final status = o['status'] as String? ?? 'confirmee';
+          final pharmacy = o['pharmacy'] as Map<String, dynamic>? ?? {};
+          final items = (o['items'] as List?)?.map((i) {
+            final med = (i as Map<String, dynamic>)['medication'] as Map<String, dynamic>? ?? {};
+            return {
+              'name': med['name'] ?? 'Médicament #${i['medication_id']}',
+              'qty': i['quantity'],
+              'price': double.tryParse(i['unit_price']?.toString() ?? '0') ?? 0,
+            };
+          }).toList() ?? [];
+
+          String statusLabel = 'Confirmée';
+          Color statusColor = AppColors.primary;
+          Color statusBg = AppColors.primaryContainer;
+
+          if (status == 'en_preparation') {
+            statusLabel = 'En préparation';
+            statusColor = AppColors.warning;
+            statusBg = AppColors.warningLight;
+          } else if (status == 'prete') {
+            statusLabel = 'Prête à retirer';
+            statusColor = AppColors.success;
+            statusBg = AppColors.successLight;
+          } else if (status == 'collectee' || status == 'livree') {
+            statusLabel = 'Retirée / Livrée';
+            statusColor = AppColors.textSecondary;
+            statusBg = AppColors.background;
+          }
+
+          final createdAt = o['created_at'] != null 
+              ? DateTime.tryParse(o['created_at'].toString()) 
+              : null;
+          final dateStr = createdAt != null 
+              ? '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')} à ${createdAt.hour}h${createdAt.minute.toString().padLeft(2, '0')}'
+              : 'Récemment';
+
+          return {
+            'id': 'CMD-2026-${id.toString().padLeft(4, '0')}',
+            'rawId': id,
+            'pharmacyName': pharmacy['name'] ?? 'Grande Pharmacie du Golfe',
+            'pharmacyAddress': pharmacy['address'] ?? 'Boulevard du 13 Janvier, Lomé',
+            'pharmacyPhone': pharmacy['phone'] ?? '+228 22 21 00 00',
+            'date': dateStr,
+            'status': status,
+            'statusLabel': statusLabel,
+            'statusColor': statusColor,
+            'statusBg': statusBg,
+            'isDelivery': false,
+            'deliveryAddress': 'Retrait au comptoir de l\'officine',
+            'items': items,
+            'total': double.tryParse(o['total_amount']?.toString() ?? '0') ?? 0,
+          };
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   List<Map<String, dynamic>> get _filteredOrders {
     if (_selectedFilter == 1) {
-      return _orders.where((o) => o['status'] == 'en_preparation' || o['status'] == 'prete').toList();
+      return _orders.where((o) => o['status'] == 'confirmee' || o['status'] == 'en_preparation' || o['status'] == 'prete').toList();
     } else if (_selectedFilter == 2) {
-      return _orders.where((o) => o['status'] == 'livree').toList();
+      return _orders.where((o) => o['status'] == 'collectee' || o['status'] == 'livree').toList();
     }
     return _orders;
   }
+
+  int get _inProgressCount => _orders.where((o) => o['status'] == 'confirmee' || o['status'] == 'en_preparation' || o['status'] == 'prete').length;
+  int get _completedCount => _orders.where((o) => o['status'] == 'collectee' || o['status'] == 'livree').length;
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +121,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.primary),
+            tooltip: 'Actualiser',
+            onPressed: _fetchLiveOrders,
+          ),
+          IconButton(
             icon: const Icon(Icons.help_outline_rounded, color: AppColors.textSecondary),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -118,9 +147,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
               children: [
                 _buildFilterChip(0, 'Toutes (${_orders.length})'),
                 const SizedBox(width: 8),
-                _buildFilterChip(1, 'En cours (2)'),
+                _buildFilterChip(1, 'En cours ($_inProgressCount)'),
                 const SizedBox(width: 8),
-                _buildFilterChip(2, 'Livrées (1)'),
+                _buildFilterChip(2, 'Terminées ($_completedCount)'),
               ],
             ),
           ),
@@ -128,16 +157,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
           // Liste des commandes
           Expanded(
-            child: _filteredOrders.isEmpty
-                ? _buildEmptyState()
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredOrders.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 14),
-                    itemBuilder: (context, index) {
-                      final order = _filteredOrders[index];
-                      return _buildOrderCard(order);
-                    },
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                : RefreshIndicator(
+                    onRefresh: _fetchLiveOrders,
+                    color: AppColors.primary,
+                    child: _filteredOrders.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredOrders.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 14),
+                            itemBuilder: (context, index) {
+                              final order = _filteredOrders[index];
+                              return _buildOrderCard(order);
+                            },
+                          ),
                   ),
           ),
         ],

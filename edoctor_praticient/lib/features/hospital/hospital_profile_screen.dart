@@ -148,7 +148,7 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
                     const SizedBox(height: 14),
                     _sectionCard(
                       icon: Icons.verified_user_outlined,
-                      title: 'Agrément & statut sanitaire',
+                      title: 'Conformité & accréditation eDoctor',
                       children: [
                         Wrap(
                           spacing: 34,
@@ -161,7 +161,7 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Statut d’homologation',
+                                  'Statut d’accréditation eDoctor',
                                   style: TextStyle(
                                       fontSize: 11.5,
                                       color: AppColors.textMuted,

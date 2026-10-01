@@ -3,8 +3,8 @@ class ApiConstants {
   ApiConstants._();
 
   // URL de base paramétrable (10.0.2.2 pour émulateur Android, 127.0.0.1 pour web/desktop)
-  // 192.168.1.74 = IP LAN actuelle du PC pour téléphone physique en Wi-Fi / USB
-  static const String baseUrl = 'http://192.168.1.74:8000/api';
+  // 192.168.1.79 = IP LAN actuelle du PC pour téléphone physique en Wi-Fi / USB
+  static const String baseUrl = 'http://192.168.1.79:8000/api';
   static const String desktopBaseUrl = 'http://127.0.0.1:8000/api';
 
   // Authentification
@@ -19,5 +19,15 @@ class ApiConstants {
   static const String consultations = '/consultations';
   static const String prescriptions = '/prescriptions';
   static const String orders = '/orders';
+  static const String pharmacies = '/pharmacies';
   static const String notifications = '/notifications';
+  static const String claims = '/claims';
+  static const String myClaims = '/claims/my';
+
+  // Bilans et examens complémentaires
+  static const String labRequestsMy = '/lab-requests/my';
+  static String consultationLabRequests(int consultationId) =>
+      '/consultations/$consultationId/lab-requests';
+  static String labRequestDetails(int id) => '/lab-requests/$id';
+  static String labRequestResults(int id) => '/lab-requests/$id/results';
 }

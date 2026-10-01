@@ -1,13 +1,16 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../constants/api_constants.dart';
+import '../navigation/app_router.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/hospital_model.dart';
 import '../../data/models/consultation_model.dart';
 import '../../data/models/prescription_model.dart';
+import '../../data/models/lab_request_model.dart';
 import '../../data/models/nurse_visit_model.dart';
 import '../../data/models/video_meeting_config.dart';
 import 'storage_service.dart';
@@ -16,6 +19,45 @@ import 'storage_service.dart';
 /// Auth Sanctum : POST /login universel, routage par role ensuite.
 class ApiService {
   ApiService._();
+
+  static bool _redirecting401 = false;
+
+  /// Gère l'expiration du token (HTTP 401) de façon globale :
+  /// vide le cache de session, informe l'utilisateur et redirige vers /login.
+  static Future<void> _handleUnauthorized() async {
+    if (_redirecting401) return;
+    _redirecting401 = true;
+    try {
+      await StorageService.clearSession();
+      final nav = praticienNavigatorKey.currentState;
+      final ctx = nav?.context;
+      if (ctx != null && ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.lock_outline_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Votre session a expiré. Veuillez vous reconnecter.',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFFBA1A1A),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      nav?.pushNamedAndRemoveUntil('/login', (_) => false);
+    } finally {
+      Future.delayed(const Duration(seconds: 2), () {
+        _redirecting401 = false;
+      });
+    }
+  }
 
   static String get baseUrl {
     if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
@@ -31,6 +73,10 @@ class ApiService {
   };
 
   static String _msg(http.Response r, String fallback) {
+    if (r.statusCode == 401) {
+      _handleUnauthorized();
+      return 'Session expirée. Veuillez vous reconnecter.';
+    }
     try {
       final data = jsonDecode(r.body);
       if (data is Map<String, dynamic>) {
@@ -309,7 +355,7 @@ class ApiService {
     throw Exception(_msg(r, 'Salle vidéo inaccessible'));
   }
 
-  static Future<void> consultationAction(int id, String action) async {
+  static Future<void> consultationAction(int id, String action, {String? reason}) async {
     final token = await StorageService.getToken();
     String path;
     switch (action) {
@@ -327,7 +373,8 @@ class ApiService {
     }
     final r = await http.post(
       Uri.parse('$baseUrl$path'),
-      headers: _headers(token),
+      headers: _headers(token, json: reason != null),
+      body: reason != null ? jsonEncode({'reason': reason}) : null,
     );
     if (r.statusCode < 200 || r.statusCode >= 300) {
       throw Exception(_msg(r, 'Action impossible'));
@@ -424,6 +471,99 @@ class ApiService {
     if (r.statusCode < 200 || r.statusCode >= 300) {
       throw Exception(_msg(r, 'Annulation impossible'));
     }
+  }
+
+  // ---------- Médecin : Bilans & Examens complémentaires ----------
+  static Future<List<LabRequestModel>> getConsultationLabRequests(int consultationId) async {
+    final token = await StorageService.getToken();
+    final r = await http.get(
+      Uri.parse('$baseUrl${ApiConstants.consultationLabRequests(consultationId)}'),
+      headers: _headers(token),
+    );
+    if (r.statusCode == 200) {
+      final list = jsonDecode(r.body) as List;
+      return list
+          .map((e) => LabRequestModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception(_msg(r, 'Bilans d’examens inaccessibles'));
+  }
+
+  static Future<List<LabRequestModel>> getMyLabRequests() async {
+    final token = await StorageService.getToken();
+    final r = await http.get(
+      Uri.parse('$baseUrl${ApiConstants.labRequestsMy}'),
+      headers: _headers(token),
+    );
+    if (r.statusCode == 200) {
+      final list = jsonDecode(r.body) as List;
+      return list
+          .map((e) => LabRequestModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception(_msg(r, 'Historique des examens inaccessible'));
+  }
+
+  static Future<LabRequestModel> getLabRequestDetails(int id) async {
+    final token = await StorageService.getToken();
+    final r = await http.get(
+      Uri.parse('$baseUrl${ApiConstants.labRequestDetails(id)}'),
+      headers: _headers(token),
+    );
+    if (r.statusCode == 200) {
+      return LabRequestModel.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    }
+    throw Exception(_msg(r, 'Détail du bilan introuvable'));
+  }
+
+  static Future<LabRequestModel> createLabRequest({
+    required int consultationId,
+    required List<Map<String, dynamic>> items,
+    String? clinicalNotes,
+    String urgencyLevel = 'normal',
+    bool fastingRequired = false,
+  }) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl${ApiConstants.consultationLabRequests(consultationId)}'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({
+        'consultation_id': consultationId,
+        'items': items,
+        if (clinicalNotes != null && clinicalNotes.trim().isNotEmpty)
+          'clinical_notes': clinicalNotes.trim(),
+        'urgency_level': urgencyLevel,
+        'fasting_required': fastingRequired,
+      }),
+    );
+    if (r.statusCode == 201 || r.statusCode == 200) {
+      return LabRequestModel.fromJson(
+        jsonDecode(r.body) as Map<String, dynamic>,
+      );
+    }
+    throw Exception(_msg(r, 'Impossible de créer la prescription d’examens'));
+  }
+
+  static Future<LabRequestModel> reviewLabRequest(
+    int id, {
+    String? doctorReviewNotes,
+    String status = 'analyse_terminee',
+  }) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl${ApiConstants.labRequestReview(id)}'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({
+        if (doctorReviewNotes != null && doctorReviewNotes.trim().isNotEmpty)
+          'doctor_review_notes': doctorReviewNotes.trim(),
+        'status': status,
+      }),
+    );
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      return LabRequestModel.fromJson(data['lab_request'] as Map<String, dynamic>);
+    }
+    throw Exception(_msg(r, 'Validation du bilan impossible'));
   }
 
   static Future<List<MedicationModel>> getMedications() async {

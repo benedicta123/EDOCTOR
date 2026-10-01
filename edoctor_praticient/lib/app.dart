@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/navigation/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/auth/login_screen.dart';
@@ -15,6 +16,7 @@ class PraticienApp extends StatelessWidget {
       title: 'eDoctor Praticien',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      navigatorKey: praticienNavigatorKey,
       home: const SplashScreen(),
       routes: {
         '/login': (_) => const LoginScreen(),

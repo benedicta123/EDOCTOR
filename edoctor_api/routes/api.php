@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClaimController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\ConsultationVideoController;
 use App\Http\Controllers\Api\DeliveryController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\Api\HospitalRegistrationController;
 use App\Http\Controllers\Api\HospitalStaffController;
 use App\Http\Controllers\Api\HospitalDashboardController;
 use App\Http\Controllers\Api\HospitalVerificationController;
+use App\Http\Controllers\Api\LabRequestController;
 use App\Http\Controllers\Api\MedicationAvailabilityController;
 use App\Http\Controllers\Api\MedicationController;
 use App\Http\Controllers\Api\MessageController;
@@ -20,6 +23,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PatientDossierController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PharmacyController;
+use App\Http\Controllers\Api\PharmacyRegistrationController;
 use App\Http\Controllers\Api\PharmacyStockController;
 use App\Http\Controllers\Api\PrescriptionController;
 use Illuminate\Http\Request;
@@ -35,10 +39,15 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/hospitals/register', [HospitalRegistrationController::class, 'register']);
 Route::post('/hospitals/geocode', [HospitalRegistrationController::class, 'geocode']);
 
+// Inscription & Suivi d'Agrément Pharmacie (KYP)
+Route::post('/pharmacies/register', [PharmacyRegistrationController::class, 'register']);
+Route::post('/pharmacies/track-status', [PharmacyRegistrationController::class, 'trackStatus']);
+
 // Catalogue médicaments & officines
 Route::get('/medications', [MedicationController::class, 'index']);
 Route::get('/medications/{medication}', [MedicationController::class, 'show']);
 Route::get('/medications/{medication}/availability', [MedicationAvailabilityController::class, 'nearby']);
+Route::get('/pharmacies', [PharmacyController::class, 'index']);
 Route::get('/pharmacies/{pharmacy}', [PharmacyController::class, 'show']);
 
 // Médecins disponibles (accessible aux patients pour recherche rapide)
@@ -82,8 +91,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/prescriptions/{prescription}', [PrescriptionController::class, 'show']);
     Route::post('/prescriptions/{prescription}/cancel', [PrescriptionController::class, 'cancel']);
 
+    // Examens complémentaires & bilans de laboratoire
+    Route::get('/lab-requests/my', [LabRequestController::class, 'indexMine']);
+    Route::get('/lab-requests/{labRequest}', [LabRequestController::class, 'show']);
+    Route::post('/lab-requests/{labRequest}/results', [LabRequestController::class, 'uploadResults']);
+    Route::post('/lab-requests/{labRequest}/review', [LabRequestController::class, 'review']);
+    Route::get('/consultations/{consultation}/lab-requests', [LabRequestController::class, 'indexConsultation']);
+    Route::post('/consultations/{consultation}/lab-requests', [LabRequestController::class, 'store']);
+
     // Dossier médical patient
     Route::get('/patients/{patient}/dossier', [PatientDossierController::class, 'show']);
+
+    // Réclamations, litiges et assistance usagers (patients & praticiens)
+    Route::get('/claims/my', [ClaimController::class, 'indexMine']);
+    Route::post('/claims', [ClaimController::class, 'store']);
 
     // Commandes en pharmacie
     Route::get('/orders', [OrderController::class, 'index']);
@@ -101,8 +122,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Espace Pharmacie & Inventaire (pour pharmaciens)
     Route::get('/my-pharmacy', [PharmacyController::class, 'mine']);
     Route::put('/pharmacies/{pharmacy}', [PharmacyController::class, 'update']);
+    Route::get('/pharmacies/stocks/template', [PharmacyStockController::class, 'template']);
     Route::get('/pharmacies/{pharmacy}/stocks', [PharmacyStockController::class, 'index']);
+    Route::get('/pharmacies/{pharmacy}/stocks/export', [PharmacyStockController::class, 'exportCsv']);
     Route::post('/pharmacies/{pharmacy}/stocks', [PharmacyStockController::class, 'storeOrUpdate']);
+    Route::post('/pharmacies/{pharmacy}/stocks/import', [PharmacyStockController::class, 'importCsv']);
     Route::delete('/pharmacies/{pharmacy}/stocks/{stock}', [PharmacyStockController::class, 'destroy']);
 
     // Soins à domicile (Visites infirmières)
@@ -131,6 +155,39 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/hospitals/pending', [HospitalVerificationController::class, 'index']);
     Route::post('/admin/hospitals/{hospital}/verify', [HospitalVerificationController::class, 'verify']);
     Route::post('/admin/hospitals/{hospital}/reject', [HospitalVerificationController::class, 'reject']);
+
+    // ==========================================
+    // ESPACE SUPER-ADMIN & RÉGULATION NATIONALE
+    // ==========================================
+    Route::prefix('admin')->group(function () {
+        // Vue d'ensemble statistique nationale
+        Route::get('/overview', [AdminController::class, 'overview']);
+
+        // Module de validation et conformité des Hôpitaux
+        Route::get('/hospitals', [AdminController::class, 'hospitals']);
+        Route::post('/hospitals/{hospital}/verify', [AdminController::class, 'verifyHospital']);
+        Route::post('/hospitals/{hospital}/reject', [AdminController::class, 'rejectHospital']);
+        Route::post('/hospitals/{hospital}/suspend', [AdminController::class, 'suspendHospital']);
+        Route::post('/hospitals/{hospital}/reactivate', [AdminController::class, 'reactivateHospital']);
+
+        // Module de validation et conformité des Pharmacies
+        Route::get('/pharmacies', [AdminController::class, 'pharmacies']);
+        Route::post('/pharmacies/{pharmacy}/verify', [AdminController::class, 'verifyPharmacy']);
+        Route::post('/pharmacies/{pharmacy}/reject', [AdminController::class, 'rejectPharmacy']);
+        Route::post('/pharmacies/{pharmacy}/suspend', [AdminController::class, 'suspendPharmacy']);
+        Route::post('/pharmacies/{pharmacy}/reactivate', [AdminController::class, 'reactivatePharmacy']);
+
+        // Gestion des utilisateurs et modération (suspension / réactivation)
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::post('/users/{user}/suspend', [AdminController::class, 'suspendUser']);
+        Route::post('/users/{user}/reactivate', [AdminController::class, 'reactivateUser']);
+
+        // Journal de gestion des réclamations et litiges
+        Route::get('/claims', [AdminController::class, 'claims']);
+        Route::post('/claims', [AdminController::class, 'storeClaim']);
+        Route::post('/claims/{claim}/resolve', [AdminController::class, 'resolveClaim']);
+        Route::post('/claims/{claim}/status', [AdminController::class, 'updateClaimStatus']);
+    });
 
     // Utilitaire développement (Auto-vérification en 1 clic)
     Route::post('/dev/hospitals/{hospital}/quick-verify', [HospitalVerificationController::class, 'quickVerify']);

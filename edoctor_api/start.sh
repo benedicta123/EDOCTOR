@@ -13,6 +13,9 @@ php artisan key:generate --force
 echo "==> migrate"
 php artisan migrate --force
 
+echo "==> storage:link"
+php artisan storage:link || true
+
 echo "==> cache"
 php artisan config:cache
 php artisan route:cache

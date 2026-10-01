@@ -40,7 +40,7 @@ class AuthController extends Controller
             'medical_history_summary' => $validated['medical_history_summary'] ?? null,
         ]);
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        $token = $user->createAccessToken('api-token')->plainTextToken;
 
         return response()->json([
             'user' => $user,
@@ -66,7 +66,18 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        if ($user->is_suspended) {
+            $reason = $user->suspension_reason ? " : " . $user->suspension_reason : "";
+            return response()->json([
+                'message' => "Ce compte utilisateur a été suspendu par l'administration eDoctor{$reason}. Veuillez contacter le support de régulation.",
+            ], 403);
+        }
+
+        if ($user->isPharmacist()) {
+            $user->load('pharmacy');
+        }
+
+        $token = $user->createAccessToken('api-token')->plainTextToken;
 
         return response()->json([
             'user' => $user,

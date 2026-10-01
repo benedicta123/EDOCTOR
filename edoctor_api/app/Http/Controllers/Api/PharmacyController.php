@@ -10,6 +10,19 @@ use Illuminate\Support\Facades\Gate;
 class PharmacyController extends Controller
 {
     /**
+     * GET /api/pharmacies
+     * Liste des officines agréées (status = verifie) pour les patients.
+     */
+    public function index(Request $request)
+    {
+        $pharmacies = Pharmacy::where('status', 'verifie')
+            ->select(['id', 'name', 'address', 'phone', 'latitude', 'longitude', 'opening_hours', 'reference_id', 'status'])
+            ->get();
+
+        return response()->json($pharmacies);
+    }
+
+    /**
      * GET /api/my-pharmacy
      * Récupère l'officine appartenant au pharmacien connecté avec ses stocks.
      */

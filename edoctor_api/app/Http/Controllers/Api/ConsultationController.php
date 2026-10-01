@@ -14,13 +14,31 @@ class ConsultationController extends Controller
 {
     public function index(Request $request)
     {
+        Consultation::closeExpiredConsultations();
+
         $user = $request->user();
 
-        $consultations = Consultation::where('patient_id', $user->id)
-            ->orWhere('doctor_id', $user->id)
-            ->with(['patient:id,name', 'doctor:id,name'])
-            ->latest()
-            ->get();
+        $query = Consultation::where(function ($q) use ($user) {
+            $q->where('patient_id', $user->id)
+                ->orWhere('doctor_id', $user->id);
+        })->with([
+            'patient:id,name,email,phone,date_of_birth',
+            'doctor:id,name,hospital_id',
+            'doctor.hospital:id,name',
+            'prescription.items.medication',
+        ]);
+
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $query->where(function ($q) use ($search) {
+                $q->where('reference_code', 'ilike', "%{$search}%")
+                    ->orWhere('diagnosis', 'ilike', "%{$search}%")
+                    ->orWhereHas('patient', fn ($p) => $p->where('name', 'ilike', "%{$search}%"))
+                    ->orWhereHas('doctor', fn ($d) => $d->where('name', 'ilike', "%{$search}%"));
+            });
+        }
+
+        $consultations = $query->latest()->get();
 
         return response()->json($consultations);
     }
@@ -75,17 +93,30 @@ class ConsultationController extends Controller
     {
         Gate::authorize('decline', $consultation);
 
-        DB::transaction(function () use ($consultation) {
-            $consultation->update(['status' => 'annulee']);
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+        $reason = $validated['reason'] ?? null;
+
+        DB::transaction(function () use ($consultation, $reason) {
+            $data = ['status' => 'annulee'];
+            if ($reason) {
+                $data['diagnosis'] = "Refus praticien : {$reason}";
+            }
+            $consultation->update($data);
             if ($consultation->doctor->availability_status === 'en_consultation') {
                 $consultation->doctor->update(['availability_status' => null]);
             }
         });
 
+        $message = $reason
+            ? "Le Dr {$consultation->doctor->name} a décliné la demande : {$reason}."
+            : "Le Dr {$consultation->doctor->name} a décliné votre demande de consultation.";
+
         NotificationService::send(
             $consultation->patient,
             'consultation_declined',
-            "Le Dr {$consultation->doctor->name} a décliné votre demande de consultation."
+            $message
         );
 
         return response()->json($consultation);

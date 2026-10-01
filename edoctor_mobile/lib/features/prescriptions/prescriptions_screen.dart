@@ -4,6 +4,7 @@ import '../../core/services/api_service.dart';
 import '../../core/utils/format.dart';
 import '../../data/models/consultation_model.dart';
 import '../../data/models/prescription_model.dart';
+import '../../core/services/prescription_pdf_service.dart';
 import '../orders/orders_screen.dart';
 import '../home_care/home_care_screen.dart';
 
@@ -133,10 +134,10 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.primary, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: AppColors.primary.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -185,20 +186,42 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: active ? const Color(0xFFFED7AA) : AppColors.surfaceDim,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  active ? 'Valide / À traiter' : 'Annulée',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: active ? const Color(0xFFC2410C) : AppColors.textMuted,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: active ? const Color(0xFFFED7AA) : AppColors.surfaceDim,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      active ? 'Valide / À traiter' : 'Annulée',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: active ? const Color(0xFFC2410C) : AppColors.textMuted,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 6),
+                  Material(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => PrescriptionPdfService.printPrescription(ord),
+                      child: const Padding(
+                        padding: EdgeInsets.all(6),
+                        child: Icon(
+                          Icons.print_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -207,7 +230,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
           const Divider(height: 1, color: AppColors.borderLight),
           const SizedBox(height: 12),
 
-          // Praticien prescripteur
+          // Praticien prescripteur & Établissement
           Row(
             children: [
               Container(
@@ -232,12 +255,30 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                         color: AppColors.textPrimary,
                       ),
                     ),
+                    if (ord.hospitalName.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.local_hospital_rounded, size: 12, color: AppColors.textMuted),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              ord.hospitalName,
+                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 2),
                     Row(
                       children: [
                         const Icon(Icons.link_rounded, size: 12, color: AppColors.primary),
                         const SizedBox(width: 4),
                         Text(
-                          'Consultation #${ord.consultationId}',
+                          'Consultation ${ord.consultationDisplayCode}',
                           style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -248,7 +289,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
             ],
           ),
 
-          if (diagnosis != null && diagnosis.trim().isNotEmpty) ...[
+          if ((diagnosis != null && diagnosis.trim().isNotEmpty) || (ord.diagnosis.isNotEmpty && ord.diagnosis != 'Non spécifié')) ...[
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
@@ -264,7 +305,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Diagnostic : ${diagnosis.trim()}',
+                      'Diagnostic : ${(diagnosis != null && diagnosis.trim().isNotEmpty) ? diagnosis.trim() : ord.diagnosis}',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                   ),
@@ -418,56 +459,73 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (ctx) {
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: ApiService.getPharmacies(),
+          builder: (context, snapshot) {
+            final pharmacies = snapshot.data ?? [];
+            final loading = snapshot.connectionState == ConnectionState.waiting;
+
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Choisir une pharmacie',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
                   const Text(
-                    'Choisir une pharmacie',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    'Sélectionnez l\'officine partenaire eDoctor pour préparer ou livrer vos médicaments :',
+                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
+                  const SizedBox(height: 16),
+
+                  if (loading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: CircularProgressIndicator(color: AppColors.primary),
+                      ),
+                    )
+                  else if (pharmacies.isEmpty)
+                    _buildPharmacyTile(
+                      name: 'Grande Pharmacie du Golfe',
+                      address: 'Boulevard du 13 Janvier, Quartier Déckon, Lomé',
+                      distance: 'En stock immédiat • Partenaire certifié',
+                      onTap: () => _confirmOrder(ord, 6, 'Grande Pharmacie du Golfe'),
+                    )
+                  else
+                    ...pharmacies.map((p) {
+                      final id = p['id'] as int? ?? 6;
+                      final name = p['name'] as String? ?? 'Pharmacie';
+                      final address = p['address'] as String? ?? 'Lomé, Togo';
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _buildPharmacyTile(
+                          name: name,
+                          address: address,
+                          distance: 'Officine agréée eDoctor • En stock',
+                          onTap: () => _confirmOrder(ord, id, name),
+                        ),
+                      );
+                    }),
+                  const SizedBox(height: 16),
                 ],
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'Sélectionnez l\'officine partenaire eDoctor pour préparer ou livrer vos médicaments :',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-
-              _buildPharmacyTile(
-                name: 'Grande Pharmacie Centrale de Démo',
-                address: 'Avenue Chardy, Plateau, Abidjan',
-                distance: '1.2 km • En stock immédiat',
-                onTap: () => _confirmOrder(ord, 'Grande Pharmacie Centrale de Démo'),
-              ),
-              const SizedBox(height: 10),
-              _buildPharmacyTile(
-                name: 'Pharmacie de la Paix & Espérance',
-                address: 'Boulevard de Marseille, Zone 4, Abidjan',
-                distance: '2.8 km • En stock immédiat',
-                onTap: () => _confirmOrder(ord, 'Pharmacie de la Paix & Espérance'),
-              ),
-              const SizedBox(height: 10),
-              _buildPharmacyTile(
-                name: 'Pharmacie Sainte-Marie',
-                address: 'Boulevard Latrille, Cocody Angré',
-                distance: '3.5 km • Garde 24h/24',
-                onTap: () => _confirmOrder(ord, 'Pharmacie Sainte-Marie'),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -523,22 +581,71 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
     );
   }
 
-  void _confirmOrder(PatientPrescription ord, String pharmacyName) {
+  Future<void> _confirmOrder(PatientPrescription ord, int pharmacyId, String pharmacyName) async {
     Navigator.of(context).pop();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Ordonnance transmise à la $pharmacyName !'),
-        backgroundColor: AppColors.primary,
-        action: SnackBarAction(
-          label: 'Voir mes commandes',
-          textColor: Colors.white,
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const OrdersScreen()),
-            );
-          },
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('Transmission de la commande à $pharmacyName...'),
+            ),
+          ],
         ),
+        backgroundColor: AppColors.primary,
+        duration: const Duration(seconds: 2),
       ),
     );
+
+    try {
+      final items = ord.items.map((i) => {
+        'medication_id': i.medicationId,
+        'quantity': i.quantity,
+      }).toList();
+
+      final res = await ApiService.createOrder(
+        pharmacyId: pharmacyId,
+        prescriptionId: ord.id,
+        paymentMethod: 'mobile_money',
+        items: items,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🎉 Commande #${res['id']} transmise à la $pharmacyName !'),
+          backgroundColor: AppColors.success,
+          action: SnackBarAction(
+            label: 'Voir mes commandes',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const OrdersScreen()),
+              );
+            },
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 }

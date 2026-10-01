@@ -18,7 +18,13 @@ class PrescriptionController extends Controller
 
         $prescriptions = Prescription::where('patient_id', $user->id)
             ->orWhere('doctor_id', $user->id)
-            ->with(['items.medication', 'doctor:id,name'])
+            ->with([
+                'items.medication',
+                'doctor:id,name,hospital_id',
+                'doctor.hospital:id,name,address',
+                'patient:id,name,date_of_birth,phone',
+                'consultation:id,reference_code,diagnosis,created_at',
+            ])
             ->latest()
             ->get();
 
@@ -30,7 +36,13 @@ class PrescriptionController extends Controller
         Gate::authorize('view', $prescription);
 
         return response()->json(
-            $prescription->load(['items.medication', 'doctor:id,name', 'patient:id,name'])
+            $prescription->load([
+                'items.medication',
+                'doctor:id,name,hospital_id',
+                'doctor.hospital:id,name,address',
+                'patient:id,name,date_of_birth,phone',
+                'consultation:id,reference_code,diagnosis,created_at',
+            ])
         );
     }
 
@@ -83,6 +95,15 @@ class PrescriptionController extends Controller
     public function cancel(Request $request, Prescription $prescription)
     {
         Gate::authorize('cancel', $prescription);
+
+        if ($prescription->status === 'annulee') {
+            abort(422, 'Cette ordonnance est déjà annulée.');
+        }
+
+        // Règle médico-légale : interdiction formelle d'annuler au-delà de 5 minutes après l'émission
+        if ($prescription->created_at && $prescription->created_at->diffInMinutes(now()) >= 5) {
+            abort(422, 'Impossible d’annuler cette ordonnance : le délai réglementaire de 5 minutes après émission est dépassé (règle médico-légale de traçabilité pharmaceutique).');
+        }
 
         $prescription->update(['status' => 'annulee']);
 

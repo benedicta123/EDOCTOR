@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/app_logo.dart';
 import '../auth/register_step1_screen.dart';
@@ -35,22 +36,51 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateToNextScreen() async {
+    // Durée minimale du splash pour l'animation
     await Future.delayed(const Duration(milliseconds: 2200));
     if (!mounted) return;
 
     final token = await StorageService.getToken();
-    final user = await StorageService.getUser();
+    final cachedUser = await StorageService.getUser();
 
-    if (!mounted) return;
-
-    if (token != null && user != null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeScreen(user: user)),
-      );
-    } else {
+    // Pas de session locale → inscription
+    if (token == null || cachedUser == null) {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const RegisterStep1Screen()),
       );
+      return;
+    }
+
+    // Vérification du token côté API (détecte 401 / token expiré)
+    // Si hors ligne → me() retourne null mais clearSession() n'est PAS appelé
+    // → on utilise le cache local comme fallback.
+    final freshUser = await ApiService.me();
+
+    if (!mounted) return;
+
+    if (freshUser != null) {
+      // Token valide → dashboard avec données fraîches
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => HomeScreen(user: freshUser)),
+      );
+    } else {
+      // me() a retourné null — deux cas :
+      // 1. 401 (token révoqué) → clearSession() a été appelé dans me(), aller à l'inscription
+      // 2. Hors ligne → le cache est intact, utiliser cachedUser
+      final stillHasToken = await StorageService.getToken();
+      if (!mounted) return;
+      if (stillHasToken != null) {
+        // Hors ligne — on utilise le cache
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => HomeScreen(user: cachedUser)),
+        );
+      } else {
+        // Token révoqué (401) — retour à l'inscription
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const RegisterStep1Screen()),
+        );
+      }
     }
   }
 

@@ -36,4 +36,25 @@ class StorageService {
     await prefs.remove(_keyToken);
     await prefs.remove(_keyUser);
   }
+
+  static Future<void> saveDraft(String key, Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('draft_$key', jsonEncode(data));
+  }
+
+  static Future<Map<String, dynamic>?> getDraft(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('draft_$key');
+    if (raw == null) return null;
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> clearDraft(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('draft_$key');
+  }
 }

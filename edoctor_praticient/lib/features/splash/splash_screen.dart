@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../data/models/user_model.dart';
 import '../auth/login_screen.dart';
 import '../doctor/doctor_dashboard.dart';
 import '../hospital/hospital_dashboard.dart';
@@ -23,17 +25,38 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
     final token = await StorageService.getToken();
-    final user = await StorageService.getUser();
+    final cachedUser = await StorageService.getUser();
     if (!mounted) return;
-    if (token == null || user == null) {
+    if (token == null || cachedUser == null) {
       Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()));
       return;
     }
+
+    UserModel userToRoute = cachedUser;
+    try {
+      final fresh = await ApiService.me();
+      if (!mounted) return;
+      userToRoute = fresh;
+      await StorageService.saveSession(token: token, user: fresh);
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().toLowerCase();
+      // Si la session est expirée ou invalide (401), vider la session et rediriger vers le login
+      if (msg.contains('401') || msg.contains('expirée') || msg.contains('non authentifié')) {
+        await StorageService.clearSession();
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginScreen()));
+        return;
+      }
+      // En cas de simple déconnexion réseau (hors ligne), on continue avec le cache
+    }
+
     Widget next = const LoginScreen();
-    if (user.isDoctor) {
+    if (userToRoute.isDoctor) {
       next = const DoctorDashboard();
-    } else if (user.isHospitalAdmin) {
+    } else if (userToRoute.isHospitalAdmin) {
       next = const HospitalDashboard();
     }
     Navigator.of(context)
@@ -56,27 +79,11 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Carte blanche : le logo est sombre, illisible directement sur le fond marine.
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 26, vertical: 18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 30,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Image.asset(
-                  'assets/images/edoctor_logo.png',
-                  width: 190,
-                  height: 62,
-                  fit: BoxFit.contain,
-                ),
+              Image.asset(
+                'assets/images/logo_blanc.png',
+                width: 220,
+                height: 80,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 24),
               const Text(

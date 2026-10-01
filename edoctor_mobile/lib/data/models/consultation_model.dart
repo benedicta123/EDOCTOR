@@ -1,6 +1,7 @@
 /// Modèle de consultation partagé côté patient mobile.
 class ConsultationModel {
   final int id;
+  final String referenceCode;
   final int patientId;
   final int doctorId;
   final String status; // en_attente | en_cours | terminee | annulee
@@ -14,6 +15,7 @@ class ConsultationModel {
 
   const ConsultationModel({
     required this.id,
+    this.referenceCode = '',
     required this.patientId,
     required this.doctorId,
     required this.status,
@@ -26,10 +28,13 @@ class ConsultationModel {
     this.doctorName = '',
   });
 
+  String get displayCode => referenceCode.isNotEmpty ? referenceCode : '#$id';
+
   factory ConsultationModel.fromJson(Map<String, dynamic> json) {
     String nested(Map<String, dynamic>? m) => m?['name'] as String? ?? '';
     return ConsultationModel(
       id: (json['id'] as num?)?.toInt() ?? 0,
+      referenceCode: (json['reference_code'] as String? ?? '').trim(),
       patientId: (json['patient_id'] as num?)?.toInt() ?? 0,
       doctorId: (json['doctor_id'] as num?)?.toInt() ?? 0,
       status: json['status'] as String? ?? 'en_attente',

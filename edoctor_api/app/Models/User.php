@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -22,6 +23,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_suspended',
+        'suspension_reason',
+        'suspended_at',
         'role',
         'phone',
         'hospital_id',
@@ -46,6 +50,8 @@ class User extends Authenticatable
             'last_seen_at' => 'datetime',
             'date_of_birth' => 'date',
             'password' => 'hashed',
+            'is_suspended' => 'boolean',
+            'suspended_at' => 'datetime',
         ];
     }
 
@@ -54,10 +60,16 @@ class User extends Authenticatable
     public function isPharmacist(): bool { return $this->role === 'pharmacist'; }
     public function isNurse(): bool { return $this->role === 'nurse'; }
     public function isAdmin(): bool { return $this->role === 'admin'; }
+    public function isSuperAdmin(): bool { return $this->role === 'admin' && $this->hospital_id === null; }
 
     public function hospital(): BelongsTo
     {
         return $this->belongsTo(Hospital::class);
+    }
+
+    public function pharmacy(): HasOne
+    {
+        return $this->hasOne(Pharmacy::class, 'owner_id');
     }
 
     public function notifications(): HasMany
@@ -99,5 +111,19 @@ class User extends Authenticatable
             ->whereHas('hospital', function (Builder $q) {
                 $q->where('status', 'verifie');
             });
+    }
+
+    /**
+     * Crée un jeton d'accès Sanctum avec une durée adaptée au profil :
+     * - Professionnels de santé & admins (données sensibles) : 30 minutes
+     * - Patients : 60 minutes
+     */
+    public function createAccessToken(string $name = 'api-token'): \Laravel\Sanctum\NewAccessToken
+    {
+        $minutes = in_array($this->role, ['doctor', 'nurse', 'pharmacist', 'admin', 'hospital_admin'])
+            ? 30
+            : 60;
+
+        return $this->createToken($name, ['*'], now()->addMinutes($minutes));
     }
 }

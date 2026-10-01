@@ -5,7 +5,7 @@ class ApiConstants {
 
   // PC dev : 127.0.0.1 pour web/desktop, IP LAN pour téléphone physique.
   // Aligne sur edoctor_mobile : même API Laravel sur :8000/api
-  static const String baseUrl = 'http://192.168.1.74:8000/api';
+  static const String baseUrl = 'http://192.168.1.79:8000/api';
   static const String desktopBaseUrl = 'http://127.0.0.1:8000/api';
 
   // Auth (POST /login universel : doctor + admin hopital)
@@ -34,6 +34,12 @@ class ApiConstants {
   static String consultationEnd(int id) => '/consultations/$id/end';
   static String consultationCancel(int id) => '/consultations/$id/cancel';
   static String prescriptionCancel(int id) => '/prescriptions/$id/cancel';
+  static const String labRequestsMy = '/lab-requests/my';
+  static String consultationLabRequests(int consultationId) =>
+      '/consultations/$consultationId/lab-requests';
+  static String labRequestDetails(int id) => '/lab-requests/$id';
+  static String labRequestResults(int id) => '/lab-requests/$id/results';
+  static String labRequestReview(int id) => '/lab-requests/$id/review';
 
   // Admin hopital
   static const String hospitalDashboard = '/my-hospital/dashboard';

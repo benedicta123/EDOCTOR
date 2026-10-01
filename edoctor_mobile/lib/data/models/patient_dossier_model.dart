@@ -5,6 +5,7 @@ import '../models/user_model.dart';
 /// Aucune valeur inventée : tout champ absent s'affiche "Non renseigné".
 class DossierConsultation {
   final int id;
+  final String referenceCode;
   final String status;
   final String? scheduledAt;
   final String? startedAt;
@@ -15,6 +16,7 @@ class DossierConsultation {
 
   const DossierConsultation({
     required this.id,
+    this.referenceCode = '',
     required this.status,
     this.scheduledAt,
     this.startedAt,
@@ -24,10 +26,13 @@ class DossierConsultation {
     this.doctorSpecialty,
   });
 
+  String get displayCode => referenceCode.isNotEmpty ? referenceCode : '#$id';
+
   factory DossierConsultation.fromJson(Map<String, dynamic> json) {
     final doctor = json['doctor'] as Map<String, dynamic>?;
     return DossierConsultation(
       id: (json['id'] as num?)?.toInt() ?? 0,
+      referenceCode: (json['reference_code'] as String? ?? '').trim(),
       status: json['status']?.toString() ?? '—',
       scheduledAt: json['scheduled_at']?.toString() ?? json['created_at']?.toString(),
       startedAt: json['started_at']?.toString(),

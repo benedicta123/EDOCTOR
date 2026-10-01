@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/navigation/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/auth/register_step1_screen.dart';
@@ -10,6 +11,7 @@ import 'features/medical_history/medical_history_screen.dart';
 import 'features/home_care/home_care_screen.dart';
 import 'features/dossier/patient_dossier_screen.dart';
 import 'features/profile/patient_profile_screen.dart';
+import 'features/lab_examinations/lab_examinations_screen.dart';
 
 class EDoctorApp extends StatelessWidget {
   const EDoctorApp({super.key});
@@ -20,6 +22,7 @@ class EDoctorApp extends StatelessWidget {
       title: 'eDoctor',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      navigatorKey: appNavigatorKey,
       home: const SplashScreen(),
       routes: {
         '/splash': (_) => const SplashScreen(),
@@ -32,6 +35,7 @@ class EDoctorApp extends StatelessWidget {
         '/home-care': (_) => const HomeCareScreen(),
         '/dossier': (_) => const PatientDossierScreen(),
         '/profile': (_) => const PatientProfileScreen(),
+        '/lab-examinations': (_) => const LabExaminationsScreen(),
       },
     );
   }

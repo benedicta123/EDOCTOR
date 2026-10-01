@@ -200,7 +200,7 @@ class _HospitalActivityScreenState extends State<HospitalActivityScreen> {
                             [
                               if (consultation.doctorName.isNotEmpty)
                                 doctorDisplay(consultation.doctorName),
-                              'Consultation #${consultation.id}',
+                              'Consultation ${consultation.displayCode}',
                             ].join(' · '),
                             style: const TextStyle(
                                 color: AppColors.textSecondary,

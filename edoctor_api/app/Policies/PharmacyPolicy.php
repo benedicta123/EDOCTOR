@@ -14,11 +14,11 @@ class PharmacyPolicy
 
     public function update(User $user, Pharmacy $pharmacy): bool
     {
-        return $user->isPharmacist() && $pharmacy->owner_id === $user->id;
+        return ($user->isPharmacist() && $pharmacy->owner_id === $user->id) || $user->isAdmin();
     }
 
     public function manageStocks(User $user, Pharmacy $pharmacy): bool
     {
-        return $user->isPharmacist() && $pharmacy->owner_id === $user->id;
+        return ($user->isPharmacist() && $pharmacy->owner_id === $user->id) || $user->isAdmin();
     }
 }

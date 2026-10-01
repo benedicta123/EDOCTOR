@@ -8,10 +8,12 @@ import '../../core/widgets/ui_kit.dart';
 import '../../core/widgets/praticien_nav.dart';
 import '../../data/models/consultation_model.dart';
 import '../../data/models/prescription_model.dart';
+import '../../data/models/lab_request_model.dart';
 import '../../data/models/user_model.dart';
 import '../auth/login_screen.dart';
 import 'patient_dossier_screen.dart';
 import 'video_consultation_screen.dart';
+import 'widgets/lab_requests_view.dart';
 
 /// Fiche consultation médecin : actions statut + chat optimiste + vidéo + ordonnance.
 class ConsultationDetailScreen extends StatefulWidget {
@@ -42,16 +44,28 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
   final _dosage = TextEditingController();
   final _qty = TextEditingController(text: '1');
   bool _homeCare = false;
-  bool _creatingRx = false;
   List<PrescriptionModel> _consultationRx = [];
+
+  // Bilans et examens complémentaires
+  List<LabRequestModel> _consultationLabs = [];
 
   // Diagnostic (note médicale obligatoire avant clôture)
   final _diagnosis = TextEditingController();
   bool _closing = false;
 
+  void _saveDraft() {
+    if (widget.consultation.isClosed) return;
+    StorageService.saveDraft('consultation_${widget.consultation.id}', {
+      'diagnosis': _diagnosis.text,
+      'home_care': _homeCare,
+      'items': _items,
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    _diagnosis.addListener(_saveDraft);
     _load();
     // Les réponses du patient arrivent sans manipulation, toutes les 5 s.
     _incomingPoll = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -61,6 +75,7 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
 
   @override
   void dispose() {
+    _diagnosis.removeListener(_saveDraft);
     _msgCtrl.dispose();
     _dosage.dispose();
     _qty.dispose();
@@ -90,15 +105,45 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
         catalog = await ApiService.getMedications();
       } catch (_) {}
       final rx = await _fetchConsultationRx();
+      List<LabRequestModel> labs = [];
+      try {
+        labs = await ApiService.getConsultationLabRequests(widget.consultation.id);
+      } catch (_) {}
+
+      // Restauration automatique du brouillon sauvegardé si présent
+      final draft = await StorageService.getDraft('consultation_${widget.consultation.id}');
+      if (draft != null) {
+        final dDiag = draft['diagnosis']?.toString();
+        if (dDiag != null && dDiag.isNotEmpty) {
+          _diagnosis.text = dDiag;
+        } else if (_diagnosis.text.isEmpty) {
+          _diagnosis.text = widget.consultation.diagnosis ?? '';
+        }
+        if (draft['home_care'] is bool) {
+          _homeCare = draft['home_care'] as bool;
+        }
+        final dItems = draft['items'] as List?;
+        if (dItems != null && dItems.isNotEmpty) {
+          _items.clear();
+          for (final it in dItems) {
+            if (it is Map<String, dynamic>) {
+              _items.add(Map<String, dynamic>.from(it));
+            }
+          }
+        }
+      } else {
+        if (_diagnosis.text.isEmpty) {
+          _diagnosis.text = widget.consultation.diagnosis ?? '';
+        }
+      }
+
       if (!mounted) return;
       setState(() {
         _me = me;
         _messages = msgs;
         _catalog = catalog;
         _consultationRx = rx;
-        if (_diagnosis.text.isEmpty) {
-          _diagnosis.text = widget.consultation.diagnosis ?? '';
-        }
+        _consultationLabs = labs;
         _loading = false;
       });
       _scrollToBottom();
@@ -161,33 +206,38 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
     }
   }
 
-  /// Clôture : exige le diagnostic ET au moins une ordonnance validée
-  /// liée à cette consultation avant d'appeler l'API.
+  /// Clôture : valide le diagnostic ET émet l'ordonnance préparée en une seule action atomique.
   Future<void> _closeConsultation() async {
     if (_closing) return;
-    if (_diagnosis.text.trim().isEmpty) {
+    final diag = _diagnosis.text.trim();
+    if (diag.isEmpty) {
       showMsg(context,
-          'Posez d’abord le diagnostic (note médicale) avant de clôturer.',
+          'Posez d’abord le diagnostic (note médicale) avant de clôturer la consultation.',
           error: true);
       return;
     }
     final rx = await _fetchConsultationRx();
     if (!mounted) return;
     setState(() => _consultationRx = rx);
-    if (rx.isEmpty) {
+    if (rx.isEmpty && _items.isEmpty) {
       showMsg(context,
-          'Rédigez d’abord l’ordonnance de cette consultation avant de clôturer.',
+          'Ajoutez au moins un médicament à l’ordonnance avant de terminer la consultation.',
           error: true);
       return;
     }
+
+    final itemCount = _items.isNotEmpty
+        ? _items.length
+        : (rx.isNotEmpty ? rx.first.items.length : 0);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20)),
-        title: const Text('Clôturer la consultation ?'),
+        title: const Text('Terminer la consultation ?'),
         content: Text(
-          'Diagnostic enregistré et ordonnance #${rx.first.id} liée. '
+          'Le diagnostic sera enregistré et l’ordonnance ($itemCount médicament(s)) sera émise et transmise directement au patient. '
           'Les échanges seront clos et aucune modification ne sera plus possible.',
           style: const TextStyle(
               fontSize: 13, color: AppColors.textSecondary),
@@ -198,8 +248,12 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
             child: const Text('Vérifier encore'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Clôturer'),
+            child: const Text('Terminer et transmettre'),
           ),
         ],
       ),
@@ -207,12 +261,33 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
     if (confirm != true || !mounted) return;
     setState(() => _closing = true);
     try {
+      // 1. Émission de l'ordonnance uniquement maintenant si des médicaments sont préparés
+      if (_items.isNotEmpty) {
+        await ApiService.createPrescription(
+          consultationId: widget.consultation.id,
+          homeCareRecommended: _homeCare,
+          items: _items
+              .map((e) => {
+                    'medication_id': e['medication_id'],
+                    'dosage_instructions': e['dosage_instructions'],
+                    'quantity': e['quantity'],
+                  })
+              .toList(),
+        );
+      }
+
+      // 2. Clôture de la consultation avec enregistrement du diagnostic
       await ApiService.endConsultation(
         widget.consultation.id,
-        diagnosis: _diagnosis.text,
+        diagnosis: diag,
       );
+
+      // 3. Suppression du brouillon local
+      await StorageService.clearDraft('consultation_${widget.consultation.id}');
+
       if (mounted) {
-        showMsg(context, 'Consultation clôturée');
+        showMsg(context,
+            'Consultation terminée et ordonnance transmise avec succès !');
         Navigator.of(context).pop();
       }
     } catch (e) {
@@ -268,49 +343,14 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
       _dosage.clear();
       _qty.text = '1';
     });
-  }
-
-  Future<void> _createRx() async {
-    if (_items.isEmpty) {
-      showMsg(context, 'Ajoutez au moins un médicament', error: true);
-      return;
-    }
-    setState(() => _creatingRx = true);
-    try {
-      final rx = await ApiService.createPrescription(
-        consultationId: widget.consultation.id,
-        homeCareRecommended: _homeCare,
-        items: _items
-            .map((e) => {
-                  'medication_id': e['medication_id'],
-                  'dosage_instructions': e['dosage_instructions'],
-                  'quantity': e['quantity'],
-                })
-            .toList(),
-      );
-      final fresh = await _fetchConsultationRx();
-      if (mounted) {
-        showMsg(context, 'Ordonnance #${rx.id} créée');
-        setState(() {
-          _items.clear();
-          _consultationRx = fresh;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        showMsg(context, e.toString().replaceFirst('Exception: ', ''),
-            error: true);
-      }
-    } finally {
-      if (mounted) setState(() => _creatingRx = false);
-    }
+    _saveDraft();
   }
 
   @override
   Widget build(BuildContext context) {
     final c = widget.consultation;
     return ResponsiveShell(
-      title: 'Consultation #${c.id}',
+      title: 'Consultation ${c.displayCode}',
       subtitle: c.patientName.isEmpty
           ? 'Patient #${c.patientId}'
           : c.patientName,
@@ -343,6 +383,12 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
                 ),
                 const SizedBox(height: 10),
                 _buildChat(c),
+                const SizedBox(height: 24),
+                LabRequestsSection(
+                  consultation: c,
+                  labRequests: _consultationLabs,
+                  onRefresh: _load,
+                ),
                 if (c.status == 'en_cours') ...[
                   const SizedBox(height: 20),
                   const Text(
@@ -630,7 +676,7 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
                   size: 18, color: AppColors.primary),
               const SizedBox(width: 8),
               Text(
-                'Consultation #${rx.consultationId}',
+                'Consultation ${rx.consultationDisplayCode}',
                 style: const TextStyle(
                     fontWeight: FontWeight.w700, fontSize: 13.5),
               ),
@@ -710,6 +756,7 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
                           author: m.senderName,
                           mine: mine,
                           pending: false,
+                          createdAt: m.createdAt,
                         );
                       }
                       final pm = _pending[i - _messages.length];
@@ -718,6 +765,7 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
                         author: _me?.name ?? 'Vous',
                         mine: true,
                         pending: true,
+                        createdAt: pm.createdAt.toIso8601String(),
                         failed: pm.failed,
                         onRetry: pm.failed
                             ? () => unawaited(_dispatch(pm))
@@ -787,46 +835,72 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
     );
   }
 
+  String _formatMsgTime(String? iso) {
+    if (iso == null || iso.isEmpty) {
+      final now = DateTime.now();
+      return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    }
+    final d = DateTime.tryParse(iso)?.toLocal();
+    if (d == null) return '';
+    return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  }
+
   Widget _bubble({
     required String content,
     required String author,
     required bool mine,
     required bool pending,
+    String? createdAt,
     bool failed = false,
     VoidCallback? onRetry,
     VoidCallback? onDiscard,
   }) {
     final bubble = Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       constraints: const BoxConstraints(maxWidth: 420),
       decoration: BoxDecoration(
         color: failed
             ? AppColors.errorLight
             : mine
-                ? AppColors.primaryContainer
-                : AppColors.background,
-        borderRadius: BorderRadius.circular(14),
+                ? AppColors.primary
+                : AppColors.surface,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: Radius.circular(mine ? 16 : 4),
+          bottomRight: Radius.circular(mine ? 4 : 16),
+        ),
         border: failed
             ? Border.all(color: AppColors.error.withValues(alpha: 0.5))
-            : null,
+            : mine
+                ? null
+                : Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: mine ? 0.08 : 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                author,
+                mine ? 'Vous' : author,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: failed
                       ? AppColors.error
                       : mine
-                          ? AppColors.primaryHover
-                          : AppColors.textSecondary,
+                          ? Colors.white.withValues(alpha: 0.85)
+                          : AppColors.primary,
                 ),
               ),
               if (pending && !failed) ...[
@@ -834,7 +908,10 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
                 const SizedBox(
                   width: 9,
                   height: 9,
-                  child: CircularProgressIndicator(strokeWidth: 1.4),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.4,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                  ),
                 ),
               ],
               if (failed) ...[
@@ -844,8 +921,53 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
               ],
             ],
           ),
-          const SizedBox(height: 2),
-          Text(content),
+          const SizedBox(height: 3),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 13.5,
+              height: 1.35,
+              color: failed
+                  ? AppColors.error
+                  : mine
+                      ? Colors.white
+                      : AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                _formatMsgTime(createdAt),
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w500,
+                  color: failed
+                      ? AppColors.error
+                      : mine
+                          ? Colors.white.withValues(alpha: 0.75)
+                          : AppColors.textMuted,
+                ),
+              ),
+              if (mine && !failed) ...[
+                const SizedBox(width: 4),
+                if (pending)
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 11,
+                    color: Colors.white.withValues(alpha: 0.75),
+                  )
+                else
+                  Icon(
+                    Icons.done_all_rounded,
+                    size: 13,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+              ],
+            ],
+          ),
           if (failed)
             Padding(
               padding: const EdgeInsets.only(top: 4),
@@ -990,7 +1112,10 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
                       tooltip: 'Retirer',
                       icon: const Icon(Icons.delete_outline_rounded,
                           color: AppColors.error),
-                      onPressed: () => setState(() => _items.remove(e)),
+                      onPressed: () {
+                        setState(() => _items.remove(e));
+                        _saveDraft();
+                      },
                     ),
                   ),
                 )),
@@ -1005,13 +1130,63 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
                 'Proposera une prise en charge à domicile au patient',
                 style: TextStyle(fontSize: 12.5)),
             value: _homeCare,
-            onChanged: (v) => setState(() => _homeCare = v),
+            onChanged: (v) {
+              setState(() => _homeCare = v);
+              _saveDraft();
+            },
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _items.isNotEmpty
+                  ? AppColors.primaryContainer.withValues(alpha: 0.6)
+                  : AppColors.surfaceDim.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _items.isNotEmpty
+                    ? AppColors.primary.withValues(alpha: 0.3)
+                    : AppColors.border,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  _items.isNotEmpty
+                      ? Icons.check_circle_rounded
+                      : Icons.info_outline_rounded,
+                  color: _items.isNotEmpty
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _items.isNotEmpty
+                        ? '${_items.length} médicament(s) dans le brouillon d\'ordonnance (conservé automatiquement). Cliquez sur « Terminer » pour enregistrer le diagnostic et émettre l’ordonnance au patient.'
+                        : 'Ajoutez les médicaments prescrits ci-dessus. L\'ordonnance ne sera créée et visible chez le patient qu\'au moment où vous cliquerez sur « Terminer ».',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight:
+                          _items.isNotEmpty ? FontWeight.w600 : FontWeight.w500,
+                      color: _items.isNotEmpty
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           CustomButton(
-            label: 'Créer l’ordonnance',
-            isLoading: _creatingRx,
-            onPressed: _createRx,
+            label: _items.isNotEmpty
+                ? 'Terminer la consultation et émettre l’ordonnance (${_items.length})'
+                : 'Terminer la consultation',
+            isLoading: _closing,
+            onPressed: _closeConsultation,
           ),
         ],
       ),
@@ -1021,6 +1196,8 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
 
 class _PendingMsg {
   final String text;
+  final DateTime createdAt;
   bool failed = false;
-  _PendingMsg(this.text);
+  _PendingMsg(this.text, {DateTime? createdAt})
+      : createdAt = createdAt ?? DateTime.now();
 }

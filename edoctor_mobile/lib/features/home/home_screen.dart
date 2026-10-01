@@ -18,6 +18,8 @@ import '../medical_history/medical_history_screen.dart';
 import '../home_care/home_care_screen.dart';
 import '../dossier/patient_dossier_screen.dart';
 import '../profile/patient_profile_screen.dart';
+import '../lab_examinations/lab_examinations_screen.dart';
+import '../claims/claims_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel? user;
@@ -455,6 +457,30 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
+                _buildBentoItem(
+                  icon: Icons.biotech_rounded,
+                  title: 'Bilans & Examens',
+                  subtitle: 'Analyses & imagerie',
+                  accentColor: const Color(0xFF0284C7),
+                  bgColor: const Color(0xFFE0F2FE),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const LabExaminationsScreen()),
+                    );
+                  },
+                ),
+                _buildBentoItem(
+                  icon: Icons.support_agent_rounded,
+                  title: 'Assistance',
+                  subtitle: 'Réclamations & litiges',
+                  accentColor: const Color(0xFFD97706),
+                  bgColor: const Color(0xFFFEF3C7),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ClaimsScreen()),
+                    );
+                  },
+                ),
               ],
             ),
 
@@ -631,8 +657,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Text(
                               c.doctorName.isNotEmpty
-                                  ? 'Dr. ${c.doctorName}'
-                                  : 'Consultation #${c.id}',
+                                  ? 'Dr. ${c.doctorName} (${c.displayCode})'
+                                  : 'Consultation ${c.displayCode}',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -743,7 +769,7 @@ class _HomeScreenState extends State<HomeScreen> {
         date: relativeLabel(rx.createdAt),
         title: 'Ordonnance de Dr. ${rx.doctorName}',
         message:
-            '${rx.items.length} médicament(s) prescrit(s) — consultation #${rx.consultationId}.',
+            '${rx.items.length} médicament(s) prescrit(s) — consultation ${rx.consultationDisplayCode}.',
         actionLabel: 'Voir l’ordonnance',
         onAction: () {
           Navigator.of(context).push(

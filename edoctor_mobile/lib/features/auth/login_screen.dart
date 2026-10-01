@@ -5,6 +5,7 @@ import '../../core/services/api_service.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/custom_button.dart';
 import '../../core/widgets/custom_text_field.dart';
+import '../../core/widgets/server_config_dialog.dart';
 import '../home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -47,10 +48,17 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } catch (e) {
         if (!mounted) return;
+        final errorMsg = e.toString().replaceAll('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(errorMsg),
             backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'Régler IP',
+              textColor: Colors.white,
+              onPressed: () => ServerConfigDialog.show(context),
+            ),
           ),
         );
       } finally {
@@ -114,24 +122,47 @@ class _LoginScreenState extends State<LoginScreen> {
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: const Text(
-                            'SANTÉ NUMÉRIQUE • TOGO',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.8,
-                              color: Colors.white,
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: const Text(
+                                'SANTÉ NUMÉRIQUE • TOGO',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.dns_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                tooltip: 'Réseau / Serveur',
+                                padding: EdgeInsets.zero,
+                                onPressed: () => ServerConfigDialog.show(context),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

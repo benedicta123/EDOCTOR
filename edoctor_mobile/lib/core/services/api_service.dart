@@ -1,21 +1,154 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
+import '../navigation/app_router.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/doctor_model.dart';
 import '../../data/models/patient_dossier_model.dart';
 import '../../data/models/consultation_model.dart';
 import '../../data/models/prescription_model.dart';
+import '../../data/models/claim_model.dart';
+import '../../data/models/lab_request_model.dart';
 import 'storage_service.dart';
 import 'video/video_meeting_config.dart';
 
 class ApiService {
+  static String? _cachedBaseUrl;
+
   static String get baseUrl {
+    if (_cachedBaseUrl != null && _cachedBaseUrl!.trim().isNotEmpty) {
+      return _cachedBaseUrl!.trim();
+    }
     if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
       return ApiConstants.desktopBaseUrl;
     }
     return ApiConstants.baseUrl;
+  }
+
+  /// Initialise l'URL du serveur depuis la persistance locale
+  static Future<void> initBaseUrl() async {
+    final saved = await StorageService.getServerUrl();
+    if (saved != null && saved.trim().isNotEmpty) {
+      _cachedBaseUrl = saved.trim();
+    }
+  }
+
+  /// Met à jour et sauvegarde la nouvelle URL du serveur
+  static Future<void> setBaseUrl(String url) async {
+    var cleanUrl = url.trim();
+    if (cleanUrl.endsWith('/')) {
+      cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
+    }
+    if (!cleanUrl.endsWith('/api')) {
+      cleanUrl = '$cleanUrl/api';
+    }
+    _cachedBaseUrl = cleanUrl;
+    await StorageService.setServerUrl(cleanUrl);
+  }
+
+  /// Teste la connectivité vers l'API Laravel
+  static Future<Map<String, dynamic>> testConnection([String? targetUrl]) async {
+    var endpoint = (targetUrl ?? baseUrl).trim();
+    if (endpoint.endsWith('/')) {
+      endpoint = endpoint.substring(0, endpoint.length - 1);
+    }
+    if (!endpoint.endsWith('/api')) {
+      endpoint = '$endpoint/api';
+    }
+    final checkUri = Uri.parse('$endpoint${ApiConstants.availableDoctors}');
+    final sw = Stopwatch()..start();
+    try {
+      final response = await http
+          .get(checkUri, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 5));
+      sw.stop();
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {
+          'success': true,
+          'message': 'Connecté avec succès (${sw.elapsedMilliseconds} ms)',
+          'latency': sw.elapsedMilliseconds,
+        };
+      }
+      return {
+        'success': false,
+        'message': 'Code HTTP ${response.statusCode} reçu',
+      };
+    } catch (e) {
+      sw.stop();
+      return {
+        'success': false,
+        'message': 'Injoignable : ${e.toString().replaceAll('Exception: ', '')}',
+      };
+    }
+  }
+
+  static bool _redirecting401 = false;
+
+  // ─── Intercepteur 401 ─────────────────────────────────────────────────────
+  /// Appelé sur toute réponse 401 reçue en session active.
+  /// Efface le token et redirige vers l'inscription/connexion.
+  static Future<void> _handleUnauthorized() async {
+    if (_redirecting401) return;
+    _redirecting401 = true;
+    try {
+      await StorageService.clearSession();
+      final nav = appNavigatorKey.currentState;
+      final ctx = nav?.context;
+      if (ctx != null && ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.lock_outline_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Votre session a expiré. Veuillez vous reconnecter.',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFFBA1A1A),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      nav?.pushNamedAndRemoveUntil('/register', (_) => false);
+    } finally {
+      Future.delayed(const Duration(seconds: 2), () {
+        _redirecting401 = false;
+      });
+    }
+  }
+
+  /// Vérifie si la réponse est un 401 et déclenche la déconnexion.
+  /// Retourne true si la requête était non autorisée (le caller doit stopper).
+  static Future<bool> _checkAuth(http.Response r) async {
+    if (r.statusCode == 401) {
+      await _handleUnauthorized();
+      return true;
+    }
+    return false;
+  }
+
+  static Exception _handleNetworkException(Object e) {
+    final msg = e.toString();
+    if (msg.contains('Failed host lookup') ||
+        msg.contains('Connection refused') ||
+        msg.contains('ClientException') ||
+        msg.contains('SocketException') ||
+        msg.contains('TimeoutException') ||
+        msg.contains('timed out') ||
+        msg.contains('Software caused connection abort')) {
+      return Exception(
+        'Serveur eDoctor injoignable ($baseUrl).\n'
+        'Vérifiez le Wi-Fi (même box), le pare-feu du PC (port 8000) ou réglez l\'adresse du serveur.',
+      );
+    }
+    return Exception(msg.replaceAll('Exception: ', ''));
   }
 
   /// Inscription d'un nouveau patient
@@ -50,7 +183,7 @@ class ApiService {
           if (medicalHistorySummary != null && medicalHistorySummary.isNotEmpty)
             'medical_history_summary': medicalHistorySummary,
         }),
-      );
+      ).timeout(const Duration(seconds: 12));
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -68,17 +201,8 @@ class ApiService {
         }
         throw Exception(message.toString());
       }
-    } on Exception catch (e) {
-      final msg = e.toString();
-      // Données 100% réelles : aucun compte démo, on remonte l'erreur serveur.
-      if (msg.contains('Failed host lookup') ||
-          msg.contains('Connection refused') ||
-          msg.contains('ClientException') ||
-          msg.contains('SocketException')) {
-        throw Exception(
-            'Serveur eDoctor injoignable. Vérifiez que l\'API Laravel tourne sur $baseUrl.');
-      }
-      rethrow;
+    } catch (e) {
+      throw _handleNetworkException(e);
     }
   }
 
@@ -100,7 +224,7 @@ class ApiService {
           'email': email,
           'password': password,
         }),
-      );
+      ).timeout(const Duration(seconds: 12));
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -113,49 +237,77 @@ class ApiService {
         final message = data['message'] ?? 'Identifiants incorrects';
         throw Exception(message.toString());
       }
-    } on Exception catch (e) {
-      final msg = e.toString();
-      if (msg.contains('Failed host lookup') ||
-          msg.contains('Connection refused') ||
-          msg.contains('ClientException') ||
-          msg.contains('SocketException')) {
-        throw Exception(
-            'Serveur eDoctor injoignable. Vérifiez que l\'API Laravel tourne sur $baseUrl.');
+    } catch (e) {
+      throw _handleNetworkException(e);
+    }
+  }
+
+  /// Vérifie la validité du token en cours et retourne l'utilisateur courant.
+  /// GET /api/me — utilisé par le splash pour détecter les tokens expirés.
+  /// Retourne null si le token est invalide/expiré (401).
+  static Future<UserModel?> me() async {
+    final token = await StorageService.getToken();
+    if (token == null) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl${ApiConstants.me}'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final userJson = data['user'] as Map<String, dynamic>? ?? data;
+        final user = UserModel.fromJson(userJson);
+        await StorageService.saveSession(token: token, user: user);
+        return user;
       }
-      rethrow;
+      if (response.statusCode == 401) {
+        await StorageService.clearSession();
+        return null;
+      }
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
   /// Récupération des médecins disponibles — 100% données réelles (PostgreSQL).
-  /// Ne retourne plus de liste en dur : toute erreur remonte à l'UI.
   static Future<List<DoctorModel>> getAvailableDoctors() async {
     final url = Uri.parse('$baseUrl${ApiConstants.availableDoctors}');
     final token = await StorageService.getToken();
 
-    final response = await http.get(
-      url,
-      headers: {
-        'Accept': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-    );
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final list = jsonDecode(response.body) as List;
-      return list
-          .map((item) => DoctorModel.fromJson(item as Map<String, dynamic>))
-          .toList();
-    }
+      if (await _checkAuth(response)) return [];
 
-    final message = (() {
-      try {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return data['message']?.toString() ?? 'Erreur ${response.statusCode}';
-      } catch (_) {
-        return 'Erreur ${response.statusCode} lors du chargement des médecins';
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List;
+        return list
+            .map((item) => DoctorModel.fromJson(item as Map<String, dynamic>))
+            .toList();
       }
-    })();
-    throw Exception(message);
+
+      final message = (() {
+        try {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          return data['message']?.toString() ?? 'Erreur ${response.statusCode}';
+        } catch (_) {
+          return 'Erreur ${response.statusCode} lors du chargement des médecins';
+        }
+      })();
+      throw Exception(message);
+    } catch (e) {
+      throw _handleNetworkException(e);
+    }
   }
 
   /// Récupération du dossier médical patient — dérivé des consultations
@@ -165,42 +317,45 @@ class ApiService {
     final url = Uri.parse('$baseUrl/patients/$patientId/dossier');
     final token = await StorageService.getToken();
 
-    final response = await http.get(
-      url,
-      headers: {
-        'Accept': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-    );
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      // Enrichit le patient avec la session locale (nom/tél si l'API renvoie partiel).
-      final sessionUser = await StorageService.getUser();
-      if (sessionUser != null && sessionUser.id == patientId) {
-        final p = (data['patient'] as Map<String, dynamic>?) ?? {};
-        p['name'] = (p['name'] as String?)?.isNotEmpty == true
-            ? p['name']
-            : sessionUser.name;
-        p['phone'] = p['phone'] ?? sessionUser.phone;
-        p['date_of_birth'] = p['date_of_birth'] ?? sessionUser.dateOfBirth;
-        p['address'] = p['address'] ?? sessionUser.address;
-        p['medical_history_summary'] =
-            p['medical_history_summary'] ?? sessionUser.medicalHistorySummary;
-        data['patient'] = p;
-      }
-      return PatientDossier.fromJson(data);
-    }
-
-    final message = (() {
-      try {
+      if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return data['message']?.toString() ?? 'Erreur ${response.statusCode}';
-      } catch (_) {
-        return 'Erreur ${response.statusCode} lors du chargement du dossier';
+        final sessionUser = await StorageService.getUser();
+        if (sessionUser != null && sessionUser.id == patientId) {
+          final p = (data['patient'] as Map<String, dynamic>?) ?? {};
+          p['name'] = (p['name'] as String?)?.isNotEmpty == true
+              ? p['name']
+              : sessionUser.name;
+          p['phone'] = p['phone'] ?? sessionUser.phone;
+          p['date_of_birth'] = p['date_of_birth'] ?? sessionUser.dateOfBirth;
+          p['address'] = p['address'] ?? sessionUser.address;
+          p['medical_history_summary'] =
+              p['medical_history_summary'] ?? sessionUser.medicalHistorySummary;
+          data['patient'] = p;
+        }
+        return PatientDossier.fromJson(data);
       }
-    })();
-    throw Exception(message);
+
+      final message = (() {
+        try {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          return data['message']?.toString() ?? 'Erreur ${response.statusCode}';
+        } catch (_) {
+          return 'Erreur ${response.statusCode} lors du chargement du dossier';
+        }
+      })();
+      throw Exception(message);
+    } catch (e) {
+      throw _handleNetworkException(e);
+    }
   }
 
   // ─── Consultations ───────────────────────────────────────────────────────
@@ -316,6 +471,117 @@ class ApiService {
     );
   }
 
+  /// Récupérer les pharmacies agréées eDoctor
+  /// GET /api/pharmacies
+  static Future<List<Map<String, dynamic>>> getPharmacies() async {
+    final response = await _consultationRequest(ApiConstants.pharmacies);
+    final data = jsonDecode(response.body) as List;
+    return data.map((e) => e as Map<String, dynamic>).toList();
+  }
+
+  /// Créer une commande en pharmacie liée à une ordonnance
+  /// POST /api/orders
+  static Future<Map<String, dynamic>> createOrder({
+    required int pharmacyId,
+    int? prescriptionId,
+    required String paymentMethod,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final response = await _consultationRequest(
+      ApiConstants.orders,
+      post: true,
+      body: {
+        'pharmacy_id': pharmacyId,
+        // ignore: use_null_aware_elements
+        if (prescriptionId != null) 'prescription_id': prescriptionId,
+        'payment_method': paymentMethod,
+        'items': items,
+      },
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Récupérer les commandes du patient connecté
+  /// GET /api/orders
+  static Future<List<Map<String, dynamic>>> getOrders() async {
+    final response = await _consultationRequest(ApiConstants.orders);
+    final data = jsonDecode(response.body) as List;
+    return data.map((e) => e as Map<String, dynamic>).toList();
+  }
+
+  /// Récupérer les réclamations et litiges du patient
+  /// GET /api/claims/my
+  static Future<List<ClaimModel>> getMyClaims() async {
+    final response = await _consultationRequest(ApiConstants.myClaims);
+    final list = jsonDecode(response.body) as List? ?? [];
+    return list.map((e) => ClaimModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Soumettre une réclamation officielle
+  /// POST /api/claims
+  static Future<ClaimModel> submitClaim({
+    required String subject,
+    required String description,
+    required String category,
+    String priority = 'normale',
+    String? targetType,
+    int? targetId,
+  }) async {
+    final response = await _consultationRequest(
+      ApiConstants.claims,
+      post: true,
+      body: {
+        'subject': subject,
+        'description': description,
+        'category': category,
+        'priority': priority,
+        'target_type': ?targetType,
+        'target_id': ?targetId,
+      },
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final claimData = (data['claim'] as Map<String, dynamic>?) ?? data;
+    return ClaimModel.fromJson(claimData);
+  }
+
+  /// Récupérer les bilans et examens complémentaires du patient
+  /// GET /api/lab-requests/my
+  static Future<List<LabRequestModel>> getMyLabRequests() async {
+    final response = await _consultationRequest(ApiConstants.labRequestsMy);
+    final list = jsonDecode(response.body) as List? ?? [];
+    return list.map((e) => LabRequestModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Récupérer les détails d'un examen médical
+  /// GET /api/lab-requests/{id}
+  static Future<LabRequestModel> getLabRequestDetails(int id) async {
+    final response = await _consultationRequest(ApiConstants.labRequestDetails(id));
+    return LabRequestModel.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// Téléverser un résultat d'examen (image base64 ou document)
+  /// POST /api/lab-requests/{id}/results
+  static Future<LabRequestModel> uploadLabResults(
+    int id, {
+    String? patientNotes,
+    String? fileBase64,
+    String? fileName,
+  }) async {
+    final response = await _consultationRequest(
+      ApiConstants.labRequestResults(id),
+      post: true,
+      body: {
+        if (patientNotes != null && patientNotes.trim().isNotEmpty)
+          'patient_notes': patientNotes.trim(),
+        'file_base64': ?fileBase64,
+        'file_name': ?fileName,
+      },
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final labData = (data['lab_request'] as Map<String, dynamic>?) ?? data;
+    return LabRequestModel.fromJson(labData);
+  }
+
   static Future<http.Response> _consultationRequest(
     String path, {
     bool post = false,
@@ -341,7 +607,15 @@ class ApiService {
               Uri.parse('$baseUrl$path'),
               headers: baseHeaders,
             );
-      final response = await request.timeout(const Duration(seconds: 20));
+      final response = await request.timeout(const Duration(seconds: 12));
+
+      // ─── Intercepteur 401 global ───────────────────────────────────────────
+      if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        // Retourner une réponse vide pour que les callers ne crashent pas
+        return http.Response('[]', 200);
+      }
+
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final data = (() {
           try {
@@ -356,16 +630,8 @@ class ApiService {
         );
       }
       return response;
-    } on Exception catch (e) {
-      final msg = e.toString();
-      if (msg.contains('Failed host lookup') ||
-          msg.contains('Connection refused') ||
-          msg.contains('ClientException') ||
-          msg.contains('SocketException')) {
-        throw Exception(
-            'Serveur eDoctor injoignable. Vérifiez que l\'API Laravel tourne sur $baseUrl.');
-      }
-      rethrow;
+    } catch (e) {
+      throw _handleNetworkException(e);
     } finally {
       client.close();
     }

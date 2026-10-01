@@ -201,7 +201,7 @@ class _WideLayout extends StatelessWidget {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Image.asset(
-                          'assets/images/edoctor_logo.png',
+                          'assets/images/logo_blanc.png',
                           width: 270,
                           height: 92,
                           fit: BoxFit.contain,

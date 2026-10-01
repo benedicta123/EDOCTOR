@@ -19,13 +19,33 @@ class PatientDossierController extends Controller
 
         $consultations = Consultation::where('patient_id', $patient->id)
             ->whereIn('status', ['en_cours', 'terminee'])
-            ->with('doctor:id,name,specialty')
+            ->with([
+                'doctor:id,name,specialty,hospital_id',
+                'doctor.hospital:id,name,address',
+                'prescription.items.medication',
+                'prescription.doctor:id,name',
+            ])
             ->latest()
             ->get();
 
         $prescriptions = Prescription::where('patient_id', $patient->id)
             ->where('status', 'validee')
-            ->with(['items.medication', 'doctor:id,name'])
+            ->with([
+                'items.medication',
+                'doctor:id,name,hospital_id',
+                'doctor.hospital:id,name,address',
+            ])
+            ->latest()
+            ->get();
+
+        $labRequests = \App\Models\LabRequest::where('patient_id', $patient->id)
+            ->with([
+                'items',
+                'results.uploader:id,name',
+                'doctor:id,name,hospital_id',
+                'doctor.hospital:id,name,address',
+                'consultation:id,reference_code,diagnosis,created_at',
+            ])
             ->latest()
             ->get();
 
@@ -33,6 +53,7 @@ class PatientDossierController extends Controller
             'patient' => $patient->only(['id', 'name', 'date_of_birth', 'address', 'medical_history_summary']),
             'consultations' => $consultations,
             'prescriptions' => $prescriptions,
+            'lab_requests' => $labRequests,
         ]);
     }
 }

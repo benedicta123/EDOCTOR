@@ -133,55 +133,229 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
   }
 
   Widget _tile(Map<String, dynamic> patient) {
+    final patientId = (patient['id'] as num?)?.toInt() ?? 0;
     final name = patient['name'] as String? ?? 'Patient';
-    final email = patient['email'] as String? ?? '';
+    final email = (patient['email'] as String? ?? '').trim();
+    final phone = (patient['phone'] as String? ?? '').trim();
+    final quartier = (patient['address'] as String? ??
+            patient['neighborhood'] as String? ??
+            patient['quartier'] as String? ??
+            '')
+        .trim();
     final consultations = intOrNull(patient['consultations_count']);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        leading: CircleAvatar(
-          radius: 22,
-          backgroundColor: AppColors.primaryContainer,
-          child: Text(
-            name.isNotEmpty ? name[0].toUpperCase() : 'P',
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PatientDossierScreen(
+                patientId: patientId,
+                patientName: name,
+              ),
             ),
           ),
-        ),
-        title: Text(
-          name,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            email.isEmpty
-                ? '$consultations consultation(s) suivie(s)'
-                : '$email · $consultations consultation(s)',
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        trailing: const Icon(Icons.folder_shared_rounded,
-            color: AppColors.primary),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => PatientDossierScreen(
-              patientId: (patient['id'] as num).toInt(),
-              patientName: name,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // En-tête : Avatar, Nom complet, Bouton d'accès dossier
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: AppColors.primaryContainer,
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : 'P',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Patient eDoctor',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color:
+                            AppColors.secondaryContainer.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.folder_shared_rounded,
+                              size: 15, color: AppColors.secondary),
+                          SizedBox(width: 6),
+                          Text(
+                            'Dossier',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+                const Divider(
+                    height: 1, thickness: 1, color: AppColors.borderLight),
+                const SizedBox(height: 12),
+
+                // ── Informations du patient : Téléphone, Email, Quartier ──
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 8,
+                  children: [
+                    // Téléphone
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.phone_rounded,
+                            size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          phone.isNotEmpty ? phone : 'Tél : Non renseigné',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: phone.isNotEmpty
+                                ? AppColors.textPrimary
+                                : AppColors.textMuted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Email
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.email_outlined,
+                            size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          email.isNotEmpty ? email : 'Email : Non renseigné',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: email.isNotEmpty
+                                ? AppColors.textPrimary
+                                : AppColors.textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Quartier
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.location_on_outlined,
+                            size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          quartier.isNotEmpty
+                              ? 'Quartier : $quartier'
+                              : 'Quartier : Non renseigné',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: quartier.isNotEmpty
+                                ? AppColors.textPrimary
+                                : AppColors.textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // ── Nombre de consultations avec ce médecin ──
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.medical_services_outlined,
+                          size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          consultations > 1
+                              ? '$consultations consultations réalisées avec vous'
+                              : (consultations == 1
+                                  ? '1 consultation réalisée avec vous'
+                                  : 'Aucune consultation terminée avec vous'),
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded,
+                          size: 12, color: AppColors.primary),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),

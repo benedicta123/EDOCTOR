@@ -14,6 +14,8 @@ class DoctorDashboardController extends Controller
 {
     public function dashboard(Request $request)
     {
+        Consultation::closeExpiredConsultations();
+
         $doctor = $this->doctor($request);
         $consultations = Consultation::where('doctor_id', $doctor->id);
 
@@ -26,9 +28,16 @@ class DoctorDashboardController extends Controller
             'prescriptions_issued' => Prescription::where('doctor_id', $doctor->id)->count(),
             'unread_notifications' => $doctor->notifications()->where('read', false)->count(),
             'recent_consultations' => (clone $consultations)
-                ->with('patient:id,name,email,phone')
+                ->with([
+                    'patient:id,name,email,phone,date_of_birth',
+                    'doctor:id,name,hospital_id',
+                    'doctor.hospital:id,name',
+                    'prescription.items.medication',
+                    'prescription.doctor.hospital',
+                    'prescription.patient',
+                ])
                 ->latest()
-                ->limit(8)
+                ->limit(3)
                 ->get(),
         ]);
     }

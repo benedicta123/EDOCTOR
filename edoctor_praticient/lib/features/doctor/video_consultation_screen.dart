@@ -11,7 +11,9 @@ import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/models/consultation_model.dart';
+import '../../data/models/lab_request_model.dart';
 import '../../data/models/video_meeting_config.dart';
+import 'widgets/lab_requests_view.dart';
 
 /// Points d'entrée de la téléconsultation vidéo (JaaS, 8x8.vc).
 ///
@@ -83,9 +85,17 @@ class _VideoConsultationScreenState extends State<VideoConsultationScreen> {
   String _status = 'Préparation de la salle sécurisée…';
   int _participants = 1;
 
+  Timer? _durationTimer;
+  late DateTime _startedAt;
+  bool _warning10minShown = false;
+
   @override
   void initState() {
     super.initState();
+    final rawStarted = widget.consultation.startedAt;
+    _startedAt = (rawStarted != null ? DateTime.tryParse(rawStarted) : null) ?? DateTime.now();
+    _startDurationWatcher();
+
     _viewType =
         'edoctor-jaas-${widget.consultation.id}-${DateTime.now().millisecondsSinceEpoch}';
     _holder = html.DivElement()
@@ -99,8 +109,88 @@ class _VideoConsultationScreenState extends State<VideoConsultationScreen> {
     unawaited(_prepare());
   }
 
+  void _startDurationWatcher() {
+    _durationTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (!mounted) return;
+      final elapsed = DateTime.now().difference(_startedAt);
+
+      // Alerte à 1h50 (10 minutes restantes)
+      if (elapsed >= const Duration(minutes: 110) && !_warning10minShown) {
+        _warning10minShown = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Attention : La consultation sera coupée automatiquement dans 10 minutes (durée maximale : 2h).',
+            ),
+            backgroundColor: AppColors.warning,
+            duration: Duration(seconds: 8),
+          ),
+        );
+      }
+
+      // Coupure automatique à 2 heures
+      if (elapsed >= const Duration(hours: 2)) {
+        _durationTimer?.cancel();
+        _handleAutoCutoff();
+      }
+    });
+  }
+
+  Future<void> _handleAutoCutoff() async {
+    _disposeApi();
+    if (!mounted) return;
+    setState(() {
+      _inCall = false;
+      _status = 'Consultation coupée automatiquement par le système (2h max).';
+    });
+
+    try {
+      await ApiService.consultationAction(widget.consultation.id, 'end');
+    } catch (_) {}
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.timer_off_rounded, color: AppColors.error, size: 24),
+            SizedBox(width: 10),
+            Text(
+              'Consultation coupée',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: const Text(
+          'La durée maximale autorisée pour une téléconsultation (2 heures) a été atteinte.\n\nLe système a automatiquement interrompu et clôturé la consultation conformément aux règles de régulation médicale.',
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              if (mounted) Navigator.of(context).pop();
+            },
+            child: const Text('Compris'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _durationTimer?.cancel();
     _disposeApi();
     super.dispose();
   }
@@ -329,6 +419,61 @@ class _VideoConsultationScreenState extends State<VideoConsultationScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _openLabSheet() async {
+    List<LabRequestModel> labs = [];
+    try {
+      labs = await ApiService.getConsultationLabRequests(widget.consultation.id);
+    } catch (_) {}
+
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: LabRequestsSection(
+                      consultation: widget.consultation,
+                      labRequests: labs,
+                      onRefresh: () async {
+                        try {
+                          final updated = await ApiService.getConsultationLabRequests(widget.consultation.id);
+                          setSheetState(() => labs = updated);
+                        } catch (_) {}
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = widget.consultation;
@@ -366,7 +511,7 @@ class _VideoConsultationScreenState extends State<VideoConsultationScreen> {
                           ),
                         ),
                         Text(
-                          '$patient · Consultation #${c.id}',
+                          '$patient · ${c.displayCode}',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.66),
                             fontSize: 12,
@@ -376,6 +521,11 @@ class _VideoConsultationScreenState extends State<VideoConsultationScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    tooltip: 'Examens & Résultats de laboratoire',
+                    icon: const Icon(Icons.biotech_rounded, color: Colors.white),
+                    onPressed: _openLabSheet,
                   ),
                   Container(
                     margin: const EdgeInsets.only(right: 6),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -35,15 +36,96 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   bool _camOn = true;
   bool _leaving = false;
 
+  Timer? _durationTimer;
+  late DateTime _startedAt;
+  bool _warning10minShown = false;
+
   @override
   void initState() {
     super.initState();
+    final rawStarted = widget.consultation.startedAt;
+    _startedAt = (rawStarted != null ? DateTime.tryParse(rawStarted) : null) ?? DateTime.now();
+    _startDurationWatcher();
+
     _service = createVideoMeetingService();
     _prepare();
   }
 
+  void _startDurationWatcher() {
+    _durationTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (!mounted) return;
+      final elapsed = DateTime.now().difference(_startedAt);
+
+      if (elapsed >= const Duration(minutes: 110) && !_warning10minShown) {
+        _warning10minShown = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Attention : La téléconsultation sera coupée automatiquement dans 10 minutes (durée maximale : 2h).',
+            ),
+            backgroundColor: AppColors.warning,
+            duration: Duration(seconds: 8),
+          ),
+        );
+      }
+
+      if (elapsed >= const Duration(hours: 2)) {
+        _durationTimer?.cancel();
+        _handleAutoCutoff();
+      }
+    });
+  }
+
+  Future<void> _handleAutoCutoff() async {
+    _service.hangUp();
+    if (!mounted) return;
+    setState(() {
+      _phase = _CallPhase.ended;
+      _status = 'Téléconsultation coupée automatiquement (durée max 2h).';
+    });
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.timer_off_rounded, color: AppColors.error, size: 24),
+            SizedBox(width: 10),
+            Text(
+              'Consultation terminée',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: const Text(
+          'La durée maximale autorisée pour une téléconsultation (2 heures) a été atteinte.\n\nL\'appel a été coupé automatiquement par le système.',
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              if (mounted) Navigator.of(context).pop();
+            },
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _durationTimer?.cancel();
     // Nettoyage : quitte la réunion si l'écran est abandonné en appel.
     _service.hangUp();
     _service.dispose();
@@ -224,8 +306,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
               ),
               Text(
                 c.doctorName.isNotEmpty
-                    ? 'Dr. ${c.doctorName} · Consultation #${c.id}'
-                    : 'Consultation #${c.id}',
+                    ? 'Dr. ${c.doctorName} · ${c.displayCode}'
+                    : c.displayCode,
                 style: const TextStyle(
                     fontSize: 12, color: Colors.white70),
               ),

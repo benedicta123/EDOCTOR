@@ -141,7 +141,7 @@ class _MyConsultationsScreenState extends State<MyConsultationsScreen> {
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: _items.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: 10),
                         itemBuilder: (context, i) =>
                             _tile(_items[i]),
@@ -182,7 +182,7 @@ class _MyConsultationsScreenState extends State<MyConsultationsScreen> {
               ? AppColors.primaryContainer
               : AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: AppColors.primary, width: 1.4),
         ),
         child: Row(
           children: [
@@ -210,15 +210,38 @@ class _MyConsultationsScreenState extends State<MyConsultationsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    c.doctorName.isNotEmpty
-                        ? 'Dr. ${c.doctorName}'
-                        : 'Consultation #${c.id}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          c.doctorName.isNotEmpty
+                              ? 'Dr. ${c.doctorName}'
+                              : 'Consultation ${c.displayCode}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          c.displayCode,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(

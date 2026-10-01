@@ -166,7 +166,7 @@ class _PatientNotificationsScreenState
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: _items.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: 10),
                         itemBuilder: (context, i) {
                           final n = _items[i];

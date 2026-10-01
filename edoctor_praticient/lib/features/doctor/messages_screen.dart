@@ -129,7 +129,7 @@ class _DoctorMessagesScreenState extends State<DoctorMessagesScreen> {
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            'Consultation #${consultation.id} · ${formatDateTime(consultation.scheduledAt)}',
+                            'Consultation ${consultation.displayCode} · ${formatDateTime(consultation.scheduledAt)}',
                             style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 12.5),

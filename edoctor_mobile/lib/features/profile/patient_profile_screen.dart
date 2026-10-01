@@ -3,6 +3,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/patient_bottom_nav.dart';
 import '../auth/register_step1_screen.dart';
+import '../claims/claims_screen.dart';
 
 class PatientProfileScreen extends StatefulWidget {
   final ValueChanged<int>? onNavSelected;
@@ -260,14 +261,14 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                     child: const Icon(Icons.support_agent_rounded, color: AppColors.primary, size: 20),
                   ),
                   title: const Text(
-                    'Support & Assistance eDoctor',
+                    'Assistance & Réclamations',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                   ),
-                  subtitle: const Text('Discutez avec notre équipe 7j/7', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  subtitle: const Text('Litiges, suivi des réclamations & support 7j/7', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Support eDoctor disponible par chat et email.')),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ClaimsScreen()),
                     );
                   },
                 ),

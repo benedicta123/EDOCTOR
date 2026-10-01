@@ -5,6 +5,7 @@ import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/custom_button.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/step_progress_bar.dart';
+import '../../core/widgets/server_config_dialog.dart';
 import '../home/home_screen.dart';
 
 class RegisterStep2Screen extends StatefulWidget {
@@ -129,10 +130,17 @@ class _RegisterStep2ScreenState extends State<RegisterStep2Screen> {
       );
     } catch (e) {
       if (!mounted) return;
+      final errorMsg = e.toString().replaceAll('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
+          content: Text(errorMsg),
           backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 6),
+          action: SnackBarAction(
+            label: 'Régler IP',
+            textColor: Colors.white,
+            onPressed: () => ServerConfigDialog.show(context),
+          ),
         ),
       );
     } finally {

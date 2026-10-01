@@ -137,7 +137,7 @@ class DossierPdfService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      '#${c.id} — ${c.doctorName}'
+                      '${c.displayCode} — ${c.doctorName}'
                       '${c.doctorSpecialty?.isNotEmpty == true ? ' (${c.doctorSpecialty})' : ''} — ${c.displayDate} — ${c.status}',
                       style: pw.TextStyle(
                           fontSize: 10, fontWeight: pw.FontWeight.bold),
