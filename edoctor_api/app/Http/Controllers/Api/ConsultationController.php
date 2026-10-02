@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
+use App\Models\Medication;
+use App\Models\Pharmacy;
+use App\Models\PharmacyStock;
 use App\Models\User;
 use App\Services\MonetizationService;
 use App\Services\NotificationService;
@@ -217,6 +220,133 @@ class ConsultationController extends Controller
             'message' => 'Paiement de la téléconsultation validé avec succès.',
             'consultation' => $consultation->fresh(['doctor.hospital', 'patient', 'payment']),
             'payment' => $payment,
+        ]);
+    }
+
+    /**
+     * GET /api/consultations/{consultation}/medications
+     * Récupère la liste des médicaments pour la prescription du médecin.
+     * Règle DG : Par défaut, filtre exclusivement sur les médicaments disponibles en stock dans les pharmacies à proximité du patient.
+     * Paramètres :
+     *  - in_stock_only : bool (défaut true). Si false, renvoie tout le catalogue avec badges de disponibilité.
+     *  - radius_km : float (défaut 15.0 km). Rayon de recherche géographique.
+     *  - q : string. Filtre de recherche par nom de molécule.
+     *  - lat, lng : float. Coordonnées explicites de référence (sinon déduit de l'hôpital ou Lomé).
+     */
+    public function availableMedications(Request $request, Consultation $consultation)
+    {
+        Gate::authorize('view', $consultation);
+
+        $inStockOnly = $request->boolean('in_stock_only', true);
+        $radiusKm = (float) $request->input('radius_km', 15.0);
+        $search = $request->filled('q') ? strtolower(trim($request->string('q'))) : null;
+
+        // Détermination du point géographique de référence
+        $lat = null;
+        $lng = null;
+
+        if ($request->filled('lat') && $request->filled('lng')) {
+            $lat = (float) $request->input('lat');
+            $lng = (float) $request->input('lng');
+        } elseif ($consultation->doctor && $consultation->doctor->hospital && $consultation->doctor->hospital->latitude && $consultation->doctor->hospital->longitude) {
+            $lat = (float) $consultation->doctor->hospital->latitude;
+            $lng = (float) $consultation->doctor->hospital->longitude;
+        } else {
+            // Centre de référence par défaut (Lomé)
+            $lat = 6.1375;
+            $lng = 1.2125;
+        }
+
+        // Récupérer les pharmacies vérifiées avec leurs coordonnées GPS
+        $pharmacies = Pharmacy::where('status', 'verifie')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->get();
+
+        $nearbyPharmacies = $pharmacies->map(function ($ph) use ($lat, $lng) {
+            $ph->distance_km = MonetizationService::calculateDistance($lat, $lng, (float) $ph->latitude, (float) $ph->longitude);
+            return $ph;
+        })->filter(function ($ph) use ($radiusKm) {
+            return $ph->distance_km <= $radiusKm;
+        })->keyBy('id');
+
+        $nearbyPharmacyIds = $nearbyPharmacies->keys()->all();
+
+        // Récupérer les stocks actifs de ces pharmacies à proximité
+        $stocks = PharmacyStock::whereIn('pharmacy_id', $nearbyPharmacyIds)
+            ->where('quantity', '>', 0)
+            ->get()
+            ->groupBy('medication_id');
+
+        // Récupérer les médicaments du catalogue
+        $medQuery = Medication::query();
+        if ($search) {
+            $medQuery->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+        }
+        $medications = $medQuery->orderBy('name')->get();
+
+        // Enrichir chaque médicament avec sa disponibilité locale
+        $enriched = $medications->map(function ($med) use ($stocks, $nearbyPharmacies) {
+            $medStocks = $stocks->get($med->id, collect());
+            $hasStock = $medStocks->isNotEmpty();
+            $pharmacyCount = $medStocks->pluck('pharmacy_id')->unique()->count();
+
+            $nearestPharmacy = null;
+            $nearestDistanceKm = null;
+            $minPrice = null;
+            $maxPrice = null;
+
+            if ($hasStock) {
+                $minPrice = (float) $medStocks->min('price');
+                $maxPrice = (float) $medStocks->max('price');
+
+                // Trouver la pharmacie disponible la plus proche
+                $availablePhIds = $medStocks->pluck('pharmacy_id')->unique()->all();
+                $closest = $nearbyPharmacies->whereIn('id', $availablePhIds)->sortBy('distance_km')->first();
+                if ($closest) {
+                    $nearestPharmacy = $closest->name;
+                    $nearestDistanceKm = round($closest->distance_km, 1);
+                }
+            }
+
+            return [
+                'id' => $med->id,
+                'name' => $med->name,
+                'category' => $med->category,
+                'form' => $med->form,
+                'dosage' => $med->dosage,
+                'requires_prescription' => (bool) $med->requires_prescription,
+                'in_stock' => $hasStock,
+                'nearby_pharmacies_count' => $pharmacyCount,
+                'nearest_pharmacy' => $nearestPharmacy,
+                'nearest_distance_km' => $nearestDistanceKm,
+                'min_price' => $minPrice,
+                'max_price' => $maxPrice,
+            ];
+        });
+
+        if ($inStockOnly) {
+            $enriched = $enriched->filter(fn ($m) => $m['in_stock'])->values();
+        } else {
+            // Tri : en stock d'abord (du plus disponible au moins disponible), puis hors stock
+            $enriched = $enriched->sort(function ($a, $b) {
+                if ($a['in_stock'] === $b['in_stock']) {
+                    return $b['nearby_pharmacies_count'] <=> $a['nearby_pharmacies_count'];
+                }
+                return $a['in_stock'] ? -1 : 1;
+            })->values();
+        }
+
+        return response()->json([
+            'reference_location' => [
+                'latitude' => $lat,
+                'longitude' => $lng,
+                'radius_km' => $radiusKm,
+            ],
+            'in_stock_only' => $inStockOnly,
+            'nearby_pharmacies_total' => $nearbyPharmacies->count(),
+            'total_medications' => $enriched->count(),
+            'medications' => $enriched,
         ]);
     }
 }

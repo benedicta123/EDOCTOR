@@ -78,9 +78,10 @@ Dès qu'un patient clique sur *"Consulter maintenant"* et vous sélectionne :
 
 ### 4.3. Rédaction du Diagnostic & de l'Ordonnance (Règle d'Or Sécurisée)
 1. **Saisie du Diagnostic :** Renseignez le diagnostic documenté (champ obligatoire pour clore la séance).
-2. **Prescription des médicaments :**
-   - Sélectionnez la molécule dans la liste officielle (*ex: Artéméther / Luméfantrine*).
-   - Renseignez la forme, le dosage, la posologie quotidienne et la durée.
+2. **Prescription des médicaments avec filtrage géolocalisé des stocks :**
+   - **Mode recommandé actif par défaut :** La liste des médicaments est automatiquement filtrée sur les produits **disponibles en stock réel dans les pharmacies ouvertes à proximité du patient (< 15 km)**. Chaque spécialité affiche son badge : *« En stock (X pharmacies proches) »*.
+   - **Déblocage si molécule spécifique :** Vous pouvez cliquer sur *« Voir tout »* pour déverrouiller l'intégralité du catalogue national si une molécule rare est requise.
+   - Renseignez la posologie quotidienne et la quantité prescrite.
    - Cliquez sur **« Ajouter à l'ordonnance »**.
 3. **Persistance du brouillon :** Vos saisies restent en mémoire tampon tant que la séance n'est pas clôturée. Aucun patient ne peut voir une ordonnance incomplète.
 4. **Validation définitive :** Cliquez sur **« Terminer la consultation »**. L'ordonnance officielle chiffrée avec QR Code est émise.

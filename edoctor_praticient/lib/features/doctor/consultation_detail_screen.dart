@@ -44,6 +44,8 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
   final _dosage = TextEditingController();
   final _qty = TextEditingController(text: '1');
   bool _homeCare = false;
+  bool _inStockOnly = true;
+  bool _loadingMedications = false;
   List<PrescriptionModel> _consultationRx = [];
 
   // Bilans et examens complémentaires
@@ -102,8 +104,15 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
       final msgs = await ApiService.getMessages(widget.consultation.id);
       List<MedicationModel> catalog = [];
       try {
-        catalog = await ApiService.getMedications();
-      } catch (_) {}
+        catalog = await ApiService.getConsultationMedications(
+          widget.consultation.id,
+          inStockOnly: _inStockOnly,
+        );
+      } catch (_) {
+        try {
+          catalog = await ApiService.getMedications();
+        } catch (_) {}
+      }
       final rx = await _fetchConsultationRx();
       List<LabRequestModel> labs = [];
       try {
@@ -166,6 +175,36 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
           .toList();
     } catch (_) {
       return _consultationRx;
+    }
+  }
+
+  /// Bascule entre le mode "En stock à proximité" (règle DG) et "Tout le catalogue national"
+  Future<void> _toggleStockFilter(bool value) async {
+    if (_inStockOnly == value) return;
+    setState(() {
+      _inStockOnly = value;
+      _loadingMedications = true;
+    });
+    try {
+      final catalog = await ApiService.getConsultationMedications(
+        widget.consultation.id,
+        inStockOnly: _inStockOnly,
+      );
+      if (mounted) {
+        setState(() {
+          _catalog = catalog;
+          if (_medId != null && !_catalog.any((m) => m.id == _medId)) {
+            _medId = null;
+          }
+        });
+      }
+    } catch (_) {
+      try {
+        final fallback = await ApiService.getMedications();
+        if (mounted) setState(() => _catalog = fallback);
+      } catch (_) {}
+    } finally {
+      if (mounted) setState(() => _loadingMedications = false);
     }
   }
 
@@ -1022,18 +1061,125 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Bandeau filtre intelligent DG : Proximité et stocks
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _inStockOnly ? AppColors.successLight.withOpacity(0.4) : AppColors.borderLight,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _inStockOnly ? AppColors.success.withOpacity(0.3) : AppColors.border,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _inStockOnly ? Icons.verified_outlined : Icons.inventory_2_outlined,
+                  size: 18,
+                  color: _inStockOnly ? AppColors.success : AppColors.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _inStockOnly
+                        ? 'En stock à proximité du patient (< 15 km)'
+                        : 'Tout le catalogue national (y compris hors-stock)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _inStockOnly ? AppColors.success : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                if (_loadingMedications)
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  InkWell(
+                    onTap: () => _toggleStockFilter(!_inStockOnly),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Text(
+                        _inStockOnly ? 'Voir tout' : 'Filtrer en stock',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: _inStockOnly ? AppColors.primary : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
           if (_catalog.isNotEmpty)
             DropdownButtonFormField<int>(
               initialValue: _medId,
+              isExpanded: true,
               decoration: const InputDecoration(
                   labelText: 'Médicament',
                   prefixIcon: Icon(Icons.medication_rounded, size: 20)),
               items: _catalog
                   .map((m) => DropdownMenuItem(
                       value: m.id,
-                      child: Text(m.name, overflow: TextOverflow.ellipsis)))
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              m.displayName,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: m.inStock ? AppColors.successLight : AppColors.warningLight,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              m.stockLabel,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: m.inStock ? AppColors.success : AppColors.warning,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )))
                   .toList(),
               onChanged: (v) => setState(() => _medId = v),
+            )
+          else if (_inStockOnly)
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.borderLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: AppColors.textSecondary, size: 20),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Aucun médicament en stock dans les pharmacies à proximité (< 15 km).',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _toggleStockFilter(false),
+                    child: const Text('Voir tout le catalogue'),
+                  ),
+                ],
+              ),
             )
           else
             Container(

@@ -584,6 +584,33 @@ class ApiService {
     throw Exception(_msg(r, 'Catalogue de médicaments inaccessible'));
   }
 
+  /// Récupère la liste des médicaments pour une consultation avec filtrage géolocalisé des stocks (Règle DG)
+  static Future<List<MedicationModel>> getConsultationMedications(
+    int consultationId, {
+    bool inStockOnly = true,
+    double radiusKm = 15.0,
+    String? q,
+  }) async {
+    final token = await StorageService.getToken();
+    final baseUri = Uri.parse('$baseUrl${ApiConstants.consultationMedications(consultationId)}');
+    final queryParams = <String, String>{
+      'in_stock_only': inStockOnly ? '1' : '0',
+      'radius_km': radiusKm.toString(),
+    };
+    if (q != null && q.isNotEmpty) queryParams['q'] = q;
+
+    final uri = baseUri.replace(queryParameters: queryParams);
+    final r = await http.get(uri, headers: _headers(token));
+    if (r.statusCode == 200) {
+      final body = jsonDecode(r.body) as Map<String, dynamic>;
+      final list = body['medications'] as List? ?? [];
+      return list
+          .map((e) => MedicationModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception(_msg(r, 'Disponibilité des médicaments inaccessible'));
+  }
+
   static Future<Map<String, dynamic>> getPatientDossier(int patientId) async {
     final token = await StorageService.getToken();
     final r = await http.get(

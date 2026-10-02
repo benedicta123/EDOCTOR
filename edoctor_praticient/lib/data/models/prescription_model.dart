@@ -3,9 +3,25 @@ class MedicationModel {
   final String name;
   final String? dosage;
   final String? form;
+  final bool inStock;
+  final int nearbyPharmaciesCount;
+  final String? nearestPharmacy;
+  final double? nearestDistanceKm;
+  final double? minPrice;
+  final double? maxPrice;
 
-  const MedicationModel(
-      {required this.id, required this.name, this.dosage, this.form});
+  const MedicationModel({
+    required this.id,
+    required this.name,
+    this.dosage,
+    this.form,
+    this.inStock = true,
+    this.nearbyPharmaciesCount = 0,
+    this.nearestPharmacy,
+    this.nearestDistanceKm,
+    this.minPrice,
+    this.maxPrice,
+  });
 
   factory MedicationModel.fromJson(Map<String, dynamic> json) =>
       MedicationModel(
@@ -15,7 +31,34 @@ class MedicationModel {
             'Medicament ${json['id']}',
         dosage: json['dosage'] as String?,
         form: json['form'] as String? ?? json['dosage_form'] as String?,
+        inStock: json['in_stock'] == true || (json['in_stock'] is num && (json['in_stock'] as num) == 1),
+        nearbyPharmaciesCount: (json['nearby_pharmacies_count'] as num?)?.toInt() ?? 0,
+        nearestPharmacy: json['nearest_pharmacy'] as String?,
+        nearestDistanceKm: (json['nearest_distance_km'] as num?)?.toDouble(),
+        minPrice: (json['min_price'] as num?)?.toDouble(),
+        maxPrice: (json['max_price'] as num?)?.toDouble(),
       );
+
+  String get displayName {
+    final buffer = StringBuffer(name);
+    if (dosage != null && dosage!.isNotEmpty) buffer.write(' $dosage');
+    if (form != null && form!.isNotEmpty) buffer.write(' ($form)');
+    return buffer.toString();
+  }
+
+  String get stockLabel {
+    if (inStock) {
+      if (nearbyPharmaciesCount > 1) {
+        return 'En stock ($nearbyPharmaciesCount pharmacies proches)';
+      } else if (nearbyPharmaciesCount == 1) {
+        return nearestPharmacy != null
+            ? 'En stock ($nearestPharmacy)'
+            : 'En stock (1 pharmacie proche)';
+      }
+      return 'En stock';
+    }
+    return 'Non détecté en stock';
+  }
 }
 
 class PrescriptionItemModel {

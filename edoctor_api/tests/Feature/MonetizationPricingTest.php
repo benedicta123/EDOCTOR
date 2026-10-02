@@ -280,4 +280,130 @@ class MonetizationPricingTest extends TestCase
             'status' => 'en_attente',
         ]);
     }
+
+    public function test_doctor_gets_only_nearby_in_stock_medications_by_default(): void
+    {
+        $hospital = Hospital::create([
+            'name' => 'CHU Tokoin',
+            'address' => 'Boulevard du 13 Janvier, Lomé',
+            'latitude' => 6.1375,
+            'longitude' => 1.2125,
+            'license_number' => 'CHU-001',
+            'official_email' => 'contact@chu-tokoin.tg',
+            'phone' => '+228 22 21 00 00',
+            'status' => 'verifie',
+        ]);
+
+        $doctor = User::factory()->create([
+            'role' => 'doctor',
+            'hospital_id' => $hospital->id,
+        ]);
+        $patient = User::factory()->create(['role' => 'patient']);
+
+        $consultation = Consultation::create([
+            'doctor_id' => $doctor->id,
+            'patient_id' => $patient->id,
+            'status' => 'en_cours',
+            'scheduled_at' => now(),
+            'reference_code' => 'CNS-TEST-99',
+            'consultation_fee' => 3000.0,
+            'edoctor_fee' => 600.0,
+            'total_amount' => 3600.0,
+        ]);
+
+        // Pharmacie 1 : Très proche (distance ~1 km de l'hôpital)
+        $pharmacyNear = Pharmacy::create([
+            'name' => 'Pharmacie Populaire',
+            'address' => 'Tokoin, Lomé',
+            'latitude' => 6.1400,
+            'longitude' => 1.2150,
+            'status' => 'verifie',
+            'phone' => '+228 90 00 11 22',
+            'email' => 'populaire@ph.tg',
+            'license_number' => 'PH-01',
+            'owner_id' => User::factory()->create(['role' => 'pharmacist'])->id,
+        ]);
+
+        // Pharmacie 2 : Lointaine (> 35 km)
+        $pharmacyFar = Pharmacy::create([
+            'name' => 'Pharmacie Maritime Sud',
+            'address' => 'Aného, Togo',
+            'latitude' => 6.2300,
+            'longitude' => 1.6000,
+            'status' => 'verifie',
+            'phone' => '+228 90 00 33 44',
+            'email' => 'sud@ph.tg',
+            'license_number' => 'PH-02',
+            'owner_id' => User::factory()->create(['role' => 'pharmacist'])->id,
+        ]);
+
+        // Médicament A : En stock dans la pharmacie proche
+        $medA = Medication::create([
+            'name' => 'Amoxicilline 500mg',
+            'category' => 'Antibiotique',
+            'dosage' => '500mg',
+            'form' => 'Gélule',
+            'requires_prescription' => true,
+        ]);
+        PharmacyStock::create([
+            'pharmacy_id' => $pharmacyNear->id,
+            'medication_id' => $medA->id,
+            'quantity' => 12,
+            'price' => 1500.0,
+        ]);
+
+        // Médicament B : En stock uniquement dans la pharmacie lointaine
+        $medB = Medication::create([
+            'name' => 'Ciprofloxacine 500mg',
+            'category' => 'Antibiotique',
+            'dosage' => '500mg',
+            'form' => 'Comprimé',
+            'requires_prescription' => true,
+        ]);
+        PharmacyStock::create([
+            'pharmacy_id' => $pharmacyFar->id,
+            'medication_id' => $medB->id,
+            'quantity' => 8,
+            'price' => 2500.0,
+        ]);
+
+        // Médicament C : En rupture totale (stock = 0 partout)
+        $medC = Medication::create([
+            'name' => 'Azithromycine 250mg',
+            'category' => 'Antibiotique',
+            'dosage' => '250mg',
+            'form' => 'Comprimé',
+            'requires_prescription' => true,
+        ]);
+
+        // 1. Appel par défaut : in_stock_only = true (Règle DG)
+        $responseDefault = $this->actingAs($doctor, 'sanctum')
+            ->getJson("/api/consultations/{$consultation->id}/medications");
+
+        $responseDefault->assertOk();
+        $responseDefault->assertJsonPath('in_stock_only', true);
+        $dataDefault = $responseDefault->json('medications');
+
+        // Seul le Médicament A doit être renvoyé car disponible à proximité (< 15 km)
+        $this->assertCount(1, $dataDefault);
+        $this->assertEquals($medA->id, $dataDefault[0]['id']);
+        $this->assertTrue($dataDefault[0]['in_stock']);
+        $this->assertEquals(1, $dataDefault[0]['nearby_pharmacies_count']);
+        $this->assertEquals('Pharmacie Populaire', $dataDefault[0]['nearest_pharmacy']);
+
+        // 2. Appel avec in_stock_only = false (Mode déblocage / Tout le catalogue)
+        $responseAll = $this->actingAs($doctor, 'sanctum')
+            ->getJson("/api/consultations/{$consultation->id}/medications?in_stock_only=0");
+
+        $responseAll->assertOk();
+        $responseAll->assertJsonPath('in_stock_only', false);
+        $dataAll = $responseAll->json('medications');
+
+        // Les 3 médicaments sont renvoyés, Médicament A en premier (car en stock)
+        $this->assertCount(3, $dataAll);
+        $this->assertEquals($medA->id, $dataAll[0]['id']);
+        $this->assertTrue($dataAll[0]['in_stock']);
+        $this->assertFalse($dataAll[1]['in_stock']);
+        $this->assertFalse($dataAll[2]['in_stock']);
+    }
 }

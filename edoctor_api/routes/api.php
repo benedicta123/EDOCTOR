@@ -68,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Téléconsultations
     Route::get('/consultations', [ConsultationController::class, 'index']);
     Route::post('/consultations', [ConsultationController::class, 'store']);
+    Route::get('/consultations/{consultation}/medications', [ConsultationController::class, 'availableMedications']);
     Route::post('/consultations/{consultation}/pay', [ConsultationController::class, 'pay']);
     Route::post('/consultations/{consultation}/start', [ConsultationController::class, 'start']);
     Route::post('/consultations/{consultation}/decline', [ConsultationController::class, 'decline']);

@@ -27,6 +27,7 @@ class ApiConstants {
   static const String consultations = '/consultations';
   static const String prescriptions = '/prescriptions';
   static const String medications = '/medications';
+  static String consultationMedications(int id) => '/consultations/$id/medications';
   static String patientDossier(int patientId) => '/patients/$patientId/dossier';
   static String consultationMessages(int id) => '/consultations/$id/messages';
   static String consultationStart(int id) => '/consultations/$id/start';

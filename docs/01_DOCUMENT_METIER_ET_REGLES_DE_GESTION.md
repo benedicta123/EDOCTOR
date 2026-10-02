@@ -85,6 +85,11 @@ Le cycle d'une consultation médicale suit un état d'automate strict :
   - Elle intègre un **cachet numérique horodaté** et un **QR Code d'authentification**.
   - Elle devient **immuable** (non modifiable après signature numérique).
 
+### 3.4.1. Règle RG-04 Bis : Filtrage Géolocalisé des Médicaments en Stock (Directive DG)
+* **Garantie d'accès au traitement :** Pour éviter au patient la déconvenue d'une ordonnance comportant des molécules introuvables sur le marché local, le sélecteur de prescription du médecin applique **par défaut un filtrage strict sur les médicaments disponibles en stock** (`quantity > 0`) dans les pharmacies agréées ouvertes à proximité (< 15 km) du patient.
+* **Indicateurs de disponibilité :** Chaque médicament affiche un badge de disponibilité explicite (ex : *« En stock (3 pharmacies proches) »*).
+* **Déblocage déontologique (Filet de sécurité) :** Si un impératif thérapeutique exige une molécule rare ou spécifique non répertoriée en stock immédiat sur la plateforme, le médecin peut d'un clic désactiver le filtre pour afficher *« Tout le catalogue national »* avec mention d'avertissement *« Non détecté en stock eDoctor »*.
+
 ### 3.5. Règle RG-05 : Verrouillage Médico-Légal & Délais d'Annulation
 * **Délai strict de grâce :** Une ordonnance ne peut être annulée par le médecin que dans une fenêtre maximale de **5 minutes** suivant son émission (pour correction d'erreur matérielle immédiate). Passé ce délai de 5 minutes, l'annulation est irréversiblement bloquée par le système (`403 Forbidden`).
 * **Clôture automatique d'expiration :** Toute consultation active dépassant une durée de **2 heures** sans clôture manuelle est automatiquement terminée par le système (`closeExpiredConsultations()`) pour éviter les sessions orphelines et libérer le praticien.
