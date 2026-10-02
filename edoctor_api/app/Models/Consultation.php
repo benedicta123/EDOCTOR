@@ -16,7 +16,7 @@ class Consultation extends Model
 
     protected $fillable = [
         'reference_code', 'patient_id', 'doctor_id', 'status', 'scheduled_at', 'started_at', 'ended_at',
-        'diagnosis',
+        'diagnosis', 'consultation_fee', 'edoctor_fee', 'total_amount', 'payment_status',
     ];
 
     protected static function booted(): void
@@ -99,6 +99,9 @@ class Consultation extends Model
         'scheduled_at' => 'datetime',
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
+        'consultation_fee' => 'decimal:2',
+        'edoctor_fee' => 'decimal:2',
+        'total_amount' => 'decimal:2',
     ];
 
     public function patient(): BelongsTo
@@ -124,6 +127,16 @@ class Consultation extends Model
     public function labRequests(): HasMany
     {
         return $this->hasMany(LabRequest::class);
+    }
+
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class)->latestOfMany();
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 
     public function isParticipant(User $user): bool

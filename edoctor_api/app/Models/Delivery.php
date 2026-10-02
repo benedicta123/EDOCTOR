@@ -11,7 +11,17 @@ class Delivery extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['order_id', 'courier_name', 'status', 'address', 'tracking_code'];
+    protected $fillable = [
+        'order_id', 'courier_name', 'status', 'address', 'tracking_code',
+        'distance_km', 'delivery_fee', 'courier_share', 'edoctor_share',
+    ];
+
+    protected $casts = [
+        'distance_km' => 'decimal:2',
+        'delivery_fee' => 'decimal:2',
+        'courier_share' => 'decimal:2',
+        'edoctor_share' => 'decimal:2',
+    ];
 
     protected static function booted(): void
     {

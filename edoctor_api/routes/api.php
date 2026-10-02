@@ -68,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Téléconsultations
     Route::get('/consultations', [ConsultationController::class, 'index']);
     Route::post('/consultations', [ConsultationController::class, 'store']);
+    Route::post('/consultations/{consultation}/pay', [ConsultationController::class, 'pay']);
     Route::post('/consultations/{consultation}/start', [ConsultationController::class, 'start']);
     Route::post('/consultations/{consultation}/decline', [ConsultationController::class, 'decline']);
     Route::post('/consultations/{consultation}/end', [ConsultationController::class, 'end']);
@@ -109,12 +110,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Commandes en pharmacie
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
+    Route::post('/orders/quote', [OrderController::class, 'quote']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/mark-ready', [OrderController::class, 'markReady']);
     Route::post('/orders/{order}/mark-collected', [OrderController::class, 'markCollected']);
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
 
     // Livraison de médicaments
+    Route::post('/deliveries/quote', [DeliveryController::class, 'quote']);
     Route::post('/orders/{order}/delivery', [DeliveryController::class, 'store']);
     Route::post('/deliveries/{delivery}/assign', [DeliveryController::class, 'assign']);
     Route::post('/deliveries/{delivery}/mark-delivered', [DeliveryController::class, 'markDelivered']);

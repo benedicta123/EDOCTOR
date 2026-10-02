@@ -36,6 +36,7 @@ class User extends Authenticatable
         'date_of_birth',
         'address',
         'medical_history_summary',
+        'consultation_fee',
     ];
 
     protected $hidden = [
@@ -52,6 +53,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_suspended' => 'boolean',
             'suspended_at' => 'datetime',
+            'consultation_fee' => 'decimal:2',
         ];
     }
 

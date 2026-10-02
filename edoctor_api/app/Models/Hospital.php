@@ -24,6 +24,7 @@ class Hospital extends Model
         'license_document_path',
         'verified_at',
         'rejected_reason',
+        'consultation_fee',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class Hospital extends Model
             'verified_at' => 'datetime',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'consultation_fee' => 'decimal:2',
         ];
     }
 

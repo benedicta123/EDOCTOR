@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\User;
+use App\Services\MonetizationService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 class ConsultationController extends Controller
 {
@@ -24,8 +26,9 @@ class ConsultationController extends Controller
         })->with([
             'patient:id,name,email,phone,date_of_birth',
             'doctor:id,name,hospital_id',
-            'doctor.hospital:id,name',
+            'doctor.hospital:id,name,consultation_fee',
             'prescription.items.medication',
+            'payment',
         ]);
 
         if ($request->filled('search')) {
@@ -50,16 +53,23 @@ class ConsultationController extends Controller
             'scheduled_at' => ['nullable', 'date'],
         ]);
 
-        $doctor = User::whereKey($validated['doctor_id'])
+        $doctor = User::with('hospital')
+            ->whereKey($validated['doctor_id'])
             ->where('role', 'doctor')
             ->whereHas('hospital', fn ($q) => $q->where('status', 'verifie'))
             ->firstOrFail();
+
+        $pricing = MonetizationService::calculateConsultationPricing($doctor->hospital, $doctor);
 
         $consultation = Consultation::create([
             'patient_id' => $request->user()->id,
             'doctor_id' => $doctor->id,
             'scheduled_at' => $validated['scheduled_at'] ?? null,
             'status' => 'en_attente',
+            'consultation_fee' => $pricing['consultation_fee'],
+            'edoctor_fee' => $pricing['edoctor_fee'],
+            'total_amount' => $pricing['total_amount'],
+            'payment_status' => 'en_attente',
         ]);
 
         NotificationService::send(
@@ -68,7 +78,7 @@ class ConsultationController extends Controller
             "Nouvelle demande de consultation de la part de {$request->user()->name}."
         );
 
-        return response()->json($consultation, 201);
+        return response()->json($consultation->load(['doctor.hospital', 'patient']), 201);
     }
 
     public function start(Request $request, Consultation $consultation)
@@ -172,5 +182,41 @@ class ConsultationController extends Controller
         );
 
         return response()->json($consultation);
+    }
+
+    /**
+     * POST /api/consultations/{consultation}/pay
+     * Valide le règlement de la téléconsultation avec découpage financier (split).
+     */
+    public function pay(Request $request, Consultation $consultation)
+    {
+        Gate::authorize('view', $consultation);
+
+        $validated = $request->validate([
+            'payment_method' => ['required', 'in:mobile_money,carte'],
+            'transaction_ref' => ['nullable', 'string'],
+        ]);
+
+        $payment = DB::transaction(function () use ($consultation, $validated) {
+            $payment = $consultation->payments()->create([
+                'method' => $validated['payment_method'],
+                'amount' => $consultation->total_amount,
+                'partner_share' => $consultation->consultation_fee,
+                'edoctor_fee' => $consultation->edoctor_fee,
+                'courier_share' => 0.00,
+                'status' => 'confirme',
+                'transaction_ref' => $validated['transaction_ref'] ?? ('TXN-CNS-' . strtoupper(Str::random(10))),
+            ]);
+
+            $consultation->update(['payment_status' => 'paye']);
+
+            return $payment;
+        });
+
+        return response()->json([
+            'message' => 'Paiement de la téléconsultation validé avec succès.',
+            'consultation' => $consultation->fresh(['doctor.hospital', 'patient', 'payment']),
+            'payment' => $payment,
+        ]);
     }
 }

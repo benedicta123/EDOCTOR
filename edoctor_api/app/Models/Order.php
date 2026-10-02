@@ -14,10 +14,15 @@ class Order extends Model
 
     protected $fillable = [
         'patient_id', 'pharmacy_id', 'prescription_id', 'status', 'total_amount',
+        'items_amount', 'edoctor_fee', 'delivery_fee', 'delivery_distance_km',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'items_amount' => 'decimal:2',
+        'edoctor_fee' => 'decimal:2',
+        'delivery_fee' => 'decimal:2',
+        'delivery_distance_km' => 'decimal:2',
     ];
 
     public function patient(): BelongsTo
@@ -43,5 +48,10 @@ class Order extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
+    }
+
+    public function delivery(): HasOne
+    {
+        return $this->hasOne(Delivery::class);
     }
 }

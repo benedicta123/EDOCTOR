@@ -31,6 +31,7 @@ class HospitalRegistrationController extends Controller
             'official_email' => ['required', 'string', 'email', 'max:255', 'unique:hospitals,official_email'],
             'hospital_phone' => ['required', 'string', 'max:30'],
             'license_document' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'consultation_fee' => ['nullable', 'numeric', 'min:500'],
 
             // Données du compte Super-Administrateur
             'admin_name' => ['required', 'string', 'max:255'],
@@ -67,6 +68,7 @@ class HospitalRegistrationController extends Controller
                 'phone' => $validated['hospital_phone'],
                 'license_document_path' => $documentPath,
                 'verified_at' => $verifiedAt,
+                'consultation_fee' => $validated['consultation_fee'] ?? (float) config('monetization.consultation.default_hospital_fee', 3000.0),
             ]);
 
             $admin = User::create([

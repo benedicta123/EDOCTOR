@@ -69,6 +69,7 @@ class HospitalDashboardController extends Controller
             'official_email' => ['sometimes', 'email', 'max:255', Rule::unique('hospitals', 'official_email')->ignore($admin->hospital_id)],
             'latitude' => ['sometimes', 'numeric', 'between:-90,90'],
             'longitude' => ['sometimes', 'numeric', 'between:-180,180'],
+            'consultation_fee' => ['sometimes', 'numeric', 'min:500'],
         ]);
         $admin->hospital->update($validated);
         return response()->json($admin->hospital->fresh());

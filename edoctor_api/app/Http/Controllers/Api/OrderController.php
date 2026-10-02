@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Delivery;
 use App\Models\Medication;
 use App\Models\Order;
+use App\Models\Pharmacy;
 use App\Models\PharmacyStock;
 use App\Models\Prescription;
+use App\Services\MonetizationService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +22,7 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        $query = Order::with(['items.medication', 'pharmacy:id,name', 'payment']);
+        $query = Order::with(['items.medication', 'pharmacy:id,name', 'payment', 'delivery']);
 
         if ($user->isPharmacist()) {
             $query->whereHas('pharmacy', fn ($q) => $q->where('owner_id', $user->id));
@@ -35,8 +38,53 @@ class OrderController extends Controller
         Gate::authorize('view', $order);
 
         return response()->json(
-            $order->load(['items.medication', 'pharmacy', 'prescription.items.medication', 'payment'])
+            $order->load(['items.medication', 'pharmacy', 'prescription.items.medication', 'payment', 'delivery'])
         );
+    }
+
+    /**
+     * POST /api/orders/quote
+     * Calcule le devis avant validation de commande (médicaments + 150 F + livraison éventuelle).
+     */
+    public function quote(Request $request)
+    {
+        $validated = $request->validate([
+            'pharmacy_id' => ['required', 'exists:pharmacies,id'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.medication_id' => ['required', 'exists:medications,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'with_delivery' => ['nullable', 'boolean'],
+            'delivery_distance_km' => ['nullable', 'numeric', 'min:0'],
+            'patient_latitude' => ['nullable', 'numeric'],
+            'patient_longitude' => ['nullable', 'numeric'],
+        ]);
+
+        $pharmacy = Pharmacy::findOrFail($validated['pharmacy_id']);
+        $withDelivery = (bool) ($validated['with_delivery'] ?? false);
+        $distanceKm = (float) ($validated['delivery_distance_km'] ?? 0.0);
+
+        if ($withDelivery && $distanceKm <= 0 && !empty($validated['patient_latitude']) && !empty($validated['patient_longitude']) && !empty($pharmacy->latitude) && !empty($pharmacy->longitude)) {
+            $distanceKm = MonetizationService::calculateDistance(
+                (float) $pharmacy->latitude,
+                (float) $pharmacy->longitude,
+                (float) $validated['patient_latitude'],
+                (float) $validated['patient_longitude']
+            );
+        }
+
+        $itemsTotal = 0;
+        foreach ($validated['items'] as $item) {
+            $stock = PharmacyStock::where('pharmacy_id', $pharmacy->id)
+                ->where('medication_id', $item['medication_id'])
+                ->first();
+
+            $price = $stock ? (float) $stock->price : (float) Medication::find($item['medication_id'])->price;
+            $itemsTotal += $price * $item['quantity'];
+        }
+
+        $quote = MonetizationService::calculateOrderPricing($itemsTotal, $withDelivery, $distanceKm);
+
+        return response()->json($quote);
     }
 
     public function store(Request $request)
@@ -48,7 +96,19 @@ class OrderController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.medication_id' => ['required', 'exists:medications,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'with_delivery' => ['nullable', 'boolean'],
+            'delivery_address' => ['nullable', 'string', 'max:255'],
+            'delivery_distance_km' => ['nullable', 'numeric', 'min:0'],
+            'patient_latitude' => ['nullable', 'numeric'],
+            'patient_longitude' => ['nullable', 'numeric'],
         ]);
+
+        $withDelivery = (bool) ($validated['with_delivery'] ?? false);
+        if ($withDelivery && empty($validated['delivery_address'])) {
+            throw ValidationException::withMessages([
+                'delivery_address' => ["L'adresse de livraison est obligatoire lorsque la livraison est sélectionnée."],
+            ]);
+        }
 
         // Vérification de la conformité prescription pour les médicaments soumis à ordonnance
         $medicationIds = collect($validated['items'])->pluck('medication_id')->unique();
@@ -96,8 +156,21 @@ class OrderController extends Controller
             }
         }
 
-        $order = DB::transaction(function () use ($validated, $request) {
-            $totalAmount = 0;
+        $pharmacy = Pharmacy::findOrFail($validated['pharmacy_id']);
+        $withDelivery = (bool) ($validated['with_delivery'] ?? false);
+        $distanceKm = (float) ($validated['delivery_distance_km'] ?? 0.0);
+
+        if ($withDelivery && $distanceKm <= 0 && !empty($validated['patient_latitude']) && !empty($validated['patient_longitude']) && !empty($pharmacy->latitude) && !empty($pharmacy->longitude)) {
+            $distanceKm = MonetizationService::calculateDistance(
+                (float) $pharmacy->latitude,
+                (float) $pharmacy->longitude,
+                (float) $validated['patient_latitude'],
+                (float) $validated['patient_longitude']
+            );
+        }
+
+        $order = DB::transaction(function () use ($validated, $request, $pharmacy, $withDelivery, $distanceKm) {
+            $itemsTotal = 0;
             $lockedStocks = [];
 
             foreach ($validated['items'] as $item) {
@@ -113,15 +186,22 @@ class OrderController extends Controller
                 }
 
                 $lockedStocks[] = ['stock' => $stock, 'quantity' => $item['quantity'], 'unit_price' => $stock->price];
-                $totalAmount += $stock->price * $item['quantity'];
+                $itemsTotal += $stock->price * $item['quantity'];
             }
+
+            // Calcul officiel de la monétisation DG v2.0
+            $pricing = MonetizationService::calculateOrderPricing($itemsTotal, $withDelivery, $distanceKm);
 
             $order = Order::create([
                 'patient_id' => $request->user()->id,
                 'pharmacy_id' => $validated['pharmacy_id'],
                 'prescription_id' => $validated['prescription_id'] ?? null,
                 'status' => 'confirmee',
-                'total_amount' => $totalAmount,
+                'items_amount' => $pricing['items_amount'],
+                'edoctor_fee' => $pricing['edoctor_fee'],
+                'delivery_fee' => $pricing['delivery_fee'],
+                'delivery_distance_km' => $pricing['distance_km'],
+                'total_amount' => $pricing['total_amount'],
             ]);
 
             foreach ($lockedStocks as $entry) {
@@ -134,16 +214,32 @@ class OrderController extends Controller
                 ]);
             }
 
+            // Création automatique de la livraison si sélectionnée
+            if ($withDelivery) {
+                $deliveryPricing = MonetizationService::calculateDeliveryPricing($distanceKm);
+                $order->delivery()->create([
+                    'address' => $validated['delivery_address'],
+                    'distance_km' => $deliveryPricing['distance_km'],
+                    'delivery_fee' => $deliveryPricing['delivery_fee'],
+                    'courier_share' => $deliveryPricing['courier_share'],
+                    'edoctor_share' => $deliveryPricing['edoctor_share'],
+                    'status' => 'en_attente',
+                ]);
+            }
+
             $order->payment()->create([
                 'method' => $validated['payment_method'],
-                'amount' => $totalAmount,
+                'amount' => $pricing['total_amount'],
+                'partner_share' => $pricing['pharmacy_share'], // 100% reversé à l'officine
+                'edoctor_fee' => $pricing['edoctor_total_revenue'], // 150 F + marge livraison
+                'courier_share' => $pricing['courier_share'], // ~75% reversé au coursier
                 'status' => 'en_attente',
             ]);
 
             return $order;
         });
 
-        $order->load(['pharmacy.owner', 'items.medication', 'payment']);
+        $order->load(['pharmacy.owner', 'items.medication', 'payment', 'delivery']);
 
         if ($order->pharmacy && $order->pharmacy->owner) {
             NotificationService::send(

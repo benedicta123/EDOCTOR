@@ -97,9 +97,10 @@ class DoctorDashboardController extends Controller
             'phone' => ['sometimes', 'nullable', 'string', 'max:30'],
             'specialty' => ['sometimes', 'string', 'max:255'],
             'license_number' => ['sometimes', 'string', 'max:255'],
+            'consultation_fee' => ['sometimes', 'nullable', 'numeric', 'min:500'],
         ]);
         $doctor->update($validated);
-        return response()->json($doctor->fresh());
+        return response()->json($doctor->fresh(['hospital']));
     }
 
     public function availability(Request $request)
