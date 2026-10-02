@@ -128,11 +128,28 @@ Le cycle d'une consultation médicale suit un état d'automate strict :
 
 ---
 
-## 5. Règles Financières & Tarification (Zone FCFA)
+## 5. Règles Financières & Tarification Officielle (Directives DG Octobre 2026)
 
-| Prestation | Modalité de Paiement | Flux Financier |
-| :--- | :--- | :--- |
-| **Téléconsultation médicale** | Paiement préalable à l'acte ou à la clôture (Mobile Money : T-Money, Flooz). | Honoraires reversés au praticien / hôpital sous déduction de la commission de service eDoctor. |
-| **Médicaments délivrés** | Paiement en ligne ou au comptoir selon le mode choisi. | Montant intégral versé au compte de l'officine partenaire. |
-| **Livraison express** | Forfait calculé selon la zone urbaine (Grand Lomé). | Rémunération du coursier partenaire agréé. |
-| **Soins infirmiers à domicile** | Forfait à l'acte médical conventionné. | Rémunération reversée à la structure hospitalière de rattachement. |
+### 5.1. Politique Tripartite : Zéro Prélèvement Partenaires & Frais de Service Fixes
+* **Pour les Hôpitaux & Cliniques :**
+  - **Liberté tarifaire totale :** Chaque établissement fixe librement son tarif de téléconsultation (ex: 2 500 FCFA, 5 000 FCFA, etc.).
+  - **0% de prélèvement :** L'hôpital perçoit **100% de son tarif** de consultation sans aucune retenue.
+  - **Frais de service eDoctor (600 FCFA) :** Facturés en sus au patient pour la plateforme, la visio chiffrée, le dossier médical et l'absorption intégrale des frais de transaction Mobile Money (T-Money, Flooz).
+* **Pour les Pharmacies d'Officine :**
+  - **0% de prélèvement sur les médicaments :** L'officine perçoit **100% du prix officiel** des médicaments vendus.
+  - **Frais de mise en relation de stock (150 FCFA) :** Facturés au patient lors de la commande pour la géolocalisation de l'officine de garde et la garantie de stock en direct.
+* **Pour la Livraison à Domicile par Coursier :**
+  - **Forfait de base : 500 FCFA** incluant les **2 premiers kilomètres**.
+  - **150 FCFA par kilomètre supplémentaire** au-delà des 2 premiers km.
+  - Formule : `Frais de livraison = 500 FCFA + [max(0, Distance_km - 2) × 150 FCFA]`.
+  - Répartition : ~75% reversés au coursier partenaire et ~25% conservés par eDoctor (coordination logistique).
+
+### 5.2. Tableau de Synthèse des Flux par Transaction
+
+| Prestation | Montant Réglé par le Patient | Part Reversée Hôpital | Part Pharmacie / Coursier | Revenu Net eDoctor |
+| :--- | :--- | :--- | :--- | :--- |
+| **Téléconsultation (Ex: 3 000 F)** | 3 600 FCFA *(Tarif hôpital + 600 F)* | **3 000 FCFA (100%)** | — | **600 FCFA** *(Frais plateforme & Mobile Money)* |
+| **Commande Pharmacie (Retrait)** | Prix Médicaments + 150 F | — | **100% Prix Médicaments** | **150 FCFA** *(Frais recherche stock)* |
+| **Livraison Express (Distance 5 km)** | 950 FCFA *(500 F base + 3×150 F)* | — | **700 FCFA** *(Coursier partenaire)* | **250 FCFA** *(Marge coordination)* |
+| **Soins Infirmiers à Domicile** | Tarif Hôpital + 600 FCFA | **100% Tarif Soin** | — | **600 FCFA** *(Frais de service)* |
+
