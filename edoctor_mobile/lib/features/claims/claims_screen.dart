@@ -814,7 +814,6 @@ class _NewClaimModalState extends State<_NewClaimModal> {
   final _descCtrl = TextEditingController();
 
   String _category = 'medical';
-  String _priority = 'normale';
   bool _submitting = false;
 
   final List<Map<String, dynamic>> _categories = [
@@ -867,7 +866,7 @@ class _NewClaimModalState extends State<_NewClaimModal> {
         subject: _subjectCtrl.text.trim(),
         description: _descCtrl.text.trim(),
         category: _category,
-        priority: _priority,
+        priority: 'normale',
       );
 
       if (mounted) {
@@ -990,30 +989,6 @@ class _NewClaimModalState extends State<_NewClaimModal> {
 
               const SizedBox(height: 14),
 
-              // Priorité
-              const Text(
-                'Niveau de priorité',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _buildPriorityOption('faible', 'Faible'),
-                  const SizedBox(width: 8),
-                  _buildPriorityOption('normale', 'Normale'),
-                  const SizedBox(width: 8),
-                  _buildPriorityOption('haute', 'Haute'),
-                  const SizedBox(width: 8),
-                  _buildPriorityOption('urgente', 'Urgente'),
-                ],
-              ),
-
-              const SizedBox(height: 14),
-
               // Objet
               const Text(
                 'Objet du problème',
@@ -1132,41 +1107,6 @@ class _NewClaimModalState extends State<_NewClaimModal> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPriorityOption(String value, String label) {
-    final isSelected = _priority == value;
-    Color color = AppColors.primary;
-    if (value == 'haute') color = const Color(0xFFF97316);
-    if (value == 'urgente') color = const Color(0xFFEF4444);
-
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _priority = value),
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.15) : AppColors.background,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? color : AppColors.border,
-              width: isSelected ? 1.5 : 1,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? color : AppColors.textSecondary,
-              ),
-            ),
           ),
         ),
       ),

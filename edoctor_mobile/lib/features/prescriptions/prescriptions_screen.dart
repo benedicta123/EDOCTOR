@@ -504,7 +504,10 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                       name: 'Grande Pharmacie du Golfe',
                       address: 'Boulevard du 13 Janvier, Quartier Déckon, Lomé',
                       distance: 'En stock immédiat • Partenaire certifié',
-                      onTap: () => _confirmOrder(ord, 6, 'Grande Pharmacie du Golfe'),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _showOrderCheckoutSheet(ord, 6, 'Grande Pharmacie du Golfe');
+                      },
                     )
                   else
                     ...pharmacies.map((p) {
@@ -517,7 +520,10 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                           name: name,
                           address: address,
                           distance: 'Officine agréée eDoctor • En stock',
-                          onTap: () => _confirmOrder(ord, id, name),
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            _showOrderCheckoutSheet(ord, id, name);
+                          },
                         ),
                       );
                     }),
@@ -581,71 +587,553 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
     );
   }
 
-  Future<void> _confirmOrder(PatientPrescription ord, int pharmacyId, String pharmacyName) async {
-    Navigator.of(context).pop();
+  void _showOrderCheckoutSheet(PatientPrescription ord, int pharmacyId, String pharmacyName) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        bool withDelivery = false;
+        double distanceKm = 3.0;
+        final addressController = TextEditingController(text: 'Lomé, Quartier Déckon');
+        bool isLoadingQuote = true;
+        Map<String, dynamic>? quote;
+        bool isSubmitting = false;
+        String? errorMessage;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text('Transmission de la commande à $pharmacyName...'),
-            ),
-          ],
-        ),
-        backgroundColor: AppColors.primary,
-        duration: const Duration(seconds: 2),
-      ),
+        final items = ord.items.map((i) => {
+          'medication_id': i.medicationId,
+          'quantity': i.quantity,
+        }).toList();
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            void fetchQuote() async {
+              setSheetState(() {
+                isLoadingQuote = true;
+                errorMessage = null;
+              });
+              try {
+                final res = await ApiService.getOrderQuote(
+                  pharmacyId: pharmacyId,
+                  items: items,
+                  withDelivery: withDelivery,
+                  deliveryDistanceKm: withDelivery ? distanceKm : null,
+                );
+                setSheetState(() {
+                  quote = res;
+                  isLoadingQuote = false;
+                });
+              } catch (e) {
+                setSheetState(() {
+                  errorMessage = e.toString().replaceFirst('Exception: ', '');
+                  isLoadingQuote = false;
+                });
+              }
+            }
+
+            if (quote == null && isLoadingQuote && errorMessage == null) {
+              fetchQuote();
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryContainer,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Devis & Commande Officine',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  pharmacyName,
+                                  style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.of(sheetContext).pop(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Récapitulatif ordonnance
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.borderLight),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Ordonnance ORD-${ord.id}',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                            ),
+                            Text(
+                              '${ord.items.length} médicament(s)',
+                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Mode de réception',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Toggle Retrait / Livraison
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () {
+                                if (withDelivery) {
+                                  setSheetState(() {
+                                    withDelivery = false;
+                                  });
+                                  fetchQuote();
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                decoration: BoxDecoration(
+                                  color: !withDelivery ? AppColors.primaryContainer : AppColors.background,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: !withDelivery ? AppColors.primary : AppColors.border,
+                                    width: !withDelivery ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.storefront_rounded,
+                                      color: !withDelivery ? AppColors.primary : AppColors.textMuted,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Retrait Click&Collect',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: !withDelivery ? AppColors.primary : AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Gratuit à l\'officine',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: !withDelivery ? AppColors.primary : AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () {
+                                if (!withDelivery) {
+                                  setSheetState(() {
+                                    withDelivery = true;
+                                  });
+                                  fetchQuote();
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                decoration: BoxDecoration(
+                                  color: withDelivery ? AppColors.primaryContainer : AppColors.background,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: withDelivery ? AppColors.primary : AppColors.border,
+                                    width: withDelivery ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.two_wheeler_rounded,
+                                      color: withDelivery ? AppColors.primary : AppColors.textMuted,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Livraison Express',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: withDelivery ? AppColors.primary : AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Dès 500 FCFA',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: withDelivery ? AppColors.primary : AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Options de livraison si cochée
+                      if (withDelivery) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.borderLight),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Distance estimée :',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryContainer,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${distanceKm.toStringAsFixed(1)} km',
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Slider(
+                                value: distanceKm,
+                                min: 1.0,
+                                max: 20.0,
+                                divisions: 38,
+                                activeColor: AppColors.primary,
+                                onChanged: (val) {
+                                  setSheetState(() => distanceKm = val);
+                                },
+                                onChangeEnd: (val) {
+                                  fetchQuote();
+                                },
+                              ),
+                              const Text(
+                                'Grille DG : 500 F (2 premiers km) + 150 F / km suppl.',
+                                style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+                              ),
+                              const SizedBox(height: 10),
+                              TextFormField(
+                                controller: addressController,
+                                style: const TextStyle(fontSize: 13),
+                                decoration: const InputDecoration(
+                                  labelText: 'Adresse précise de livraison',
+                                  labelStyle: TextStyle(fontSize: 12),
+                                  prefixIcon: Icon(Icons.location_on_outlined, size: 18),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // Tableau transparent du devis
+                      if (isLoadingQuote)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: CircularProgressIndicator(color: AppColors.primary),
+                          ),
+                        )
+                      else if (errorMessage != null)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.errorLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  errorMessage!,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (quote != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.borderLight),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.verified_rounded, size: 16, color: AppColors.primary),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Détail transparent du prix (Règle DG)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Produits prescrits', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                  Text(
+                                    '${quote!['items_amount']} FCFA',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                  ),
+                                ],
+                              ),
+                              const Text(
+                                'Reversé à 100% à la pharmacie partenaire',
+                                style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Recherche & Service eDoctor', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                  Text(
+                                    '${quote!['edoctor_fee']} FCFA',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
+                                  ),
+                                ],
+                              ),
+                              if (withDelivery) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Livraison Express (${quote!['distance_km']} km)', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                    Text(
+                                      '${quote!['delivery_fee']} FCFA',
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  'Livreur : ${quote!['delivery_courier_share']} F • Service : ${quote!['delivery_edoctor_share']} F',
+                                  style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+                                ),
+                              ],
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 10),
+                                child: Divider(height: 1, color: AppColors.border),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Total à payer',
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                  ),
+                                  Text(
+                                    '${quote!['total_amount']} FCFA',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.lock_outline_rounded, size: 14, color: AppColors.primary),
+                              SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Paiement sécurisé T-Money / Moov Money Togo. Préparation immédiate de la commande.',
+                                  style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w500),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 20),
+
+                      // Bouton d'action
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: (isLoadingQuote || quote == null || isSubmitting)
+                              ? null
+                              : () async {
+                                  setSheetState(() => isSubmitting = true);
+                                  try {
+                                    final res = await ApiService.createOrder(
+                                      pharmacyId: pharmacyId,
+                                      prescriptionId: ord.id,
+                                      paymentMethod: 'mobile_money',
+                                      items: items,
+                                      withDelivery: withDelivery,
+                                      deliveryAddress: withDelivery ? addressController.text.trim() : null,
+                                      deliveryDistanceKm: withDelivery ? distanceKm : null,
+                                    );
+
+                                    if (!sheetContext.mounted) return;
+                                    Navigator.of(sheetContext).pop();
+
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('🎉 Commande #${res['id']} validée et payée (${quote!['total_amount']} FCFA) !'),
+                                        backgroundColor: AppColors.success,
+                                        action: SnackBarAction(
+                                          label: 'Voir mes commandes',
+                                          textColor: Colors.white,
+                                          onPressed: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(builder: (_) => const OrdersScreen()),
+                                            );
+                                          },
+                                        ),
+                                        duration: const Duration(seconds: 5),
+                                      ),
+                                    );
+                                    _load();
+                                  } catch (e) {
+                                    setSheetState(() => isSubmitting = false);
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(e.toString().replaceFirst('Exception: ', '')),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                          ),
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : Text(
+                                  quote != null
+                                      ? 'Payer ${quote!['total_amount']} FCFA par Mobile Money'
+                                      : 'Calcul du devis...',
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
-
-    try {
-      final items = ord.items.map((i) => {
-        'medication_id': i.medicationId,
-        'quantity': i.quantity,
-      }).toList();
-
-      final res = await ApiService.createOrder(
-        pharmacyId: pharmacyId,
-        prescriptionId: ord.id,
-        paymentMethod: 'mobile_money',
-        items: items,
-      );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('🎉 Commande #${res['id']} transmise à la $pharmacyName !'),
-          backgroundColor: AppColors.success,
-          action: SnackBarAction(
-            label: 'Voir mes commandes',
-            textColor: Colors.white,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const OrdersScreen()),
-              );
-            },
-          ),
-          duration: const Duration(seconds: 5),
-        ),
-      );
-      _load();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: AppColors.error,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
   }
 }

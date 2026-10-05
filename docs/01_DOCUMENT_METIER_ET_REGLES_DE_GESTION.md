@@ -135,11 +135,11 @@ Le cycle d'une consultation médicale suit un état d'automate strict :
 
 ## 5. Règles Financières & Tarification Officielle (Directives DG Octobre 2026)
 
-### 5.1. Politique Tripartite : Zéro Prélèvement Partenaires & Frais de Service Fixes
+### 5.1. Politique Tripartite : Zéro Prélèvement Partenaires & Frais de Service Proportionnels
 * **Pour les Hôpitaux & Cliniques :**
-  - **Liberté tarifaire totale :** Chaque établissement fixe librement son tarif de téléconsultation (ex: 2 500 FCFA, 5 000 FCFA, etc.).
-  - **0% de prélèvement :** L'hôpital perçoit **100% de son tarif** de consultation sans aucune retenue.
-  - **Frais de service eDoctor (600 FCFA) :** Facturés en sus au patient pour la plateforme, la visio chiffrée, le dossier médical et l'absorption intégrale des frais de transaction Mobile Money (T-Money, Flooz).
+  - **Liberté tarifaire totale :** Chaque établissement fixe librement son tarif de téléconsultation (ex: 2 500 FCFA, 3 000 FCFA, 5 000 FCFA, etc.).
+  - **0% de prélèvement sur les honoraires :** L'hôpital perçoit **100% de son tarif** de consultation sans aucune retenue.
+  - **Frais de service eDoctor (10% du tarif consultation) :** Facturés en sus au patient (10% du tarif fixé par la structure) pour la plateforme, la visio chiffrée, le dossier médical et l'absorption intégrale des frais de transaction Mobile Money (T-Money, Flooz).
 * **Pour les Pharmacies d'Officine :**
   - **0% de prélèvement sur les médicaments :** L'officine perçoit **100% du prix officiel** des médicaments vendus.
   - **Frais de mise en relation de stock (150 FCFA) :** Facturés au patient lors de la commande pour la géolocalisation de l'officine de garde et la garantie de stock en direct.
@@ -153,8 +153,10 @@ Le cycle d'une consultation médicale suit un état d'automate strict :
 
 | Prestation | Montant Réglé par le Patient | Part Reversée Hôpital | Part Pharmacie / Coursier | Revenu Net eDoctor |
 | :--- | :--- | :--- | :--- | :--- |
-| **Téléconsultation (Ex: 3 000 F)** | 3 600 FCFA *(Tarif hôpital + 600 F)* | **3 000 FCFA (100%)** | — | **600 FCFA** *(Frais plateforme & Mobile Money)* |
+| **Téléconsultation (Ex: 3 000 F)** | 3 300 FCFA *(Tarif hôpital + 10%)* | **3 000 FCFA (100%)** | — | **300 FCFA** *(10% Plateforme & Mobile Money)* |
+| **Téléconsultation Généraliste (3 500 F)** | 3 850 FCFA *(Tarif hôpital + 10%)* | **3 500 FCFA (100%)** | — | **350 FCFA** *(10% Plateforme & Mobile Money)* |
+| **Téléconsultation Spécialiste (7 000 F)** | 7 700 FCFA *(Tarif hôpital + 10%)* | **7 000 FCFA (100%)** | — | **700 FCFA** *(10% Plateforme & Mobile Money)* |
 | **Commande Pharmacie (Retrait)** | Prix Médicaments + 150 F | — | **100% Prix Médicaments** | **150 FCFA** *(Frais recherche stock)* |
 | **Livraison Express (Distance 5 km)** | 950 FCFA *(500 F base + 3×150 F)* | — | **700 FCFA** *(Coursier partenaire)* | **250 FCFA** *(Marge coordination)* |
-| **Soins Infirmiers à Domicile** | Tarif Hôpital + 600 FCFA | **100% Tarif Soin** | — | **600 FCFA** *(Frais de service)* |
+| **Soins Infirmiers à Domicile (5 000 F)** | 5 500 FCFA *(Tarif soin + 10%)* | **5 000 FCFA (100% Hôpital)** | — | **500 FCFA** *(10% Frais de service)* |
 

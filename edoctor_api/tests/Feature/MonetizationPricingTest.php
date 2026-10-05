@@ -38,8 +38,8 @@ class MonetizationPricingTest extends TestCase
         $pricing = MonetizationService::calculateConsultationPricing($hospital, $doctor);
 
         $this->assertEquals(4500.0, $pricing['consultation_fee']);
-        $this->assertEquals(600.0, $pricing['edoctor_fee']);
-        $this->assertEquals(5100.0, $pricing['total_amount']);
+        $this->assertEquals(450.0, $pricing['edoctor_fee']);
+        $this->assertEquals(4950.0, $pricing['total_amount']);
         $this->assertEquals(4500.0, $pricing['hospital_share']);
     }
 
@@ -179,8 +179,8 @@ class MonetizationPricingTest extends TestCase
         $this->assertDatabaseHas('consultations', [
             'id' => $consultationId,
             'consultation_fee' => 3500.0,
-            'edoctor_fee' => 600.0,
-            'total_amount' => 4100.0,
+            'edoctor_fee' => 350.0,
+            'total_amount' => 3850.0,
             'payment_status' => 'en_attente',
         ]);
 
@@ -199,9 +199,9 @@ class MonetizationPricingTest extends TestCase
 
         $this->assertDatabaseHas('payments', [
             'consultation_id' => $consultationId,
-            'amount' => 4100.0,
+            'amount' => 3850.0,
             'partner_share' => 3500.0,
-            'edoctor_fee' => 600.0,
+            'edoctor_fee' => 350.0,
             'courier_share' => 0.0,
             'status' => 'confirme',
             'transaction_ref' => 'FLZ-TEST-9988',
@@ -307,8 +307,8 @@ class MonetizationPricingTest extends TestCase
             'scheduled_at' => now(),
             'reference_code' => 'CNS-TEST-99',
             'consultation_fee' => 3000.0,
-            'edoctor_fee' => 600.0,
-            'total_amount' => 3600.0,
+            'edoctor_fee' => 300.0,
+            'total_amount' => 3300.0,
         ]);
 
         // Pharmacie 1 : Très proche (distance ~1 km de l'hôpital)

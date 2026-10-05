@@ -153,6 +153,7 @@ class ApiService {
     required String password,
     required String passwordConfirmation,
     String? adminPhone,
+    double? consultationFee,
   }) async {
     try {
       final r = await http.post(
@@ -174,6 +175,8 @@ class ApiService {
           'password_confirmation': passwordConfirmation,
           if (adminPhone != null && adminPhone.isNotEmpty)
             'admin_phone': adminPhone,
+          if (consultationFee != null && consultationFee > 0)
+            'consultation_fee': consultationFee,
         }),
       );
       final data = jsonDecode(r.body) as Map<String, dynamic>;

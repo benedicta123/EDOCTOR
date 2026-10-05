@@ -392,6 +392,24 @@ class ApiService {
     );
   }
 
+  /// Payer une téléconsultation médicale avec découpage financier
+  /// POST /api/consultations/{id}/pay
+  static Future<Map<String, dynamic>> payConsultation(
+    int consultationId, {
+    String paymentMethod = 'mobile_money',
+    String? transactionRef,
+  }) async {
+    final response = await _consultationRequest(
+      ApiConstants.consultationPay(consultationId),
+      post: true,
+      body: {
+        'payment_method': paymentMethod,
+        if (transactionRef != null) 'transaction_ref': transactionRef,
+      },
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   /// Obtenir l'accès à la salle vidéo JaaS (domaine + salle + JWT éphémère).
   /// POST /api/consultations/{id}/join
   static Future<VideoMeetingConfig> joinConsultation(
@@ -479,6 +497,50 @@ class ApiService {
     return data.map((e) => e as Map<String, dynamic>).toList();
   }
 
+  /// Obtenir le devis d'une commande en pharmacie (médicaments + 150 F + livraison optionnelle)
+  /// POST /api/orders/quote
+  static Future<Map<String, dynamic>> getOrderQuote({
+    required int pharmacyId,
+    required List<Map<String, dynamic>> items,
+    bool withDelivery = false,
+    double? deliveryDistanceKm,
+    double? patientLatitude,
+    double? patientLongitude,
+  }) async {
+    final response = await _consultationRequest(
+      ApiConstants.ordersQuote,
+      post: true,
+      body: {
+        'pharmacy_id': pharmacyId,
+        'items': items,
+        'with_delivery': withDelivery,
+        if (deliveryDistanceKm != null) 'delivery_distance_km': deliveryDistanceKm,
+        if (patientLatitude != null) 'patient_latitude': patientLatitude,
+        if (patientLongitude != null) 'patient_longitude': patientLongitude,
+      },
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Obtenir le devis kilométrique de livraison seule
+  /// POST /api/deliveries/quote
+  static Future<Map<String, dynamic>> getDeliveryQuote({
+    double? distanceKm,
+    double? patientLatitude,
+    double? patientLongitude,
+  }) async {
+    final response = await _consultationRequest(
+      ApiConstants.deliveriesQuote,
+      post: true,
+      body: {
+        if (distanceKm != null) 'distance_km': distanceKm,
+        if (patientLatitude != null) 'patient_latitude': patientLatitude,
+        if (patientLongitude != null) 'patient_longitude': patientLongitude,
+      },
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   /// Créer une commande en pharmacie liée à une ordonnance
   /// POST /api/orders
   static Future<Map<String, dynamic>> createOrder({
@@ -486,16 +548,25 @@ class ApiService {
     int? prescriptionId,
     required String paymentMethod,
     required List<Map<String, dynamic>> items,
+    bool withDelivery = false,
+    String? deliveryAddress,
+    double? deliveryDistanceKm,
+    double? patientLatitude,
+    double? patientLongitude,
   }) async {
     final response = await _consultationRequest(
       ApiConstants.orders,
       post: true,
       body: {
         'pharmacy_id': pharmacyId,
-        // ignore: use_null_aware_elements
         if (prescriptionId != null) 'prescription_id': prescriptionId,
         'payment_method': paymentMethod,
         'items': items,
+        'with_delivery': withDelivery,
+        if (deliveryAddress != null) 'delivery_address': deliveryAddress,
+        if (deliveryDistanceKm != null) 'delivery_distance_km': deliveryDistanceKm,
+        if (patientLatitude != null) 'patient_latitude': patientLatitude,
+        if (patientLongitude != null) 'patient_longitude': patientLongitude,
       },
     );
     return jsonDecode(response.body) as Map<String, dynamic>;

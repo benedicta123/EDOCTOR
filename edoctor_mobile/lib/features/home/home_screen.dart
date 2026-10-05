@@ -14,7 +14,6 @@ import '../doctors/my_consultations_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../orders/orders_screen.dart';
 import '../prescriptions/prescriptions_screen.dart';
-import '../medical_history/medical_history_screen.dart';
 import '../home_care/home_care_screen.dart';
 import '../dossier/patient_dossier_screen.dart';
 import '../profile/patient_profile_screen.dart';
@@ -425,8 +424,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.receipt_long_rounded,
                   title: 'Prescriptions',
                   subtitle: 'Mes ordonnances',
-                  accentColor: const Color(0xFF132A45),
-                  bgColor: const Color(0xFFDCE6F2),
+                  cardBgColor: const Color(0xFF529927),
+                  isDark: true,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const PrescriptionsScreen()),
@@ -434,16 +433,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
                 _buildBentoItem(
-                  icon: Icons.history_rounded,
+                  icon: Icons.forum_rounded,
                   title: 'Historique',
-                  subtitle: 'Dossier médical',
-                  accentColor: const Color(0xFF0369A1),
-                  bgColor: const Color(0xFFE0F2FE),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const MedicalHistoryScreen()),
-                    );
-                  },
+                  subtitle: 'Conversations médecin',
+                  cardBgColor: const Color(0xFF059669),
+                  isDark: true,
+                  onTap: _openHistory,
                 ),
                 _buildBentoItem(
                   icon: Icons.medical_information_rounded,
@@ -473,8 +468,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.support_agent_rounded,
                   title: 'Assistance',
                   subtitle: 'Réclamations & litiges',
-                  accentColor: const Color(0xFFD97706),
-                  bgColor: const Color(0xFFFEF3C7),
+                  cardBgColor: const Color(0xFF15803D),
+                  isDark: true,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ClaimsScreen()),
@@ -488,13 +483,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Activité récente — dernière activité réelle (ordonnance,
             // consultation ou notification), jamais de contenu figé.
-            const Text(
-              'Activité récente',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Activité récente',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _openHistory,
+                  icon: const Icon(Icons.history_rounded, size: 16),
+                  label: const Text(
+                    'Voir tout',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
 
@@ -526,24 +541,31 @@ class _HomeScreenState extends State<HomeScreen> {
         .toList();
     final done =
         _consultations.where((c) => c.isDone).toList();
-    if (active.isEmpty && done.isEmpty) {
-      return const SizedBox.shrink();
-    }
     final joinable = active.where((c) => c.isActive).toList();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              const Icon(Icons.forum_rounded, size: 20, color: AppColors.primary),
+              const SizedBox(width: 8),
               const Text(
-                'Mes consultations',
+                'Conversations & Téléconsultations',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -560,7 +582,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    '${joinable.length} À REJOINDRE',
+                    '${joinable.length} EN DIRECT',
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -572,133 +594,146 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          if (active.isEmpty)
-            InkWell(
-              onTap: _openHistory,
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.history_rounded,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '${done.length} consultation(s) terminée(s) — relire les discussions',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded,
-                        color: AppColors.textMuted),
-                  ],
-                ),
-              ),
-            ),
-          ...active.take(3).map((c) => InkWell(
-                onTap: () => _openConsultation(c),
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
+
+          // S'il y a des consultations actives / en attente
+          if (active.isNotEmpty) ...[
+            ...active.take(2).map((c) => Container(
+                  margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
                     color: c.isActive
                         ? AppColors.primaryContainer
                         : AppColors.background,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: c.isActive ? AppColors.primary : AppColors.border),
                   ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _openConsultation(c),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: c.isActive
+                                    ? AppColors.primary
+                                    : AppColors.surface,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                c.isActive
+                                    ? Icons.videocam_rounded
+                                    : Icons.hourglass_top_rounded,
+                                color: c.isActive
+                                    ? Colors.white
+                                    : AppColors.warning,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    c.doctorName.isNotEmpty
+                                        ? 'Dr. ${c.doctorName} (${c.displayCode})'
+                                        : 'Consultation ${c.displayCode}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    c.isActive
+                                        ? 'En cours — touchez pour rejoindre'
+                                        : 'En attente d’acceptation…',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: c.isActive
+                                          ? AppColors.primary
+                                          : AppColors.warning,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios_rounded,
+                                size: 14, color: AppColors.textMuted),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                )),
+          ],
+
+          // Bannière / Bouton permanent d'accès à l'historique complet des conversations
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _openHistory,
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Row(
                     children: [
                       Container(
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: c.isActive
-                              ? AppColors.primary
-                              : AppColors.surface,
+                          color: AppColors.primaryContainer,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
-                          c.isActive
-                              ? Icons.videocam_rounded
-                              : Icons.hourglass_top_rounded,
-                          color: c.isActive
-                              ? Colors.white
-                              : AppColors.warning,
+                        child: const Icon(
+                          Icons.mark_chat_read_rounded,
+                          color: AppColors.primary,
                           size: 20,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              c.doctorName.isNotEmpty
-                                  ? 'Dr. ${c.doctorName} (${c.displayCode})'
-                                  : 'Consultation ${c.displayCode}',
+                              done.isNotEmpty
+                                  ? '${done.length} consultation(s) terminée(s)'
+                                  : 'Relire mes conversations avec les médecins',
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textPrimary,
                               ),
                             ),
-                            Text(
-                              c.isActive
-                                  ? 'En cours — touchez pour rejoindre'
-                                  : 'En attente d’acceptation…',
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Accéder à tous vos échanges, conseils et comptes-rendus',
                               style: TextStyle(
-                                fontSize: 12,
-                                color: c.isActive
-                                    ? AppColors.primary
-                                    : AppColors.warning,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right_rounded,
-                          color: AppColors.textMuted),
+                      const Icon(Icons.arrow_forward_ios_rounded,
+                          size: 14, color: AppColors.primary),
                     ],
                   ),
                 ),
-              )),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton.icon(
-              onPressed: _openHistory,
-              icon: const Icon(Icons.history_rounded, size: 16),
-              label: const Text(
-                'Voir tout l’historique',
-                style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w700),
-              ),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
               ),
             ),
           ),
@@ -747,7 +782,7 @@ class _HomeScreenState extends State<HomeScreen> {
         date: relativeLabel(c.startedAt ?? c.createdAt),
         title: 'Consultation avec Dr. ${c.doctorName}',
         message: 'Votre consultation a commencé. Rejoignez la vidéo ou poursuivez la discussion.',
-        actionLabel: 'Rejoindre',
+        actionLabel: 'Rejoindre la consultation',
         onAction: () => _openConsultation(c),
       );
     }
@@ -798,25 +833,65 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
-      child: const Row(
-        children: [
-          Icon(Icons.event_available_rounded,
-              color: AppColors.textMuted, size: 28),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Aucune activité pour le moment. Consultez un médecin pour démarrer votre suivi.',
-              style: TextStyle(
-                  fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const FindDoctorScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.medical_services_outlined,
+                      color: AppColors.primary, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Aucune consultation récente',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Prenez rendez-vous avec un médecin disponible en direct.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    size: 14, color: AppColors.primary),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -835,122 +910,139 @@ class _HomeScreenState extends State<HomeScreen> {
     required VoidCallback onAction,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: iconColor, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onAction,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: badgeBg,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            badge,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: badgeColor,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        if (date.isNotEmpty)
-                          Text(
-                            date,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: iconBg,
+                        borderRadius: BorderRadius.circular(14),
                       ),
+                      child: Icon(icon, color: iconColor, size: 24),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      message,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        height: 1.3,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: badgeBg,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  badge,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: badgeColor,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              if (date.isNotEmpty)
+                                Text(
+                                  date,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            message,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            height: 42,
-            child: OutlinedButton(
-              onPressed: onAction,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                backgroundColor: AppColors.background,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    actionLabel,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  height: 42,
+                  child: ElevatedButton(
+                    onPressed: onAction,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryContainer,
+                      foregroundColor: AppColors.primary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          actionLabel,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 16,
-                    color: AppColors.textPrimary,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -962,62 +1054,81 @@ class _HomeScreenState extends State<HomeScreen> {
     String? subtitle,
     Color accentColor = AppColors.primary,
     Color bgColor = AppColors.primaryContainer,
+    Color? cardBgColor,
+    bool isDark = false,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(22),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.07),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    final effectiveCardBg = cardBgColor ?? AppColors.surface;
+    final effectiveTitleColor = isDark ? Colors.white : AppColors.textPrimary;
+    final effectiveSubColor = isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textMuted;
+    final effectiveIconColor = isDark ? Colors.white : accentColor;
+    final effectiveIconBg = isDark ? Colors.white.withValues(alpha: 0.22) : bgColor;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: effectiveCardBg,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.15)
+              : AppColors.border.withValues(alpha: 0.6),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                icon,
-                color: accentColor,
-                size: 22,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                height: 1.2,
-              ),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textMuted,
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? effectiveCardBg.withValues(alpha: 0.35)
+                : accentColor.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(22),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: effectiveIconBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: effectiveIconColor,
+                    size: 22,
+                  ),
                 ),
-              ),
-            ],
-          ],
+                const Spacer(),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: effectiveTitleColor,
+                    height: 1.2,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: effectiveSubColor,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

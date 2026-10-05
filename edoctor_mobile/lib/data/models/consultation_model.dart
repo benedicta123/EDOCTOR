@@ -12,6 +12,10 @@ class ConsultationModel {
   final String? diagnosis;
   final String patientName;
   final String doctorName;
+  final double consultationFee;
+  final double edoctorFee;
+  final double totalAmount;
+  final String paymentStatus;
 
   const ConsultationModel({
     required this.id,
@@ -26,12 +30,20 @@ class ConsultationModel {
     this.diagnosis,
     this.patientName = '',
     this.doctorName = '',
+    this.consultationFee = 3000.0,
+    this.edoctorFee = 600.0,
+    this.totalAmount = 3600.0,
+    this.paymentStatus = 'en_attente',
   });
 
   String get displayCode => referenceCode.isNotEmpty ? referenceCode : '#$id';
 
   factory ConsultationModel.fromJson(Map<String, dynamic> json) {
     String nested(Map<String, dynamic>? m) => m?['name'] as String? ?? '';
+    final cFee = (json['consultation_fee'] as num?)?.toDouble() ?? 3000.0;
+    final eFee = (json['edoctor_fee'] as num?)?.toDouble() ?? 600.0;
+    final tAmount = (json['total_amount'] as num?)?.toDouble() ?? (cFee + eFee);
+
     return ConsultationModel(
       id: (json['id'] as num?)?.toInt() ?? 0,
       referenceCode: (json['reference_code'] as String? ?? '').trim(),
@@ -45,12 +57,17 @@ class ConsultationModel {
       diagnosis: json['diagnosis'] as String?,
       patientName: nested(json['patient'] as Map<String, dynamic>?),
       doctorName: nested(json['doctor'] as Map<String, dynamic>?),
+      consultationFee: cFee,
+      edoctorFee: eFee,
+      totalAmount: tAmount,
+      paymentStatus: json['payment_status'] as String? ?? 'en_attente',
     );
   }
 
   bool get isActive => status == 'en_cours';
   bool get isPending => status == 'en_attente';
   bool get isDone => status == 'terminee' || status == 'annulee';
+  bool get isPaid => paymentStatus == 'paye';
 }
 
 class ChatMessage {

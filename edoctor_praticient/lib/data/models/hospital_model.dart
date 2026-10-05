@@ -11,6 +11,7 @@ class HospitalModel {
   final String? latitude;
   final String? longitude;
   final String? verifiedAt;
+  final double consultationFee;
   final List<UserModel> doctors;
   final List<UserModel> nurses;
 
@@ -25,6 +26,7 @@ class HospitalModel {
     this.latitude,
     this.longitude,
     this.verifiedAt,
+    this.consultationFee = 3000.0,
     this.doctors = const [],
     this.nurses = const [],
   });
@@ -49,6 +51,7 @@ class HospitalModel {
       latitude: json['latitude']?.toString(),
       longitude: json['longitude']?.toString(),
       verifiedAt: json['verified_at'] as String?,
+      consultationFee: (json['consultation_fee'] as num?)?.toDouble() ?? 3000.0,
       doctors: parse('doctors'),
       nurses: parse('nurses'),
     );

@@ -64,6 +64,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ? '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')} à ${createdAt.hour}h${createdAt.minute.toString().padLeft(2, '0')}'
               : 'Récemment';
 
+          final deliveryObj = o['delivery'] as Map<String, dynamic>?;
+          final isDelivery = deliveryObj != null;
+          final deliveryAddress = isDelivery 
+              ? (deliveryObj['address'] as String? ?? 'Livraison à domicile')
+              : 'Retrait au comptoir de l\'officine';
+          final itemsAmount = double.tryParse(o['items_amount']?.toString() ?? '0') ?? 0;
+          final edoctorFee = double.tryParse(o['edoctor_fee']?.toString() ?? '0') ?? 0;
+          final deliveryFee = double.tryParse(o['delivery_fee']?.toString() ?? (deliveryObj?['delivery_fee']?.toString() ?? '0')) ?? 0;
+          final distanceKm = double.tryParse(o['delivery_distance_km']?.toString() ?? (deliveryObj?['distance_km']?.toString() ?? '0')) ?? 0;
+
           return {
             'id': 'CMD-2026-${id.toString().padLeft(4, '0')}',
             'rawId': id,
@@ -75,8 +85,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
             'statusLabel': statusLabel,
             'statusColor': statusColor,
             'statusBg': statusBg,
-            'isDelivery': false,
-            'deliveryAddress': 'Retrait au comptoir de l\'officine',
+            'isDelivery': isDelivery,
+            'deliveryAddress': deliveryAddress,
+            'itemsAmount': itemsAmount,
+            'edoctorFee': edoctorFee,
+            'deliveryFee': deliveryFee,
+            'distanceKm': distanceKm,
             'items': items,
             'total': double.tryParse(o['total_amount']?.toString() ?? '0') ?? 0,
           };
@@ -465,14 +479,92 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Adresse de destination :',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+                    Row(
+                      children: [
+                        Icon(
+                          order['isDelivery'] == true ? Icons.two_wheeler_rounded : Icons.storefront_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          order['isDelivery'] == true ? 'Livraison Express à domicile' : 'Retrait Click & Collect à l\'officine',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       order['deliveryAddress'] as String,
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              // Décomposition financière eDoctor
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.borderLight),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.receipt_long_rounded, size: 16, color: AppColors.primary),
+                        SizedBox(width: 6),
+                        Text(
+                          'Décomposition tarifaire (Grille eDoctor)',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Médicaments (Pharmacie)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('${order['itemsAmount'] ?? order['total']} FCFA', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                      ],
+                    ),
+                    if ((order['edoctorFee'] ?? 0) > 0) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Frais de service eDoctor', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          Text('${order['edoctorFee']} FCFA', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                        ],
+                      ),
+                    ],
+                    if (order['isDelivery'] == true) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Livraison (${order['distanceKm'] ?? 0} km)', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          Text('${order['deliveryFee']} FCFA', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                        ],
+                      ),
+                    ],
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(height: 1, color: AppColors.border),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total payé (Mobile Money)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                        Text(
+                          '${order['total']} FCFA',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.primary),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -78,8 +78,8 @@ def create_monetization_docx(output_path):
         "💡 Synthèse Décisionnelle DG : Pour maximiser l'adhésion massive des hôpitaux et pharmacies au Togo, "
         "eDoctor applique une politique de ZÉRO PRÉLÈVEMENT sur les honoraires médicaux et sur les ventes de médicaments. "
         "Les hôpitaux fixent librement leurs tarifs et perçoivent 100% de leur prix. Les pharmacies perçoivent 100% du prix des produits. "
-        "Le modèle économique d'eDoctor repose sur des frais de service plateforme fixes et transparents payés par le patient "
-        "(600 FCFA par consultation incluant les frais Mobile Money, 150 FCFA par ordonnance trouvée en pharmacie de proximité), "
+        "Le modèle économique d'eDoctor repose sur des frais de service plateforme proportionnels et équitables payés par le patient "
+        "(10% du tarif de consultation de l'hôpital incluant les frais Mobile Money, 150 FCFA par ordonnance trouvée en pharmacie de proximité), "
         "complétés par une tarification kilométrique juste de la livraison (500 FCFA pour les 2 premiers km + 150 FCFA/km sup)."
     )
     r_box.font.name = 'Arial'
@@ -112,13 +112,13 @@ def create_monetization_docx(output_path):
         ("Zéro prélèvement sur les honoraires (100% reversé à l'hôpital) : ",
          "eDoctor ne prélève aucun pourcentage sur le montant fixé par la structure. L'intégralité (100%) des honoraires de consultation "
          "est reversée à l'hôpital sans aucune retenue."),
-        ("Frais de service plateforme eDoctor (600 FCFA payés par le patient) : ",
-         "Lors du paiement, la plateforme ajoute un forfait fixe de 600 FCFA à la charge du patient. Ce montant couvre l'infrastructure "
-         "technologique sécurisée, la visio-consultation chiffrée, l'archivage du dossier médical et intègre/absorbe l'intégralité des frais "
+        ("Frais de service plateforme eDoctor (10% du tarif hôpital payés par le patient) : ",
+         "Lors du paiement, la plateforme applique des frais proportionnels de 10% calculés directement sur le tarif de consultation fixé par l'établissement. "
+         "Ce montant couvre l'infrastructure technologique sécurisée, la visio-consultation chiffrée, l'archivage du dossier médical et intègre/absorbe l'intégralité des frais "
          "de passerelle financière Mobile Money (T-Money, Flooz)."),
         ("Exemple concret de facturation : ",
-         "Si le CHU fixe la consultation à 3 000 FCFA, le patient règle 3 600 FCFA via son compte T-Money. L'hôpital perçoit exactement "
-         "3 000 FCFA (100%), eDoctor perçoit 600 FCFA de frais de service net."),
+         "Si le CHU fixe la consultation à 3 000 FCFA, les frais eDoctor sont de 10% soit 300 FCFA. Le patient règle au total 3 300 FCFA via son compte T-Money. L'hôpital perçoit exactement "
+         "3 000 FCFA (100%), et eDoctor perçoit 300 FCFA de frais de service net. Pour une consultation à 5 000 FCFA, eDoctor perçoit 500 FCFA (10%) et le patient règle 5 500 FCFA."),
         ("Bénéfices indirects majeurs pour l'hôpital : ",
          "Optimisation des temps soignants en heures creuses, zéro impayé grâce au prépaiement sécurisé, et orientation des patients vers "
          "le plateau technique physique de l'hôpital pour les examens complémentaires prescrits (radiologie, analyses de sang).")
@@ -243,12 +243,13 @@ def create_monetization_docx(output_path):
             run.font.color.rgb = RGBColor(255, 255, 255)
 
     data_rows = [
-        ("Téléconsultation Dispensaire (2 000 F)", "2 600 FCFA", "2 000 FCFA (100%)", "—", "600 FCFA (Frais fixe)"),
-        ("Téléconsultation Généraliste (3 500 F)", "4 100 FCFA", "3 500 FCFA (100%)", "—", "600 FCFA (Frais fixe)"),
-        ("Téléconsultation Spécialiste (7 000 F)", "7 600 FCFA", "7 000 FCFA (100%)", "—", "600 FCFA (Frais fixe)"),
+        ("Téléconsultation Dispensaire (2 000 F)", "2 200 FCFA", "2 000 FCFA (100%)", "—", "200 FCFA (10% tarif hôpital)"),
+        ("Téléconsultation Standard CHU (3 000 F)", "3 300 FCFA", "3 000 FCFA (100%)", "—", "300 FCFA (10% tarif hôpital)"),
+        ("Téléconsultation Généraliste (3 500 F)", "3 850 FCFA", "3 500 FCFA (100%)", "—", "350 FCFA (10% tarif hôpital)"),
+        ("Téléconsultation Spécialiste (7 000 F)", "7 700 FCFA", "7 000 FCFA (100%)", "—", "700 FCFA (10% tarif hôpital)"),
         ("Commande Pharmacie (Retrait comptoir)", "Prix Médicaments + 150 F", "—", "100% Prix Médicaments", "150 FCFA (Frais mise en rel.)"),
         ("Commande Pharmacie + Livraison (4 km)", "Prix Médoc + 150 F + 800 F", "—", "100% Médoc + 600 F Coursier", "350 FCFA (150F + 200F Marge livr.)"),
-        ("Soins Infirmiers à Domicile (5 000 F)", "5 600 FCFA", "5 000 FCFA (100% Hôpital)", "—", "600 FCFA (Frais fixe)")
+        ("Soins Infirmiers à Domicile (5 000 F)", "5 500 FCFA", "5 000 FCFA (100% Hôpital)", "—", "500 FCFA (10% tarif soin)")
     ]
 
     for row_idx, row_data in enumerate(data_rows):
@@ -287,11 +288,11 @@ def create_monetization_docx(output_path):
     r_h5.font.color.rgb = DARK_NAVY
 
     projections = [
-        ("Téléconsultations (2 000 actes/mois à 600 FCFA de frais eDoctor) : ", "Revenu eDoctor = 1 200 000 FCFA / mois."),
+        ("Téléconsultations (2 000 actes/mois avec panier moyen 3 500 F et 10% eDoctor soit 350 FCFA) : ", "Revenu eDoctor = 700 000 FCFA / mois."),
         ("Commandes Pharmacies (3 000 ordonnances/mois à 150 FCFA) : ", "Revenu eDoctor = 450 000 FCFA / mois."),
         ("Livraisons Express (1 500 courses/mois avec marge moyenne de 250 FCFA) : ", "Revenu eDoctor = 375 000 FCFA / mois."),
-        ("Soins Infirmiers à Domicile (400 actes/mois à 600 FCFA de frais eDoctor) : ", "Revenu eDoctor = 240 000 FCFA / mois."),
-        ("👉 TOTAL REVENU MENSUEL RÉCURRENT BRUT eDOCTOR : ", "≈ 2 265 000 FCFA / mois (soit plus de 27 Millions FCFA / an dès le cap des 3 000 usagers réguliers).")
+        ("Soins Infirmiers à Domicile (400 actes/mois à 10% soit 500 FCFA de frais eDoctor) : ", "Revenu eDoctor = 200 000 FCFA / mois."),
+        ("👉 TOTAL REVENU MENSUEL RÉCURRENT BRUT eDOCTOR : ", "≈ 1 725 000 FCFA / mois (soit plus de 20,7 Millions FCFA / an dès le cap des 3 000 usagers réguliers).")
     ]
     for bold_text, normal_text in projections:
         p = doc.add_paragraph(style='List Bullet')
@@ -319,7 +320,7 @@ def create_monetization_docx(output_path):
         "L'encaissement et le reversement fonctionnent de manière entièrement automatisée grâce à l'intégration des API Mobile Money togolaises (T-Money Togo Télécom et Flooz Moov Africa) :\n"
         "1. Encaissement Unique : Le patient règle le montant global de l'acte en un seul clic sur son téléphone portable.\n"
         "2. Séquestre Garanti (Escrow) : Les fonds sont immobilisés sur le compte régulé de la plateforme jusqu'à la fin effective de la consultation ou la remise des médicaments.\n"
-        "3. Découpage Automatique (Split) : Dès validation médicale, l'API crédite instantanément 100% de la part hôpital dans son solde virtuel partenaire, et alloue les 600 FCFA ou 150 FCFA dans le compte eDoctor.\n"
+        "3. Découpage Automatique (Split) : Dès validation médicale, l'API crédite instantanément 100% de la part hôpital dans son solde virtuel partenaire, et alloue la commission de 10% ou 150 FCFA dans le compte eDoctor.\n"
         "4. Reversement Autonome (Payout) : Les hôpitaux et officines peuvent demander un virement bancaire ou un transfert Mobile Money Marchand selon la périodicité souhaitée (quotidienne, hebdomadaire ou mensuelle)."
     )
 

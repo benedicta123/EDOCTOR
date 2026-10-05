@@ -141,6 +141,11 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
                               '${hospital.latitude ?? '—'}, ${hospital.longitude ?? '—'}',
                               Icons.my_location_rounded,
                             ),
+                            InfoTile(
+                              'Tarif consultation',
+                              '${hospital.consultationFee.toInt()} FCFA',
+                              Icons.payments_outlined,
+                            ),
                           ],
                         ),
                       ],

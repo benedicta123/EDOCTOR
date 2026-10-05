@@ -11,10 +11,11 @@ return [
     |
     */
 
-    // Frais plateforme sur chaque téléconsultation (payés par le patient)
+    // Frais plateforme sur chaque téléconsultation (payés par le patient, 10% du tarif hôpital)
     'consultation' => [
         'default_hospital_fee' => (float) env('EDOCTOR_DEFAULT_CONSULTATION_FEE', 3000.0),
-        'platform_fee' => (float) env('EDOCTOR_CONSULTATION_PLATFORM_FEE', 600.0), // Absorbe les frais Mobile Money
+        'platform_fee_rate' => (float) env('EDOCTOR_CONSULTATION_PLATFORM_RATE', 0.10), // 10% du tarif de consultation hôpital
+        'platform_fee' => (float) env('EDOCTOR_CONSULTATION_PLATFORM_FEE', 600.0), // Ancien forfait fixe conservé comme fallback
     ],
 
     // Frais plateforme de géolocalisation d'officine avec stock garanti en direct

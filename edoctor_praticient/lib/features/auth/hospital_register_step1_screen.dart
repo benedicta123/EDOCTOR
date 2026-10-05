@@ -28,6 +28,7 @@ class _HospitalRegisterStep1ScreenState
   final _license = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController(text: '+228 ');
+  final _consultationFee = TextEditingController(text: '3000');
   final LatLng _defaultMapCenter = const LatLng(6.1375, 1.2224);
   LatLng? _selectedPoint;
   bool _locationConfirmed = false;
@@ -51,6 +52,7 @@ class _HospitalRegisterStep1ScreenState
     _license.dispose();
     _email.dispose();
     _phone.dispose();
+    _consultationFee.dispose();
     super.dispose();
   }
 
@@ -85,6 +87,7 @@ class _HospitalRegisterStep1ScreenState
           licenseNumber: _license.text.trim(),
           officialEmail: _email.text.trim(),
           hospitalPhone: _phone.text.trim(),
+          consultationFee: double.tryParse(_consultationFee.text.trim()) ?? 3000.0,
         ),
       ),
     );
@@ -499,6 +502,39 @@ class _HospitalRegisterStep1ScreenState
                               hint: '+228 22 00 00 00',
                               icon: Icons.phone_outlined,
                               keyboardType: TextInputType.phone,
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Section : Tarification des consultations
+                          _SectionHeader(
+                            icon: Icons.payments_outlined,
+                            title: 'Tarif des consultations',
+                          ),
+                          const SizedBox(height: 12),
+
+                          CustomTextField(
+                            controller: _consultationFee,
+                            label: 'Tarif standard de la consultation (FCFA)',
+                            hint: '3000',
+                            icon: Icons.payments_outlined,
+                            keyboardType: TextInputType.number,
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return 'Requis';
+                              final val = double.tryParse(v.trim());
+                              if (val == null || val < 500) {
+                                return 'Montant invalide (minimum 500 FCFA)';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            '100% de ces honoraires sont reversés directement à votre hôpital pour chaque téléconsultation effectuée.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
                             ),
                           ),
 

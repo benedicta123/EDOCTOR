@@ -16,6 +16,7 @@ class HospitalRegisterStep2Screen extends StatefulWidget {
     required this.licenseNumber,
     required this.officialEmail,
     required this.hospitalPhone,
+    required this.consultationFee,
   });
 
   final String hospitalName;
@@ -25,6 +26,7 @@ class HospitalRegisterStep2Screen extends StatefulWidget {
   final String licenseNumber;
   final String officialEmail;
   final String hospitalPhone;
+  final double consultationFee;
 
   @override
   State<HospitalRegisterStep2Screen> createState() =>
@@ -82,6 +84,7 @@ class _HospitalRegisterStep2ScreenState
         adminEmail: _adminEmail.text.trim(),
         password: _password.text,
         passwordConfirmation: _password2.text,
+        consultationFee: widget.consultationFee,
       );
       if (!mounted) return;
       showMsg(context, 'Hôpital inscrit avec succès. Bienvenue !');
@@ -263,6 +266,15 @@ class _HospitalRegisterStep2ScreenState
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Tarif consultation : ${widget.consultationFee.toInt()} FCFA',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
                                         ),
                                       ),
                                     ],

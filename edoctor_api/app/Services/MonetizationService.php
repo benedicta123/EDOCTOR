@@ -9,7 +9,7 @@ class MonetizationService
 {
     /**
      * Calcule le découpage financier d'une téléconsultation médicale.
-     * Règle DG : 100% du tarif revient à l'hôpital/médecin, + 600 FCFA fixe eDoctor.
+     * Règle DG Révisée : 100% du tarif revient à l'hôpital/médecin, + 10% du tarif consultation pour eDoctor.
      */
     public static function calculateConsultationPricing(?Hospital $hospital = null, ?User $doctor = null): array
     {
@@ -21,13 +21,14 @@ class MonetizationService
             $hospitalFee = (float) $hospital->consultation_fee;
         }
 
-        $platformFee = (float) config('monetization.consultation.platform_fee', 600.0);
+        $platformRate = (float) config('monetization.consultation.platform_fee_rate', 0.10);
+        $platformFee = round($hospitalFee * $platformRate, 2);
         $totalAmount = $hospitalFee + $platformFee;
 
         return [
             'consultation_fee' => $hospitalFee,
             'hospital_share' => $hospitalFee, // 100% reversé à la structure médicale
-            'edoctor_fee' => $platformFee,     // 600 FCFA net (absorbe frais Mobile Money)
+            'edoctor_fee' => $platformFee,     // 10% du tarif hôpital (absorbe frais Mobile Money)
             'total_amount' => $totalAmount,
         ];
     }

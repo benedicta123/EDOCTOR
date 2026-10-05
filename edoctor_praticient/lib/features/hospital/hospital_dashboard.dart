@@ -330,6 +330,11 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
                           Icons.email_outlined),
                       InfoTile('Téléphone', _hospital?.phone,
                           Icons.phone_outlined),
+                      InfoTile(
+                        'Tarif consultation',
+                        '${_hospital?.consultationFee.toInt() ?? 3000} FCFA',
+                        Icons.payments_outlined,
+                      ),
                     ],
                   ),
                 ),
