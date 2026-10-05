@@ -105,11 +105,18 @@ class ConsultationModel {
       return null;
     }
 
+    int parseInt(dynamic v, [int fallback = 0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
     return ConsultationModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: parseInt(json['id']),
       referenceCode: (json['reference_code'] as String? ?? '').trim(),
-      patientId: (json['patient_id'] as num?)?.toInt() ?? 0,
-      doctorId: (json['doctor_id'] as num?)?.toInt() ?? 0,
+      patientId: parseInt(json['patient_id']),
+      doctorId: parseInt(json['doctor_id']),
       status: json['status'] as String? ?? 'en_attente',
       scheduledAt: json['scheduled_at'] as String?,
       startedAt: json['started_at'] as String?,
@@ -141,10 +148,17 @@ class ChatMessage {
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic v, [int fallback = 0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
     final sender = json['sender'] as Map<String, dynamic>?;
     return ChatMessage(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      senderId: (json['sender_id'] as num?)?.toInt() ?? 0,
+      id: parseInt(json['id']),
+      senderId: parseInt(json['sender_id']),
       content: json['content'] as String? ?? '',
       senderName: sender?['name'] as String? ?? '',
       senderRole: sender?['role'] as String? ?? '',

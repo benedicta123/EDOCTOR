@@ -101,7 +101,11 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
     setState(() => _loading = true);
     try {
       final me = await StorageService.getUser();
-      final msgs = await ApiService.getMessages(widget.consultation.id);
+      List<ChatMessage> msgs = [];
+      try {
+        msgs = await ApiService.getMessages(widget.consultation.id);
+      } catch (_) {}
+
       List<MedicationModel> catalog = [];
       try {
         catalog = await ApiService.getConsultationMedications(
@@ -113,7 +117,12 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
           catalog = await ApiService.getMedications();
         } catch (_) {}
       }
-      final rx = await _fetchConsultationRx();
+
+      List<PrescriptionModel> rx = [];
+      try {
+        rx = await _fetchConsultationRx();
+      } catch (_) {}
+
       List<LabRequestModel> labs = [];
       try {
         labs = await ApiService.getConsultationLabRequests(widget.consultation.id);
@@ -159,8 +168,10 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
-        showMsg(context, e.toString().replaceFirst('Exception: ', ''),
-            error: true);
+        try {
+          showMsg(context, e.toString().replaceFirst('Exception: ', ''),
+              error: true);
+        } catch (_) {}
       }
     }
   }
@@ -371,7 +382,14 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
       showMsg(context, 'Choisissez un médicament et sa posologie', error: true);
       return;
     }
-    final med = _catalog.firstWhere((m) => m.id == _medId);
+    final med = _catalog.cast<MedicationModel?>().firstWhere(
+          (m) => m?.id == _medId,
+          orElse: () => null,
+        );
+    if (med == null) {
+      showMsg(context, 'Veuillez sélectionner un médicament valide dans la liste', error: true);
+      return;
+    }
     setState(() {
       _items.add({
         'medication_id': med.id,
@@ -1117,45 +1135,50 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
             ),
           ),
           if (_catalog.isNotEmpty)
-            DropdownButtonFormField<int>(
-              initialValue: _medId,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                  labelText: 'Médicament',
-                  prefixIcon: Icon(Icons.medication_rounded, size: 20)),
-              items: _catalog
-                  .map((m) => DropdownMenuItem(
-                      value: m.id,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              m.displayName,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: m.inStock ? AppColors.successLight : AppColors.warningLight,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              m.stockLabel,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: m.inStock ? AppColors.success : AppColors.warning,
+            Builder(builder: (context) {
+              final seen = <int>{};
+              final uniqueCatalog = _catalog.where((m) => seen.add(m.id)).toList();
+              final currentVal = uniqueCatalog.any((m) => m.id == _medId) ? _medId : null;
+              return DropdownButtonFormField<int>(
+                value: currentVal,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                    labelText: 'Médicament',
+                    prefixIcon: Icon(Icons.medication_rounded, size: 20)),
+                items: uniqueCatalog
+                    .map((m) => DropdownMenuItem(
+                        value: m.id,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                m.displayName,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                               ),
                             ),
-                          ),
-                        ],
-                      )))
-                  .toList(),
-              onChanged: (v) => setState(() => _medId = v),
-            )
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: m.inStock ? AppColors.successLight : AppColors.warningLight,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                m.stockLabel,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: m.inStock ? AppColors.success : AppColors.warning,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )))
+                    .toList(),
+                onChanged: (v) => setState(() => _medId = v),
+              );
+            })
           else if (_inStockOnly)
             Container(
               padding: const EdgeInsets.all(14),
@@ -1248,11 +1271,11 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
                   child: ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(e['medication_name'] as String,
+                    title: Text((e['medication_name'] ?? 'Médicament').toString(),
                         style: const TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 13.5)),
                     subtitle: Text(
-                        '${e['dosage_instructions']} · quantité ${e['quantity']}',
+                        '${e['dosage_instructions'] ?? ''} · quantité ${e['quantity'] ?? 1}',
                         style: const TextStyle(fontSize: 12.5)),
                     trailing: IconButton(
                       tooltip: 'Retirer',

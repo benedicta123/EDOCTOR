@@ -145,6 +145,43 @@ class Consultation extends Model
     }
 
     /**
+     * Une demande en attente n'est visible par le médecin (et ne déclenche la sonnerie)
+     * qu'une fois le paiement du patient confirmé.
+     */
+    public function scopeVisibleToDoctor($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('payment_status', 'paye')
+                ->orWhere('status', '!=', 'en_attente');
+        });
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->payment_status === 'paye';
+    }
+
+    /**
+     * Marque la consultation comme payée et prévient le médecin (une seule fois).
+     */
+    public function markAsPaid(): void
+    {
+        if ($this->isPaid()) {
+            return;
+        }
+
+        $this->update(['payment_status' => 'paye']);
+
+        if ($this->status === 'en_attente' && $this->doctor) {
+            NotificationService::send(
+                $this->doctor,
+                'consultation_request',
+                'Nouvelle demande de consultation (payée) de la part de ' . ($this->patient?->name ?? 'un patient') . '.'
+            );
+        }
+    }
+
+    /**
      * Clôture automatiquement les téléconsultations en cours depuis plus de 2 heures (120 minutes).
      */
     public static function closeExpiredConsultations(): int

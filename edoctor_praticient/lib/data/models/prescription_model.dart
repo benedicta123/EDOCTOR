@@ -23,21 +23,38 @@ class MedicationModel {
     this.maxPrice,
   });
 
-  factory MedicationModel.fromJson(Map<String, dynamic> json) =>
-      MedicationModel(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        name: (json['name'] as String?) ??
-            (json['commercial_name'] as String?) ??
-            'Medicament ${json['id']}',
-        dosage: json['dosage'] as String?,
-        form: json['form'] as String? ?? json['dosage_form'] as String?,
-        inStock: json['in_stock'] == true || (json['in_stock'] is num && (json['in_stock'] as num) == 1),
-        nearbyPharmaciesCount: (json['nearby_pharmacies_count'] as num?)?.toInt() ?? 0,
-        nearestPharmacy: json['nearest_pharmacy'] as String?,
-        nearestDistanceKm: (json['nearest_distance_km'] as num?)?.toDouble(),
-        minPrice: (json['min_price'] as num?)?.toDouble(),
-        maxPrice: (json['max_price'] as num?)?.toDouble(),
-      );
+  factory MedicationModel.fromJson(Map<String, dynamic> json) {
+    double? parseDouble(dynamic v) {
+      if (v == null) return null;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v);
+      return null;
+    }
+
+    int parseInt(dynamic v, [int fallback = 0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
+    return MedicationModel(
+      id: parseInt(json['id']),
+      name: (json['name'] as String?) ??
+          (json['commercial_name'] as String?) ??
+          'Medicament ${json['id']}',
+      dosage: json['dosage'] as String?,
+      form: json['form'] as String? ?? json['dosage_form'] as String?,
+      inStock: json['in_stock'] == true ||
+          (json['in_stock'] is num && (json['in_stock'] as num) == 1) ||
+          json['in_stock'] == '1',
+      nearbyPharmaciesCount: parseInt(json['nearby_pharmacies_count']),
+      nearestPharmacy: json['nearest_pharmacy'] as String?,
+      nearestDistanceKm: parseDouble(json['nearest_distance_km']),
+      minPrice: parseDouble(json['min_price']),
+      maxPrice: parseDouble(json['max_price']),
+    );
+  }
 
   String get displayName {
     final buffer = StringBuffer(name);
@@ -76,14 +93,25 @@ class PrescriptionItemModel {
 
   factory PrescriptionItemModel.fromJson(Map<String, dynamic> json) {
     final med = json['medication'] as Map<String, dynamic>?;
+    int parseInt(dynamic v, [int fallback = 0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
     return PrescriptionItemModel(
-      medicationId: (json['medication_id'] as num?)?.toInt(),
-      medicationName: med?['name'] as String? ??
-          med?['commercial_name'] as String? ??
-          'Medicament',
+      medicationId: json['medication_id'] != null
+          ? parseInt(json['medication_id'])
+          : (med?['id'] != null ? parseInt(med!['id']) : null),
+      medicationName: (med?['name'] ??
+              med?['commercial_name'] ??
+              json['medication_name'] ??
+              'Medicament')
+          .toString(),
       dosageInstructions:
-          json['dosage_instructions'] as String? ?? '',
-      quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+          (json['dosage_instructions'] ?? '').toString(),
+      quantity: parseInt(json['quantity'], 1),
     );
   }
 }
@@ -177,16 +205,24 @@ class PrescriptionModel {
       return '$age ans';
     }
 
+    int parseInt(dynamic v, [int fallback = 0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
     return PrescriptionModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      consultationId: (json['consultation_id'] as num?)?.toInt() ?? 0,
+      id: parseInt(json['id']),
+      consultationId: parseInt(json['consultation_id']),
       consultationReferenceCode: consultationObj?['reference_code'] as String?,
-      doctorId: (json['doctor_id'] as num?)?.toInt() ?? 0,
-      patientId: (json['patient_id'] as num?)?.toInt() ?? 0,
+      doctorId: parseInt(json['doctor_id']),
+      patientId: parseInt(json['patient_id']),
       status: json['status'] as String? ?? 'validee',
       homeCareRecommended: json['home_care_recommended'] == true ||
           (json['home_care_recommended'] is num &&
-              (json['home_care_recommended'] as num) == 1),
+              (json['home_care_recommended'] as num) == 1) ||
+          json['home_care_recommended'] == '1',
       patientName: patientObj?['name'] as String? ?? (json['patient_name'] as String? ?? 'Patient eDoctor'),
       patientAge: calculateAge(patientObj?['date_of_birth'] as String?),
       patientPhone: patientObj?['phone'] as String? ?? '',

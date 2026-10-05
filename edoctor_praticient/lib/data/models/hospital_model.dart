@@ -40,8 +40,22 @@ class HospitalModel {
           .toList();
     }
 
+    double parseDouble(dynamic v, [double fallback = 0.0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
+    int parseInt(dynamic v, [int fallback = 0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
     return HospitalModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: parseInt(json['id']),
       name: json['name'] as String? ?? '',
       status: json['status'] as String? ?? 'en_attente',
       address: json['address'] as String?,
@@ -51,7 +65,7 @@ class HospitalModel {
       latitude: json['latitude']?.toString(),
       longitude: json['longitude']?.toString(),
       verifiedAt: json['verified_at'] as String?,
-      consultationFee: (json['consultation_fee'] as num?)?.toDouble() ?? 3000.0,
+      consultationFee: parseDouble(json['consultation_fee'], 3000.0),
       doctors: parse('doctors'),
       nurses: parse('nurses'),
     );

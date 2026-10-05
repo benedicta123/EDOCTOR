@@ -29,17 +29,32 @@ class DoctorModel {
 
   factory DoctorModel.fromJson(Map<String, dynamic> json) {
     final hospital = json['hospital'] as Map<String, dynamic>?;
-    final cFee = (json['consultation_fee'] as num?)?.toDouble() ?? 3000.0;
-    final eFee = (json['edoctor_fee'] as num?)?.toDouble() ?? 600.0;
-    final tAmount = (json['total_amount'] as num?)?.toDouble() ?? (cFee + eFee);
+
+    double parseDouble(dynamic v, [double fallback = 0.0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
+    int parseInt(dynamic v, [int fallback = 0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
+    final cFee = parseDouble(json['consultation_fee'], 3000.0);
+    final eFee = parseDouble(json['edoctor_fee'], 300.0);
+    final tAmount = parseDouble(json['total_amount'], cFee + eFee);
 
     return DoctorModel(
-      id: json['id'] as int? ?? 0,
+      id: parseInt(json['id']),
       name: json['name'] as String? ?? 'Médecin',
       specialty: json['specialty'] as String? ?? 'Médecine Générale',
       hospitalName: hospital?['name'] as String?,
-      rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
-      reviewsCount: json['reviews_count'] as int? ?? 110,
+      rating: parseDouble(json['rating'], 4.8),
+      reviewsCount: parseInt(json['reviews_count'], 110),
       languages: json['languages'] as String? ?? 'Français, Éwé',
       avatarUrl: json['avatar_url'] as String?,
       isOnline: json['is_online'] as bool? ?? true,

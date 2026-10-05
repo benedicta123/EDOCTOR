@@ -149,6 +149,9 @@ class MonetizationPricingTest extends TestCase
 
     public function test_consultation_store_and_pay_splits_correctly(): void
     {
+        // Le paiement direct /pay n'est autorisé qu'en mode simulation (sans clé FedaPay)
+        config(['services.fedapay.secret_key' => '']);
+
         $hospital = Hospital::create([
             'name' => 'Hôpital de Référence',
             'address' => 'Lomé, Togo',

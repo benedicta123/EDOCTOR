@@ -17,7 +17,7 @@ class DoctorDashboardController extends Controller
         Consultation::closeExpiredConsultations();
 
         $doctor = $this->doctor($request);
-        $consultations = Consultation::where('doctor_id', $doctor->id);
+        $consultations = Consultation::where('doctor_id', $doctor->id)->visibleToDoctor();
 
         return response()->json([
             'pending_consultations' => (clone $consultations)->where('status', 'en_attente')->count(),

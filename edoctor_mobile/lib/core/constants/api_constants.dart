@@ -3,8 +3,8 @@ class ApiConstants {
   ApiConstants._();
 
   // URL de base paramétrable (10.0.2.2 pour émulateur Android, 127.0.0.1 pour web/desktop)
-  // 192.168.1.76 = IP LAN actuelle du PC pour téléphone physique en Wi-Fi / USB
-  static const String baseUrl = 'http://192.168.1.76:8000/api';
+  // 192.168.1.139 = IP LAN actuelle du PC pour téléphone physique en Wi-Fi / USB
+  static const String baseUrl = 'http://192.168.1.139:8000/api';
   static const String desktopBaseUrl = 'http://127.0.0.1:8000/api';
 
   // Authentification

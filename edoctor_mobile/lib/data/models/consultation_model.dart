@@ -40,15 +40,30 @@ class ConsultationModel {
 
   factory ConsultationModel.fromJson(Map<String, dynamic> json) {
     String nested(Map<String, dynamic>? m) => m?['name'] as String? ?? '';
-    final cFee = (json['consultation_fee'] as num?)?.toDouble() ?? 3000.0;
-    final eFee = (json['edoctor_fee'] as num?)?.toDouble() ?? 600.0;
-    final tAmount = (json['total_amount'] as num?)?.toDouble() ?? (cFee + eFee);
+
+    double parseDouble(dynamic v, [double fallback = 0.0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
+    int parseInt(dynamic v, [int fallback = 0]) {
+      if (v == null) return fallback;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
+    final cFee = parseDouble(json['consultation_fee'], 3000.0);
+    final eFee = parseDouble(json['edoctor_fee'], 300.0);
+    final tAmount = parseDouble(json['total_amount'], cFee + eFee);
 
     return ConsultationModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: parseInt(json['id']),
       referenceCode: (json['reference_code'] as String? ?? '').trim(),
-      patientId: (json['patient_id'] as num?)?.toInt() ?? 0,
-      doctorId: (json['doctor_id'] as num?)?.toInt() ?? 0,
+      patientId: parseInt(json['patient_id']),
+      doctorId: parseInt(json['doctor_id']),
       status: json['status'] as String? ?? 'en_attente',
       scheduledAt: json['scheduled_at'] as String?,
       startedAt: json['started_at'] as String?,

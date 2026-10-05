@@ -606,7 +606,7 @@ class ApiService {
     final r = await http.get(uri, headers: _headers(token));
     if (r.statusCode == 200) {
       final body = jsonDecode(r.body) as Map<String, dynamic>;
-      final list = body['medications'] as List? ?? [];
+      final list = (body['data'] ?? body['medications'] ?? []) as List;
       return list
           .map((e) => MedicationModel.fromJson(e as Map<String, dynamic>))
           .toList();

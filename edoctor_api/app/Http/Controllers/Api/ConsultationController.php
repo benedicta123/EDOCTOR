@@ -8,6 +8,7 @@ use App\Models\Medication;
 use App\Models\Pharmacy;
 use App\Models\PharmacyStock;
 use App\Models\User;
+use App\Services\FedaPayService;
 use App\Services\MonetizationService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -25,7 +26,10 @@ class ConsultationController extends Controller
 
         $query = Consultation::where(function ($q) use ($user) {
             $q->where('patient_id', $user->id)
-                ->orWhere('doctor_id', $user->id);
+                ->orWhere(function ($d) use ($user) {
+                    // Le médecin ne voit une demande en attente qu'une fois payée
+                    $d->where('doctor_id', $user->id)->visibleToDoctor();
+                });
         })->with([
             'patient:id,name,email,phone,date_of_birth',
             'doctor:id,name,hospital_id',
@@ -75,18 +79,16 @@ class ConsultationController extends Controller
             'payment_status' => 'en_attente',
         ]);
 
-        NotificationService::send(
-            $consultation->doctor,
-            'consultation_request',
-            "Nouvelle demande de consultation de la part de {$request->user()->name}."
-        );
-
+        // Le médecin n'est PAS notifié ici : il le sera uniquement après confirmation
+        // du paiement (voir Consultation::markAsPaid()).
         return response()->json($consultation->load(['doctor.hospital', 'patient']), 201);
     }
 
     public function start(Request $request, Consultation $consultation)
     {
         Gate::authorize('start', $consultation);
+
+        abort_unless($consultation->isPaid(), 402, 'Cette consultation n\'a pas encore été payée par le patient.');
 
         DB::transaction(function () use ($consultation) {
             $consultation->update(['status' => 'en_cours', 'started_at' => now()]);
@@ -178,11 +180,16 @@ class ConsultationController extends Controller
             ? $consultation->doctor
             : $consultation->patient;
 
-        NotificationService::send(
-            $recipient,
-            'consultation_cancelled',
-            "La consultation a été annulée par {$request->user()->name}."
-        );
+        // Si la demande n'a jamais été payée, le médecin n'en a jamais eu connaissance
+        $shouldNotify = !($recipient?->id === $consultation->doctor_id && !$consultation->isPaid());
+
+        if ($shouldNotify) {
+            NotificationService::send(
+                $recipient,
+                'consultation_cancelled',
+                "La consultation a été annulée par {$request->user()->name}."
+            );
+        }
 
         return response()->json($consultation);
     }
@@ -190,10 +197,18 @@ class ConsultationController extends Controller
     /**
      * POST /api/consultations/{consultation}/pay
      * Valide le règlement de la téléconsultation avec découpage financier (split).
+     * Uniquement disponible en mode simulation (clé FedaPay absente). Dès que FedaPay
+     * est configuré, le paiement passe obligatoirement par /pay/fedapay.
      */
-    public function pay(Request $request, Consultation $consultation)
+    public function pay(Request $request, Consultation $consultation, FedaPayService $fedapay)
     {
         Gate::authorize('view', $consultation);
+
+        abort_if(
+            $fedapay->isConfigured(),
+            403,
+            'Le paiement doit être effectué via FedaPay (Mobile Money).'
+        );
 
         $validated = $request->validate([
             'payment_method' => ['required', 'in:mobile_money,carte'],
@@ -211,7 +226,7 @@ class ConsultationController extends Controller
                 'transaction_ref' => $validated['transaction_ref'] ?? ('TXN-CNS-' . strtoupper(Str::random(10))),
             ]);
 
-            $consultation->update(['payment_status' => 'paye']);
+            $consultation->markAsPaid();
 
             return $payment;
         });

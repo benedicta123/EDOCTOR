@@ -5,7 +5,7 @@ class ApiConstants {
 
   // PC dev : 127.0.0.1 pour web/desktop, IP LAN pour téléphone physique.
   // Aligne sur edoctor_mobile : même API Laravel sur :8000/api
-  static const String baseUrl = 'http://192.168.1.79:8000/api';
+  static const String baseUrl = 'http://192.168.1.139:8000/api';
   static const String desktopBaseUrl = 'http://127.0.0.1:8000/api';
 
   // Auth (POST /login universel : doctor + admin hopital)
