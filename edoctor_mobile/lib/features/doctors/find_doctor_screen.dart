@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/app_logo.dart';
@@ -78,15 +79,86 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
     DoctorModel doctor, void Function(bool) setSheetLoading) async {
     setSheetLoading(true);
     try {
+      // 1. Créer la demande de consultation
       final consultation =
           await ApiService.requestConsultation(doctor.id);
-      // Règlement automatique de la téléconsultation (Mobile Money)
+
+      // 2. Initier la transaction FedaPay (Mobile Money T-Money / Flooz)
+      Map<String, dynamic>? fedapayRes;
       try {
-        await ApiService.payConsultation(consultation.id, paymentMethod: 'mobile_money');
+        fedapayRes = await ApiService.initiateFedaPayConsultation(consultation.id);
       } catch (_) {}
 
+      final checkoutUrl = fedapayRes?['checkout_url'] as String?;
+      final transactionId = fedapayRes?['transaction_id'] as int?;
+      final isSimulated = fedapayRes?['simulated'] == true;
+
       if (!mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(); // Fermer la feuille modale
+
+      // 3. Si un lien FedaPay réel est généré, ouvrir la passerelle sécurisée
+      if (checkoutUrl != null && !isSimulated) {
+        final uri = Uri.parse(checkoutUrl);
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+        if (!mounted) return;
+        final confirmed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.phone_android_rounded, color: AppColors.primary),
+                SizedBox(width: 10),
+                Text('Paiement Mobile Money', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Une page sécurisée FedaPay a été ouverte pour régler ${doctor.totalAmount.toInt()} FCFA (T-Money ou Flooz).',
+                  style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Une fois la validation effectuée sur votre téléphone, cliquez sur le bouton ci-dessous pour démarrer.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Plus tard', style: TextStyle(color: AppColors.textMuted)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('J\'ai validé mon paiement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed == true) {
+          try {
+            await ApiService.verifyFedaPayConsultation(consultation.id, transactionId: transactionId);
+          } catch (_) {}
+        }
+      } else {
+        // Mode simulation ou fallback direct
+        try {
+          await ApiService.payConsultation(consultation.id, paymentMethod: 'mobile_money');
+        } catch (_) {}
+      }
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

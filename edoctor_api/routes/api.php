@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ConsultationVideoController;
 use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\DoctorDashboardController;
+use App\Http\Controllers\Api\FedaPayPaymentController;
 use App\Http\Controllers\Api\HeartbeatController;
 use App\Http\Controllers\Api\HospitalRegistrationController;
 use App\Http\Controllers\Api\HospitalStaffController;
@@ -56,6 +57,7 @@ Route::get('/doctors/available', [DoctorController::class, 'available']);
 // Webhook / Callbacks de paiement
 Route::post('/payments/{payment}/confirm', [PaymentController::class, 'confirm']);
 Route::post('/payments/{payment}/fail', [PaymentController::class, 'fail']);
+Route::post('/webhooks/fedapay', [FedaPayPaymentController::class, 'handleWebhook']);
 
 // --- Routes Protégées (nécessitent un token Sanctum valide) ---
 Route::middleware('auth:sanctum')->group(function () {
@@ -70,6 +72,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/consultations', [ConsultationController::class, 'store']);
     Route::get('/consultations/{consultation}/medications', [ConsultationController::class, 'availableMedications']);
     Route::post('/consultations/{consultation}/pay', [ConsultationController::class, 'pay']);
+    Route::post('/consultations/{consultation}/pay/fedapay', [FedaPayPaymentController::class, 'initiateConsultationPayment']);
+    Route::get('/consultations/{consultation}/pay/fedapay/status', [FedaPayPaymentController::class, 'verifyConsultationPayment']);
     Route::post('/consultations/{consultation}/start', [ConsultationController::class, 'start']);
     Route::post('/consultations/{consultation}/decline', [ConsultationController::class, 'decline']);
     Route::post('/consultations/{consultation}/end', [ConsultationController::class, 'end']);

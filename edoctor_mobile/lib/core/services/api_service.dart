@@ -410,6 +410,32 @@ class ApiService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
+  /// Initialiser le paiement FedaPay (Mobile Money T-Money / Flooz)
+  /// POST /api/consultations/{id}/pay/fedapay
+  static Future<Map<String, dynamic>> initiateFedaPayConsultation(
+    int consultationId,
+  ) async {
+    final response = await _consultationRequest(
+      '${ApiConstants.consultations}/$consultationId/pay/fedapay',
+      post: true,
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Vérifier l'état d'un paiement FedaPay
+  /// GET /api/consultations/{id}/pay/fedapay/status
+  static Future<Map<String, dynamic>> verifyFedaPayConsultation(
+    int consultationId, {
+    int? transactionId,
+  }) async {
+    final query = transactionId != null ? '?transaction_id=$transactionId' : '';
+    final response = await _consultationRequest(
+      '${ApiConstants.consultations}/$consultationId/pay/fedapay/status$query',
+      post: false,
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   /// Obtenir l'accès à la salle vidéo JaaS (domaine + salle + JWT éphémère).
   /// POST /api/consultations/{id}/join
   static Future<VideoMeetingConfig> joinConsultation(
