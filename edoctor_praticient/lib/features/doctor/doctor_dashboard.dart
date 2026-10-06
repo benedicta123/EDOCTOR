@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
-import '../../core/services/prescription_pdf_service.dart';
 import '../../core/services/incoming_call_watcher.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../core/widgets/praticien_nav.dart';
@@ -16,6 +15,7 @@ import '../auth/login_screen.dart';
 import 'consultation_detail_screen.dart';
 import 'consultations_screen.dart';
 import 'video_consultation_screen.dart';
+import 'widgets/consultation_card.dart';
 import '../common_notifications_screen.dart';
 
 /// Tableau de bord médecin : statistiques + consultations + ordonnances récentes.
@@ -53,6 +53,19 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
     });
   }
 
+  int _compareConsultations(ConsultationModel a, ConsultationModel b) {
+    int priority(String s) {
+      if (s == 'en_cours') return 0;
+      if (s == 'en_attente') return 1;
+      return 2;
+    }
+
+    final pa = priority(a.status);
+    final pb = priority(b.status);
+    if (pa != pb) return pa.compareTo(pb);
+    return (b.createdAt ?? '').compareTo(a.createdAt ?? '');
+  }
+
   /// Les nouvelles demandes de consultation apparaissent seules,
   /// sans spinner ni recharge visible. Une alerte discrète signale
   /// chaque nouvelle demande entrante.
@@ -61,6 +74,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
       final consultations = await ApiService.getConsultations();
       final dashboard = await ApiService.getDoctorDashboard();
       if (!mounted) return;
+      consultations.sort(_compareConsultations);
       final pendingIds = consultations
           .where((c) => c.status == 'en_attente')
           .map((c) => c.id)
@@ -126,6 +140,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
       final notifs = await ApiService.getNotifications();
       final dashboard = await ApiService.getDoctorDashboard();
       if (!mounted) return;
+      consultations.sort(_compareConsultations);
       setState(() {
         _user = user;
         _consultations = consultations;
@@ -166,6 +181,8 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final ongoing = intOrNull(
+        _dashboard['ongoing_consultations'] ?? _count('en_cours'));
     final pending = intOrNull(
         _dashboard['pending_consultations'] ?? _count('en_attente'));
     final done =
@@ -174,7 +191,9 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
     final rx = intOrNull(
         _dashboard['prescriptions_issued'] ?? _prescriptions.length);
 
-    final recent = _consultations.take(3).toList();
+    final ongoingList =
+        _consultations.where((c) => c.status == 'en_cours').toList();
+    final recent = _consultations.take(5).toList();
 
     return ResponsiveShell(
       title: 'Bonjour ${_user != null ? doctorDisplay(_user!.name) : 'Docteur'}',
@@ -197,11 +216,16 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (ongoingList.isNotEmpty) ...[
+                  ...ongoingList.map(_buildLiveOngoingBanner),
+                ],
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final w = constraints.maxWidth;
-                    final crossAxisCount =
-                        w >= 980 ? 4 : (w >= 540 ? 2 : 1);
+                    final hasOngoing = ongoing > 0;
+                    final crossAxisCount = hasOngoing
+                        ? (w >= 1150 ? 5 : (w >= 700 ? 3 : (w >= 480 ? 2 : 1)))
+                        : (w >= 980 ? 4 : (w >= 540 ? 2 : 1));
                     return GridView.count(
                       crossAxisCount: crossAxisCount,
                       shrinkWrap: true,
@@ -210,6 +234,14 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                       mainAxisSpacing: 12,
                       childAspectRatio: w >= 980 ? 1.35 : 1.3,
                       children: [
+                        if (hasOngoing)
+                          StatCard(
+                            icon: Icons.videocam_rounded,
+                            label: 'En cours en direct',
+                            value: ongoing,
+                            color: AppColors.error,
+                            width: null,
+                          ),
                         StatCard(
                           icon: Icons.hourglass_top_rounded,
                           label: 'Consultations en attente',
@@ -309,112 +341,133 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
         onLogout: _logout,
       );
 
-  Widget _consultationTile(ConsultationModel c) {
-    final isLive = c.status == 'en_cours';
-    final isPending = c.status == 'en_attente';
-
-    PrescriptionModel? p = c.prescription;
-    if (p == null) {
-      try {
-        p = _prescriptions.firstWhere((item) => item.consultationId == c.id);
-      } catch (_) {}
-    }
+  Widget _buildLiveOngoingBanner(ConsultationModel c) {
+    final patientName = c.patientName.isNotEmpty
+        ? c.patientName
+        : 'Patient #${c.patientId}';
+    final elapsed = relativeLabel(c.startedAt ?? c.createdAt);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 22),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.primary,
-          width: 1.5,
-        ),
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.primary, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: AppColors.primary.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // En-tête Consultation
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isPending ? AppColors.warningLight : AppColors.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(15)),
-            ),
-            child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: isPending
-                      ? AppColors.surface
-                      : AppColors.primaryContainer,
-                  child: Text(
-                    c.patientName.isNotEmpty
-                        ? c.patientName[0].toUpperCase()
-                        : 'P',
-                    style: TextStyle(
-                      color: isPending ? AppColors.warning : AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
-                    ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      Icon(Icons.fiber_manual_record,
+                          size: 10, color: Colors.white),
+                      SizedBox(width: 5),
                       Text(
-                        c.patientName.isEmpty
-                            ? 'Patient #${c.patientId}'
-                            : c.patientName,
-                        style: const TextStyle(
+                        'EN DIRECT · CONSULTATION EN COURS',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
                           fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Consultation ${c.displayCode} · ${formatDateTime(c.scheduledAt)}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (isPending || isLive) ...[
-                  IconButton(
-                    tooltip: isPending
-                        ? 'Lancer en vidéo'
-                        : 'Rejoindre la vidéo',
-                    style: IconButton.styleFrom(
-                      backgroundColor:
-                          AppColors.secondary.withValues(alpha: 0.08),
+                const Spacer(),
+                if (elapsed.isNotEmpty)
+                  Text(
+                    'Démarrée $elapsed',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
                     ),
-                    color: AppColors.secondary,
-                    icon: const Icon(Icons.videocam_rounded, size: 20),
-                    onPressed: () => VideoConsultation.launch(context, c,
-                            startIfNeeded: isPending)
-                        .then((_) => _load()),
                   ),
-                  const SizedBox(width: 4),
-                ],
-                StatusChip(status: c.status),
-                const SizedBox(width: 4),
-                IconButton(
-                  tooltip: 'Ouvrir le dossier',
-                  icon: const Icon(Icons.arrow_forward_ios_rounded,
-                      size: 15, color: AppColors.textSecondary),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.primary,
+                  child: Text(
+                    patientName.isNotEmpty ? patientName[0].toUpperCase() : 'P',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        patientName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Dossier ${c.displayCode} · Patient #${c.patientId}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => VideoConsultation.launch(context, c,
+                          startIfNeeded: false)
+                      .then((_) => _load()),
+                  icon: const Icon(Icons.videocam_rounded, size: 18),
+                  label: const Text('Rejoindre l\'appel vidéo'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                OutlinedButton.icon(
                   onPressed: () => Navigator.of(context)
                       .push(
                         MaterialPageRoute(
@@ -423,349 +476,84 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                         ),
                       )
                       .then((_) => _load()),
+                  icon: const Icon(Icons.description_outlined, size: 18),
+                  label: const Text('Ouvrir le dossier / Diagnostic & Rx'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textPrimary,
+                    side: const BorderSide(color: AppColors.border),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-
-          const Divider(height: 1, color: AppColors.borderLight),
-
-          // Bloc Ordonnance liée
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: p != null
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Header Ordonnance + Export PDF
-                      Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryContainer,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.receipt_long_rounded,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'ORD-2026-${p.id.toString().padLeft(4, '0')}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14.5,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Émise le ${p.formattedDate}',
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          StatusChip(status: p.status),
-                          const SizedBox(width: 8),
-                          // Bouton d'exportation PDF
-                          IconButton.filledTonal(
-                            tooltip: 'Imprimer / Exporter l\'ordonnance en PDF',
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppColors.primaryContainer,
-                              foregroundColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            icon: const Icon(Icons.print_rounded, size: 18),
-                            onPressed: () async {
-                              try {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'Préparation et export de l\'ordonnance en PDF...'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                                await PrescriptionPdfService.printPrescription(
-                                    p!);
-                              } catch (e) {
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('Erreur lors de l\'export : $e'),
-                                    backgroundColor: AppColors.error,
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Fiche Patient & Établissement
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.borderLight),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.person_outline_rounded,
-                                  size: 16,
-                                  color: AppColors.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '${p.patientName} (${p.patientAge})',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.local_hospital_rounded,
-                                  size: 16,
-                                  color: AppColors.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Dr. ${p.doctorName.isNotEmpty ? p.doctorName : (_user?.name ?? 'Médecin')} • ${p.hospitalName}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Diagnostic clinique préalable
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.medical_services_outlined,
-                              size: 16,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: RichText(
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                      fontSize: 12.5,
-                                      color: AppColors.textPrimary),
-                                  children: [
-                                    const TextSpan(
-                                      text: 'Diagnostic clinique préalable : ',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w700),
-                                    ),
-                                    TextSpan(
-                                      text: p.diagnosis.isNotEmpty
-                                          ? p.diagnosis
-                                          : (c.diagnosis?.isNotEmpty == true
-                                              ? c.diagnosis!
-                                              : 'Consultation de suivi médical'),
-                                      style: const TextStyle(
-                                        fontStyle: FontStyle.italic,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Médicaments prescrits
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Médicaments prescrits (${p.items.length}) :',
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          if (p.homeCareRecommended)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryContainer,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Row(
-                                children: [
-                                  Icon(Icons.home_outlined,
-                                      size: 12, color: AppColors.primary),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Soins à domicile',
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-
-                      if (p.items.isEmpty)
-                        const Text(
-                          'Aucun médicament enregistré dans l\'ordonnance.',
-                          style: TextStyle(
-                            fontStyle: FontStyle.italic,
-                            fontSize: 12,
-                            color: AppColors.textMuted,
-                          ),
-                        )
-                      else
-                        ...p.items.map(
-                          (item) => Container(
-                            margin: const EdgeInsets.only(bottom: 5),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.borderLight),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryContainer,
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                  child: Text(
-                                    'Qté: ${item.quantity}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    item.medicationName +
-                                        (item.dosageInstructions.isNotEmpty
-                                            ? ' (${item.dosageInstructions})'
-                                            : ''),
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  )
-                : Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline_rounded,
-                            size: 18, color: AppColors.textMuted),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            c.diagnosis != null && c.diagnosis!.isNotEmpty
-                                ? 'Diagnostic : ${c.diagnosis} (Ordonnance non encore émise)'
-                                : 'Aucune ordonnance émise pour cette consultation.',
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              color: AppColors.textSecondary,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(context)
-                              .push(
-                                MaterialPageRoute(
-                                  builder: (_) => ConsultationDetailScreen(
-                                      consultation: c),
-                                ),
-                              )
-                              .then((_) => _load()),
-                          child: const Text('Ouvrir',
-                              style: TextStyle(fontWeight: FontWeight.w700)),
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  int? _actingId;
+
+  Future<void> _accept(ConsultationModel c) async {
+    IncomingCallWatcher.instance.markHandled(c.id);
+    setState(() => _actingId = c.id);
+    try {
+      await ApiService.consultationAction(c.id, 'start');
+      if (!mounted) return;
+      showMsg(context, 'Consultation ${c.displayCode} acceptée — en cours');
+      await _silentRefresh();
+    } catch (e) {
+      if (mounted) {
+        showMsg(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          error: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actingId = null);
+    }
+  }
+
+  Future<void> _decline(ConsultationModel c) async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => DeclineDialog(patientName: c.patientName),
+    );
+    if (reason == null) return;
+
+    IncomingCallWatcher.instance.markHandled(c.id);
+    setState(() => _actingId = c.id);
+    try {
+      await ApiService.consultationAction(c.id, 'decline', reason: reason);
+      if (!mounted) return;
+      showMsg(context,
+          'Consultation ${c.displayCode} refusée. Le patient a été notifié.');
+      await _silentRefresh();
+    } catch (e) {
+      if (mounted) {
+        showMsg(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          error: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actingId = null);
+    }
+  }
+
+  Widget _consultationTile(ConsultationModel c) {
+    return ConsultationCard(
+      consultation: c,
+      onRefresh: _load,
+      actingId: _actingId,
+      onAccept: _accept,
+      onDecline: _decline,
     );
   }
 }

@@ -58,10 +58,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
           }
 
           final createdAt = o['created_at'] != null 
-              ? DateTime.tryParse(o['created_at'].toString()) 
+              ? DateTime.tryParse(o['created_at'].toString())?.toLocal()
               : null;
           final dateStr = createdAt != null 
-              ? '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')} à ${createdAt.hour}h${createdAt.minute.toString().padLeft(2, '0')}'
+              ? '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year} à ${createdAt.hour.toString().padLeft(2, '0')}h${createdAt.minute.toString().padLeft(2, '0')}'
               : 'Récemment';
 
           final deliveryObj = o['delivery'] as Map<String, dynamic>?;
@@ -247,26 +247,46 @@ class _OrdersScreenState extends State<OrdersScreen> {
               Row(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: AppColors.primaryContainer,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Icons.local_pharmacy_rounded,
-                      size: 16,
+                      size: 18,
                       color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    order['id'] as String,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order['id'] as String,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time_rounded, size: 12, color: AppColors.textMuted),
+                          const SizedBox(width: 4),
+                          Text(
+                            order['date'] as String,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),

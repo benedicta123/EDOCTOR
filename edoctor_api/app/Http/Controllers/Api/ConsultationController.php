@@ -48,7 +48,10 @@ class ConsultationController extends Controller
             });
         }
 
-        $consultations = $query->latest()->get();
+        $consultations = $query
+            ->orderByRaw("CASE WHEN status = 'en_cours' THEN 1 WHEN status = 'en_attente' THEN 2 ELSE 3 END")
+            ->latest()
+            ->get();
 
         return response()->json($consultations);
     }
@@ -67,6 +70,12 @@ class ConsultationController extends Controller
             ->firstOrFail();
 
         $pricing = MonetizationService::calculateConsultationPricing($doctor->hospital, $doctor);
+
+        // Nettoyage automatique des anciennes demandes abandonnées non payées du même patient
+        Consultation::where('patient_id', $request->user()->id)
+            ->where('status', 'en_attente')
+            ->where('payment_status', 'en_attente')
+            ->update(['status' => 'annulee']);
 
         $consultation = Consultation::create([
             'patient_id' => $request->user()->id,
@@ -171,7 +180,7 @@ class ConsultationController extends Controller
 
         DB::transaction(function () use ($consultation) {
             $consultation->update(['status' => 'annulee']);
-            if ($consultation->doctor->availability_status === 'en_consultation') {
+            if ($consultation->doctor?->availability_status === 'en_consultation') {
                 $consultation->doctor->update(['availability_status' => null]);
             }
         });

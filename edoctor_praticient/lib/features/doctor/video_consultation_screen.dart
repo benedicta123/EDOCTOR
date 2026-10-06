@@ -5,6 +5,7 @@ import 'dart:js' as js;
 import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/material.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
@@ -149,43 +150,50 @@ class _VideoConsultationScreenState extends State<VideoConsultationScreen> {
     } catch (_) {}
 
     if (!mounted) return;
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.timer_off_rounded, color: AppColors.error, size: 24),
-            SizedBox(width: 10),
-            Text(
-              'Consultation coupée',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+    _setIframePointerEvents(false);
+    try {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => PointerInterceptor(
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.timer_off_rounded, color: AppColors.error, size: 24),
+                SizedBox(width: 10),
+                Text(
+                  'Consultation coupée',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+              ],
             ),
-          ],
-        ),
-        content: const Text(
-          'La durée maximale autorisée pour une téléconsultation (2 heures) a été atteinte.\n\nLe système a automatiquement interrompu et clôturé la consultation conformément aux règles de régulation médicale.',
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            content: const Text(
+              'La durée maximale autorisée pour une téléconsultation (2 heures) a été atteinte.\n\nLe système a automatiquement interrompu et clôturé la consultation conformément aux règles de régulation médicale.',
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  if (mounted) Navigator.of(context).pop();
+                },
+                child: const Text('Compris'),
               ),
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              if (mounted) Navigator.of(context).pop();
-            },
-            child: const Text('Compris'),
+            ],
           ),
-        ],
-      ),
-    );
+        ),
+      );
+    } finally {
+      _setIframePointerEvents(true);
+    }
   }
 
   @override
@@ -384,34 +392,59 @@ class _VideoConsultationScreenState extends State<VideoConsultationScreen> {
     );
   }
 
+  void _setIframePointerEvents(bool enabled) {
+    try {
+      final val = enabled ? 'auto' : 'none';
+      _holder?.style.pointerEvents = val;
+      final iframe = _holder?.querySelector('iframe');
+      if (iframe is html.IFrameElement) {
+        iframe.style.pointerEvents = val;
+      }
+    } catch (_) {}
+  }
+
   Future<void> _leave() async {
     if (_leaving) return;
     if (_inCall) {
-      final leave = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
-          title: const Text('Quitter la réunion ?'),
-          content: const Text(
-            'Vous quitterez la vidéo, mais la consultation restera en cours. Vous pourrez la rejoindre à nouveau.',
-            style:
-                TextStyle(fontSize: 13, color: AppColors.textSecondary),
+      _setIframePointerEvents(false);
+      bool? leave;
+      try {
+        leave = await showDialog<bool>(
+          context: context,
+          barrierDismissible: true,
+          builder: (ctx) => PointerInterceptor(
+            child: AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: const Text('Quitter la réunion ?'),
+              content: const Text(
+                'Vous quitterez la vidéo, mais la consultation restera en cours. Vous pourrez la rejoindre à nouveau.',
+                style:
+                    TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Rester'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12))),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Quitter'),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Rester'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Quitter'),
-            ),
-          ],
-        ),
-      );
+        );
+      } finally {
+        _setIframePointerEvents(true);
+      }
       if (leave != true || !mounted) return;
     }
     setState(() => _leaving = true);
@@ -420,58 +453,68 @@ class _VideoConsultationScreenState extends State<VideoConsultationScreen> {
   }
 
   Future<void> _openLabSheet() async {
+    _setIframePointerEvents(false);
     List<LabRequestModel> labs = [];
     try {
       labs = await ApiService.getConsultationLabRequests(widget.consultation.id);
     } catch (_) {}
 
-    if (!mounted) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          return Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.85,
-            ),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 10, bottom: 8),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+    if (!mounted) {
+      _setIframePointerEvents(true);
+      return;
+    }
+    try {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => PointerInterceptor(
+          child: StatefulBuilder(
+            builder: (ctx, setSheetState) {
+              return Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
                 ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: LabRequestsSection(
-                      consultation: widget.consultation,
-                      labRequests: labs,
-                      onRefresh: () async {
-                        try {
-                          final updated = await ApiService.getConsultationLabRequests(widget.consultation.id);
-                          setSheetState(() => labs = updated);
-                        } catch (_) {}
-                      },
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 10, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: LabRequestsSection(
+                          consultation: widget.consultation,
+                          labRequests: labs,
+                          onRefresh: () async {
+                            try {
+                              final updated = await ApiService.getConsultationLabRequests(widget.consultation.id);
+                              setSheetState(() => labs = updated);
+                            } catch (_) {}
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
+              );
+            },
+          ),
+        ),
+      );
+    } finally {
+      _setIframePointerEvents(true);
+    }
   }
 
   @override

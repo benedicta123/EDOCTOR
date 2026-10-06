@@ -404,7 +404,7 @@ class ApiService {
       post: true,
       body: {
         'payment_method': paymentMethod,
-        if (transactionRef != null) 'transaction_ref': transactionRef,
+        'transaction_ref': ?transactionRef,
       },
     );
     return jsonDecode(response.body) as Map<String, dynamic>;
@@ -515,10 +515,11 @@ class ApiService {
     );
   }
 
-  /// Récupérer les pharmacies agréées eDoctor
+  /// Récupérer les pharmacies agréées eDoctor (optionnellement filtrées par ordonnance en stock)
   /// GET /api/pharmacies
-  static Future<List<Map<String, dynamic>>> getPharmacies() async {
-    final response = await _consultationRequest(ApiConstants.pharmacies);
+  static Future<List<Map<String, dynamic>>> getPharmacies({int? prescriptionId}) async {
+    final query = prescriptionId != null ? '?prescription_id=$prescriptionId' : '';
+    final response = await _consultationRequest('${ApiConstants.pharmacies}$query');
     final data = jsonDecode(response.body) as List;
     return data.map((e) => e as Map<String, dynamic>).toList();
   }
@@ -540,9 +541,9 @@ class ApiService {
         'pharmacy_id': pharmacyId,
         'items': items,
         'with_delivery': withDelivery,
-        if (deliveryDistanceKm != null) 'delivery_distance_km': deliveryDistanceKm,
-        if (patientLatitude != null) 'patient_latitude': patientLatitude,
-        if (patientLongitude != null) 'patient_longitude': patientLongitude,
+        'delivery_distance_km': ?deliveryDistanceKm,
+        'patient_latitude': ?patientLatitude,
+        'patient_longitude': ?patientLongitude,
       },
     );
     return jsonDecode(response.body) as Map<String, dynamic>;
@@ -559,9 +560,9 @@ class ApiService {
       ApiConstants.deliveriesQuote,
       post: true,
       body: {
-        if (distanceKm != null) 'distance_km': distanceKm,
-        if (patientLatitude != null) 'patient_latitude': patientLatitude,
-        if (patientLongitude != null) 'patient_longitude': patientLongitude,
+        'distance_km': ?distanceKm,
+        'patient_latitude': ?patientLatitude,
+        'patient_longitude': ?patientLongitude,
       },
     );
     return jsonDecode(response.body) as Map<String, dynamic>;
@@ -585,14 +586,14 @@ class ApiService {
       post: true,
       body: {
         'pharmacy_id': pharmacyId,
-        if (prescriptionId != null) 'prescription_id': prescriptionId,
+        'prescription_id': ?prescriptionId,
         'payment_method': paymentMethod,
         'items': items,
         'with_delivery': withDelivery,
-        if (deliveryAddress != null) 'delivery_address': deliveryAddress,
-        if (deliveryDistanceKm != null) 'delivery_distance_km': deliveryDistanceKm,
-        if (patientLatitude != null) 'patient_latitude': patientLatitude,
-        if (patientLongitude != null) 'patient_longitude': patientLongitude,
+        'delivery_address': ?deliveryAddress,
+        'delivery_distance_km': ?deliveryDistanceKm,
+        'patient_latitude': ?patientLatitude,
+        'patient_longitude': ?patientLongitude,
       },
     );
     return jsonDecode(response.body) as Map<String, dynamic>;

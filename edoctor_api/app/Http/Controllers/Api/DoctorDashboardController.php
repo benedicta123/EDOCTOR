@@ -36,8 +36,9 @@ class DoctorDashboardController extends Controller
                     'prescription.doctor.hospital',
                     'prescription.patient',
                 ])
+                ->orderByRaw("CASE WHEN status = 'en_cours' THEN 1 WHEN status = 'en_attente' THEN 2 ELSE 3 END")
                 ->latest()
-                ->limit(3)
+                ->limit(5)
                 ->get(),
         ]);
     }

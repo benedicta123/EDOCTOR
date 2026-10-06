@@ -19,3 +19,13 @@ String relativeLabel(String? iso) {
   if (diff.inDays < 7) return 'il y a ${diff.inDays} j';
   return formatDateTime(iso);
 }
+
+/// Formate le nom d'un médecin pour éviter les doublons « Dr. Dr. »
+String doctorDisplay(String name) {
+  final clean = name.trim();
+  if (clean.isEmpty) return 'Médecin';
+  if (clean.toLowerCase().startsWith('dr.') || clean.toLowerCase().startsWith('dr ')) {
+    return clean;
+  }
+  return 'Dr. $clean';
+}

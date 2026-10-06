@@ -40,6 +40,7 @@ class PatientPrescription {
   final bool homeCareRecommended;
   final String? createdAt;
   final List<PrescriptionItemModel> items;
+  final Map<String, dynamic>? order;
 
   const PatientPrescription({
     required this.id,
@@ -56,9 +57,11 @@ class PatientPrescription {
     this.homeCareRecommended = false,
     this.createdAt,
     this.items = const [],
+    this.order,
   });
 
   bool get isActive => status == 'validee';
+  bool get hasOrder => order != null;
 
   String get consultationDisplayCode {
     if (consultationReferenceCode != null && consultationReferenceCode!.trim().isNotEmpty) {
@@ -113,6 +116,7 @@ class PatientPrescription {
               json['home_care_recommended'] == 1,
       createdAt: json['created_at'] as String?,
       items: items,
+      order: json['order'] as Map<String, dynamic>?,
     );
   }
 }

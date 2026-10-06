@@ -61,15 +61,22 @@ class OrderController extends Controller
 
         $pharmacy = Pharmacy::findOrFail($validated['pharmacy_id']);
         $withDelivery = (bool) ($validated['with_delivery'] ?? false);
-        $distanceKm = (float) ($validated['delivery_distance_km'] ?? 0.0);
+        $distanceKm = 0.0;
 
-        if ($withDelivery && $distanceKm <= 0 && !empty($validated['patient_latitude']) && !empty($validated['patient_longitude']) && !empty($pharmacy->latitude) && !empty($pharmacy->longitude)) {
-            $distanceKm = MonetizationService::calculateDistance(
-                (float) $pharmacy->latitude,
-                (float) $pharmacy->longitude,
-                (float) $validated['patient_latitude'],
-                (float) $validated['patient_longitude']
-            );
+        if ($withDelivery) {
+            // Anti-fraude : Calcul automatique strict de la distance GPS par le système
+            if (!empty($validated['patient_latitude']) && !empty($validated['patient_longitude']) && !empty($pharmacy->latitude) && !empty($pharmacy->longitude)) {
+                $distanceKm = MonetizationService::calculateDistance(
+                    (float) $pharmacy->latitude,
+                    (float) $pharmacy->longitude,
+                    (float) $validated['patient_latitude'],
+                    (float) $validated['patient_longitude']
+                );
+            } elseif (!empty($validated['delivery_distance_km']) && (float) $validated['delivery_distance_km'] > 0) {
+                $distanceKm = (float) $validated['delivery_distance_km'];
+            } else {
+                $distanceKm = 3.0; // Distance forfaitaire minimale de référence à Lomé
+            }
         }
 
         $itemsTotal = 0;
@@ -78,7 +85,17 @@ class OrderController extends Controller
                 ->where('medication_id', $item['medication_id'])
                 ->first();
 
-            $price = $stock ? (float) $stock->price : (float) Medication::find($item['medication_id'])->price;
+            if (! $stock || $stock->quantity < $item['quantity'] || (float) $stock->price <= 0) {
+                $med = Medication::find($item['medication_id']);
+                $medName = $med ? $med->name : "Médicament #{$item['medication_id']}";
+                return response()->json([
+                    'message' => "Le médicament '{$medName}' n'est pas disponible en stock à la pharmacie {$pharmacy->name}. Veuillez choisir une autre officine partenaire.",
+                    'in_stock' => false,
+                    'unavailable_medication' => $medName,
+                ], 422);
+            }
+
+            $price = (float) $stock->price;
             $itemsTotal += $price * $item['quantity'];
         }
 
@@ -158,15 +175,21 @@ class OrderController extends Controller
 
         $pharmacy = Pharmacy::findOrFail($validated['pharmacy_id']);
         $withDelivery = (bool) ($validated['with_delivery'] ?? false);
-        $distanceKm = (float) ($validated['delivery_distance_km'] ?? 0.0);
+        $distanceKm = 0.0;
 
-        if ($withDelivery && $distanceKm <= 0 && !empty($validated['patient_latitude']) && !empty($validated['patient_longitude']) && !empty($pharmacy->latitude) && !empty($pharmacy->longitude)) {
-            $distanceKm = MonetizationService::calculateDistance(
-                (float) $pharmacy->latitude,
-                (float) $pharmacy->longitude,
-                (float) $validated['patient_latitude'],
-                (float) $validated['patient_longitude']
-            );
+        if ($withDelivery) {
+            if (!empty($validated['patient_latitude']) && !empty($validated['patient_longitude']) && !empty($pharmacy->latitude) && !empty($pharmacy->longitude)) {
+                $distanceKm = MonetizationService::calculateDistance(
+                    (float) $pharmacy->latitude,
+                    (float) $pharmacy->longitude,
+                    (float) $validated['patient_latitude'],
+                    (float) $validated['patient_longitude']
+                );
+            } elseif (!empty($validated['delivery_distance_km']) && (float) $validated['delivery_distance_km'] > 0) {
+                $distanceKm = (float) $validated['delivery_distance_km'];
+            } else {
+                $distanceKm = 3.0;
+            }
         }
 
         $order = DB::transaction(function () use ($validated, $request, $pharmacy, $withDelivery, $distanceKm) {

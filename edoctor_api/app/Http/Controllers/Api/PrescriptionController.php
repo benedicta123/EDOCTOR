@@ -24,6 +24,7 @@ class PrescriptionController extends Controller
                 'doctor.hospital:id,name,address',
                 'patient:id,name,date_of_birth,phone',
                 'consultation:id,reference_code,diagnosis,created_at',
+                'order:id,prescription_id,status,created_at',
             ])
             ->latest()
             ->get();
@@ -42,6 +43,7 @@ class PrescriptionController extends Controller
                 'doctor.hospital:id,name,address',
                 'patient:id,name,date_of_birth,phone',
                 'consultation:id,reference_code,diagnosis,created_at',
+                'order:id,prescription_id,status,created_at',
             ])
         );
     }

@@ -774,34 +774,37 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
       ),
       child: Column(
         children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 320),
+          SizedBox(
+            height: 300,
             child: _messages.isEmpty && _pending.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(28),
-                    child: Column(
-                      children: [
-                        Icon(Icons.forum_outlined,
-                            size: 34, color: AppColors.textMuted),
-                        SizedBox(height: 10),
-                        Text(
-                          'Aucun message pour le moment',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Écrivez ci-dessous pour informer votre patient.',
-                          style: TextStyle(
-                              fontSize: 12.5, color: AppColors.textMuted),
-                        ),
-                      ],
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(28),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.forum_outlined,
+                              size: 34, color: AppColors.textMuted),
+                          SizedBox(height: 10),
+                          Text(
+                            'Aucun message pour le moment',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Écrivez ci-dessous pour informer votre patient.',
+                            style: TextStyle(
+                                fontSize: 12.5, color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                 : ListView.builder(
                     controller: _msgScroll,
-                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
                     padding: const EdgeInsets.all(14),
                     itemCount: _messages.length + _pending.length,
                     itemBuilder: (_, i) {
@@ -1084,10 +1087,10 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: _inStockOnly ? AppColors.successLight.withOpacity(0.4) : AppColors.borderLight,
+              color: _inStockOnly ? AppColors.successLight.withValues(alpha: 0.4) : AppColors.borderLight,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: _inStockOnly ? AppColors.success.withOpacity(0.3) : AppColors.border,
+                color: _inStockOnly ? AppColors.success.withValues(alpha: 0.3) : AppColors.border,
               ),
             ),
             child: Row(
@@ -1149,8 +1152,10 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
                     .map((m) => DropdownMenuItem(
                         value: m.id,
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Expanded(
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 240),
                               child: Text(
                                 m.displayName,
                                 overflow: TextOverflow.ellipsis,
@@ -1250,7 +1255,7 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
           const SizedBox(height: 12),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(46),
+              minimumSize: const Size(0, 46),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),

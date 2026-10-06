@@ -8,6 +8,7 @@ import '../../data/models/consultation_model.dart';
 import '../../data/models/user_model.dart';
 import '../video/video_call_screen.dart';
 import 'find_doctor_screen.dart';
+import 'consultation_payment_screen.dart';
 
 /// Écran de consultation active patient :
 /// - Statut en temps réel (polling 5 s)
@@ -321,6 +322,19 @@ class _PatientConsultationScreenState
     );
   }
 
+  Future<void> _payConsultation() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ConsultationPaymentScreen(
+          existingConsultation: _consultation,
+        ),
+      ),
+    );
+    if (mounted) {
+      await _silentPoll();
+    }
+  }
+
   // ── Annulation ─────────────────────────────────────────────────────
   Future<void> _cancel() async {
     final confirm = await showDialog<bool>(
@@ -328,9 +342,11 @@ class _PatientConsultationScreenState
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Annuler la consultation ?'),
-        content: const Text(
-          'Cette action est irréversible. Le médecin sera notifié de l\'annulation.',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        content: Text(
+          _consultation.isPaid
+              ? 'Cette action est irréversible. Le médecin sera notifié de l\'annulation.'
+              : 'Voulez-vous vraiment annuler cette demande de consultation ?',
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -353,7 +369,15 @@ class _PatientConsultationScreenState
     setState(() => _cancelling = true);
     try {
       await ApiService.cancelConsultation(_consultation.id);
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Consultation annulée avec succès.'),
+            backgroundColor: AppColors.textSecondary,
+          ),
+        );
+        Navigator.of(context).pop(true);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -435,6 +459,8 @@ class _PatientConsultationScreenState
           _StatusBanner(
             consultation: _consultation,
             onJoinVideo: isActive ? _joinVideo : null,
+            onPay: isPending && !_consultation.isPaid ? _payConsultation : null,
+            onCancel: isPending ? _cancel : null,
           ),
           if (_pollError != null)
             Container(
@@ -569,13 +595,108 @@ class _StatusBanner extends StatelessWidget {
   const _StatusBanner({
     required this.consultation,
     this.onJoinVideo,
+    this.onPay,
+    this.onCancel,
   });
   final ConsultationModel consultation;
   final VoidCallback? onJoinVideo;
+  final VoidCallback? onPay;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
     if (consultation.isPending) {
+      final isUnpaid = !consultation.isPaid;
+      if (isUnpaid) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          color: AppColors.warningLight,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.payment_rounded,
+                      color: Color(0xFFB45309), size: 18),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Paiement en attente',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFB45309),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${consultation.totalAmount.toInt()} FCFA',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFB45309),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Votre demande n\'a pas encore été transmise au médecin car le règlement n\'a pas été validé. Finalisez votre paiement pour joindre le praticien.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(Icons.credit_card_rounded, size: 16),
+                      label: const Text(
+                        'Payer maintenant',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                      onPressed: onPay,
+                    ),
+                  ),
+                  if (onCancel != null) ...[
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: onCancel,
+                      child: const Text(
+                        'Annuler',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        );
+      }
+
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         color: AppColors.warningLight,
@@ -588,10 +709,12 @@ class _StatusBanner extends StatelessWidget {
                   strokeWidth: 2, color: AppColors.warning),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Votre demande a été transmise au médecin. En attente d\'acceptation…',
-                style: TextStyle(
+                consultation.doctorName.isNotEmpty
+                    ? 'Demande payée transmise au Dr. ${consultation.doctorName}. En attente de démarrage…'
+                    : 'Demande payée transmise au médecin. En attente de démarrage…',
+                style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.warning,
                   fontWeight: FontWeight.w600,

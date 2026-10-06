@@ -162,7 +162,9 @@ class _MyConsultationsScreenState extends State<MyConsultationsScreen> {
         break;
       case 'en_attente':
         dot = AppColors.warning;
-        label = 'En attente d’acceptation';
+        label = c.isPaid
+            ? 'En attente d’acceptation'
+            : 'Paiement en attente (${c.totalAmount.toInt()} FCFA)';
         break;
       case 'terminee':
         dot = AppColors.textMuted;

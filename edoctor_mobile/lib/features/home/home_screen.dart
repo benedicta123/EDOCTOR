@@ -54,8 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _refreshStatus() async {
-    if (!mounted || _pollingStatus) return;
+  Future<void> _refreshStatus({bool force = false}) async {
+    if (!mounted) return;
+    if (_pollingStatus && !force) return;
     _pollingStatus = true;
     try {
       final consultations = await ApiService.getMyConsultations();
@@ -85,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Nouvelle ordonnance de Dr ${rx.doctorName} — Voir',
+              'Nouvelle ordonnance de ${doctorDisplay(rx.doctorName)} — Voir',
             ),
             backgroundColor: AppColors.secondary,
             duration: const Duration(seconds: 6),
@@ -108,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Votre consultation avec Dr ${c.doctorName} a commencé — Rejoindre',
+              'Votre consultation avec ${doctorDisplay(c.doctorName)} a commencé — Rejoindre',
             ),
             backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 6),
@@ -133,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (_) => PatientConsultationScreen(consultation: c),
           ),
         )
-        .then((_) => _refreshStatus());
+        .then((_) => _refreshStatus(force: true));
   }
 
   String get _firstName {
@@ -537,7 +538,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildConsultationsCard() {
     final active = _consultations
-        .where((c) => c.isActive || c.isPending)
+        .where((c) => (c.isActive || c.isPending) && c.status != 'annulee')
         .toList();
     final done =
         _consultations.where((c) => c.isDone).toList();
@@ -564,19 +565,23 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Icon(Icons.forum_rounded, size: 20, color: AppColors.primary),
               const SizedBox(width: 8),
-              const Text(
-                'Conversations & Téléconsultations',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Conversations & Téléconsultations',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
-              if (joinable.isNotEmpty)
+              if (joinable.isNotEmpty) ...[
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                      horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: AppColors.error,
                     borderRadius: BorderRadius.circular(10),
@@ -591,20 +596,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
 
           // S'il y a des consultations actives / en attente
           if (active.isNotEmpty) ...[
-            ...active.take(2).map((c) => Container(
+            ...active.take(2).map((c) {
+              final isUnpaid = c.isPending && !c.isPaid;
+              return Container(
                   margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
                     color: c.isActive
                         ? AppColors.primaryContainer
-                        : AppColors.background,
+                        : isUnpaid
+                            ? AppColors.warningLight.withValues(alpha: 0.5)
+                            : AppColors.background,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: c.isActive ? AppColors.primary : AppColors.border),
+                    border: Border.all(
+                      color: c.isActive
+                          ? AppColors.primary
+                          : isUnpaid
+                              ? AppColors.warning
+                              : AppColors.border,
+                    ),
                   ),
                   child: Material(
                     color: Colors.transparent,
@@ -621,14 +637,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               decoration: BoxDecoration(
                                 color: c.isActive
                                     ? AppColors.primary
-                                    : AppColors.surface,
+                                    : isUnpaid
+                                        ? AppColors.warning
+                                        : AppColors.surface,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 c.isActive
                                     ? Icons.videocam_rounded
-                                    : Icons.hourglass_top_rounded,
-                                color: c.isActive
+                                    : isUnpaid
+                                        ? Icons.payment_rounded
+                                        : Icons.hourglass_top_rounded,
+                                color: c.isActive || isUnpaid
                                     ? Colors.white
                                     : AppColors.warning,
                                 size: 20,
@@ -641,23 +661,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Text(
                                     c.doctorName.isNotEmpty
-                                        ? 'Dr. ${c.doctorName} (${c.displayCode})'
+                                        ? '${doctorDisplay(c.doctorName)} (${c.displayCode})'
                                         : 'Consultation ${c.displayCode}',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.textPrimary,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
                                     c.isActive
                                         ? 'En cours — touchez pour rejoindre'
-                                        : 'En attente d’acceptation…',
+                                        : isUnpaid
+                                            ? 'Paiement en attente (${c.totalAmount.toInt()} FCFA) — touchez pour régler'
+                                            : 'Demande transmise — en attente du médecin…',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: c.isActive
                                           ? AppColors.primary
-                                          : AppColors.warning,
+                                          : isUnpaid
+                                              ? const Color(0xFFB45309)
+                                              : AppColors.warning,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -671,7 +697,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                )),
+                );
+            }),
           ],
 
           // Bannière / Bouton permanent d'accès à l'historique complet des conversations
@@ -780,7 +807,7 @@ class _HomeScreenState extends State<HomeScreen> {
         badgeBg: AppColors.primary,
         badgeColor: Colors.white,
         date: relativeLabel(c.startedAt ?? c.createdAt),
-        title: 'Consultation avec Dr. ${c.doctorName}',
+        title: 'Consultation avec ${doctorDisplay(c.doctorName)}',
         message: 'Votre consultation a commencé. Rejoignez la vidéo ou poursuivez la discussion.',
         actionLabel: 'Rejoindre la consultation',
         onAction: () => _openConsultation(c),
@@ -802,7 +829,7 @@ class _HomeScreenState extends State<HomeScreen> {
         badgeBg: const Color(0xFFFED7AA),
         badgeColor: const Color(0xFFC2410C),
         date: relativeLabel(rx.createdAt),
-        title: 'Ordonnance de Dr. ${rx.doctorName}',
+        title: 'Ordonnance de ${doctorDisplay(rx.doctorName)}',
         message:
             '${rx.items.length} médicament(s) prescrit(s) — consultation ${rx.consultationDisplayCode}.',
         actionLabel: 'Voir l’ordonnance',
@@ -825,7 +852,7 @@ class _HomeScreenState extends State<HomeScreen> {
         badgeBg: AppColors.surfaceDim,
         badgeColor: AppColors.textSecondary,
         date: relativeLabel(c.endedAt ?? c.createdAt),
-        title: 'Consultation avec Dr. ${c.doctorName}',
+        title: 'Consultation avec ${doctorDisplay(c.doctorName)}',
         message: 'La discussion reste disponible en lecture seule.',
         actionLabel: 'Relire la discussion',
         onAction: () => _openConsultation(c),

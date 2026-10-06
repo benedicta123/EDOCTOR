@@ -46,6 +46,16 @@ class Prescription extends Model
         return $this->hasOne(NurseVisit::class);
     }
 
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function order(): HasOne
+    {
+        return $this->hasOne(Order::class)->latestOfMany();
+    }
+
     public function isParticipant(User $user): bool
     {
         return $user->id === $this->patient_id || $user->id === $this->doctor_id;
