@@ -5,7 +5,7 @@ FROM ghcr.io/cirruslabs/flutter:stable AS build
 WORKDIR /app
 
 # Optimisation du cache Docker pour les dépendances
-COPY pubspec.yaml pubspec.lock ./
+COPY pubspec.yaml ./
 RUN flutter pub get
 
 # Copie du code source et compilation Web
