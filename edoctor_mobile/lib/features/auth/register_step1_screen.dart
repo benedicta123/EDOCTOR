@@ -4,7 +4,7 @@ import '../../core/widgets/custom_button.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/step_progress_bar.dart';
 import '../../core/widgets/app_logo.dart';
-import '../../core/widgets/server_config_dialog.dart';
+import '../../core/widgets/togo_flag_widget.dart';
 import 'register_step2_screen.dart';
 import 'login_screen.dart';
 
@@ -126,24 +126,6 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
                                       ),
                                     ),
                                   ],
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              InkWell(
-                                onTap: () => ServerConfigDialog.show(context),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surface,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: AppColors.border),
-                                  ),
-                                  child: const Icon(
-                                    Icons.dns_rounded,
-                                    size: 16,
-                                    color: AppColors.primary,
-                                  ),
                                 ),
                               ),
                             ],
@@ -473,30 +455,24 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
   }
 
   Widget _buildFlagIcon(String code) {
+    if (code == '+228') {
+      return const TogoFlagWidget(width: 22, height: 15);
+    }
     return Container(
-      width: 20,
-      height: 14,
+      width: 22,
+      height: 15,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(2),
-        border: Border.all(color: Colors.black12),
+        borderRadius: BorderRadius.circular(2.5),
+        border: Border.all(color: Colors.black12, width: 0.6),
       ),
-      child: code == '+228'
-          // Drapeau Togo miniature
-          ? Column(
-              children: [
-                Expanded(child: Container(color: AppColors.togoGreen)),
-                Expanded(child: Container(color: AppColors.togoYellow)),
-                Expanded(child: Container(color: AppColors.togoGreen)),
-              ],
-            )
-          // Drapeau Côte d'Ivoire
-          : Row(
-              children: [
-                Expanded(child: Container(color: const Color(0xFFFF8200))),
-                Expanded(child: Container(color: Colors.white)),
-                Expanded(child: Container(color: const Color(0xFF009E60))),
-              ],
-            ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(child: Container(color: const Color(0xFFFF8200))),
+          Expanded(child: Container(color: Colors.white)),
+          Expanded(child: Container(color: const Color(0xFF009E60))),
+        ],
+      ),
     );
   }
 }

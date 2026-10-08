@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/widgets/patient_bottom_nav.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../core/utils/format.dart';
@@ -31,6 +32,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final int _currentNavIndex = 0;
+  UserModel? _currentUser;
   List<ConsultationModel> _consultations = [];
   List<PatientPrescription> _prescriptions = [];
   int _unreadCount = 0;
@@ -41,11 +43,28 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _currentUser = widget.user;
+    _loadUser();
     _refreshStatus();
     _statusPoll = Timer.periodic(
       const Duration(seconds: 30),
       (_) => _refreshStatus(),
     );
+  }
+
+  Future<void> _loadUser() async {
+    if (_currentUser == null) {
+      final cached = await StorageService.getUser();
+      if (cached != null && mounted) {
+        setState(() => _currentUser = cached);
+      }
+    }
+    try {
+      final fresh = await ApiService.me();
+      if (fresh != null && mounted) {
+        setState(() => _currentUser = fresh);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -138,9 +157,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String get _firstName {
-    final fullName = widget.user?.name ?? 'Koffi';
-    final parts = fullName.trim().split(' ');
-    return parts.isNotEmpty ? parts.first : 'Koffi';
+    final fullName = (_currentUser?.name ?? widget.user?.name ?? '').trim();
+    if (fullName.isEmpty) return 'Patient';
+    final parts = fullName.split(' ');
+    return parts.isNotEmpty ? parts.first : 'Patient';
   }
 
   void _onNavSelected(int index) {
@@ -154,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     } else if (index == 3) {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const PatientProfileScreen()),
+        MaterialPageRoute(builder: (_) => PatientProfileScreen(user: _currentUser)),
       );
     }
   }

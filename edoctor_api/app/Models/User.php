@@ -117,14 +117,14 @@ class User extends Authenticatable
 
     /**
      * Crée un jeton d'accès Sanctum avec une durée adaptée au profil :
-     * - Professionnels de santé & admins (données sensibles) : 30 minutes
-     * - Patients : 60 minutes
+     * - Professionnels de santé & admins : 12 heures (720 min, couvre une garde médicale)
+     * - Patients : 7 jours (10080 min, confort d'usage sans ré-authentification trop fréquente)
      */
     public function createAccessToken(string $name = 'api-token'): \Laravel\Sanctum\NewAccessToken
     {
         $minutes = in_array($this->role, ['doctor', 'nurse', 'pharmacist', 'admin', 'hospital_admin'])
-            ? 30
-            : 60;
+            ? (int) env('SANCTUM_EXPIRATION_PRO_MINUTES', 720)
+            : (int) env('SANCTUM_EXPIRATION_PATIENT_MINUTES', 10080);
 
         return $this->createToken($name, ['*'], now()->addMinutes($minutes));
     }

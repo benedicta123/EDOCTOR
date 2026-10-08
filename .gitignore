@@ -2,3 +2,7 @@
 **/*.pk
 **/*.key
 **/storage/app/private/
+*.apk
+*.jks
+*.keystore
+

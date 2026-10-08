@@ -15,19 +15,27 @@ use RuntimeException;
 class JaasService
 {
     /**
-     * Nom de salle unique par consultation : déterministe (médecin et
-     * patient obtiennent la même salle) mais imprévisible (HMAC server-side).
-     * Aucune donnée patient ni médicale dedans.
+     * Nom de salle unique par consultation : haute entropie cryptographique (SHA-256 HMAC 128-bit),
+     * strictement déterministe pour le médecin et le patient autorisés, mais totalement
+     * imprévisible et infalsifiable de l'extérieur. Aucune donnée médicale en clair.
      */
     public function roomName(Consultation $consultation): string
     {
+        $context = implode(':', [
+            'consultation',
+            $consultation->id,
+            $consultation->patient_id,
+            $consultation->doctor_id,
+            $consultation->created_at?->timestamp ?? '0',
+        ]);
+
         $mac = hash_hmac(
             'sha256',
-            'consultation:'.$consultation->id,
+            $context,
             (string) config('app.key')
         );
 
-        return 'edoctor-'.substr($mac, 0, 16);
+        return 'edoctor-'.substr($mac, 0, 32);
     }
 
     /**

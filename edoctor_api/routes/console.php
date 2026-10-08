@@ -15,3 +15,4 @@ Artisan::command('consultations:close-expired', function () {
 })->purpose('Clôture automatiquement les téléconsultations en cours depuis plus de 2 heures');
 
 Schedule::command('consultations:close-expired')->everyMinute();
+Schedule::command('sanctum:prune-expired --hours=24')->daily();

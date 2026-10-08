@@ -6,7 +6,11 @@ import 'core/services/api_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await ApiService.initBaseUrl();
+  try {
+    await ApiService.initBaseUrl();
+  } catch (e) {
+    debugPrint('InitBaseUrl error: $e');
+  }
 
   // Fixe la barre d'état et l'orientation
   SystemChrome.setSystemUIOverlayStyle(

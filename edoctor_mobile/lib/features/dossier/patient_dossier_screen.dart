@@ -307,38 +307,41 @@ class _PatientDossierScreenState extends State<PatientDossierScreen> {
             ),
             const SizedBox(height: 10),
 
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricTile(
-                    title: 'Consultations',
-                    value: '${dossier.consultations.length}',
-                    sub: 'tenues (en_cours/terminee)',
-                    icon: Icons.videocam_rounded,
-                    color: AppColors.primary,
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _buildMetricTile(
+                      title: 'Consultations',
+                      value: '${dossier.consultations.length}',
+                      sub: 'tenues (en_cours/terminee)',
+                      icon: Icons.videocam_rounded,
+                      color: AppColors.primary,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildMetricTile(
-                    title: 'Ordonnances',
-                    value: '${dossier.prescriptions.length}',
-                    sub: 'validées en base',
-                    icon: Icons.receipt_long_rounded,
-                    color: AppColors.primary,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildMetricTile(
+                      title: 'Ordonnances',
+                      value: '${dossier.prescriptions.length}',
+                      sub: 'validées en base',
+                      icon: Icons.receipt_long_rounded,
+                      color: AppColors.primary,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildMetricTile(
-                    title: 'Référent',
-                    value: dossier.referringDoctor != null ? 'Suivi' : '—',
-                    sub: dossier.referringDoctor ?? 'Aucun pour le moment',
-                    icon: Icons.local_hospital_rounded,
-                    color: Colors.indigo,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildMetricTile(
+                      title: 'Référent',
+                      value: dossier.referringDoctor != null ? 'Suivi' : '—',
+                      sub: dossier.referringDoctor ?? 'Aucun pour le moment',
+                      icon: Icons.local_hospital_rounded,
+                      color: Colors.indigo,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -593,24 +596,48 @@ class _PatientDossierScreenState extends State<PatientDossierScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(height: 8),
-          Text(title,
-              style: const TextStyle(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20, color: color),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   fontSize: 10,
                   color: AppColors.textMuted,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(height: 2),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary)),
-          const SizedBox(height: 2),
-          Text(sub,
-              style:
-                  const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            sub,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+              height: 1.25,
+            ),
+          ),
         ],
       ),
     );

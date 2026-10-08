@@ -41,6 +41,7 @@ dependencies:
   printing: ^5.15.0
   jitsi_meet_flutter_sdk: ^13.1.1
   url_launcher: ^6.3.3
+  flutter_secure_storage: ^11.2.0
 
 dev_dependencies:
   flutter_test:

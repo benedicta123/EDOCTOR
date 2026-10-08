@@ -5,7 +5,6 @@ import '../../core/services/api_service.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/custom_button.dart';
 import '../../core/widgets/custom_text_field.dart';
-import '../../core/widgets/server_config_dialog.dart';
 import '../home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -53,12 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(
             content: Text(errorMsg),
             backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 6),
-            action: SnackBarAction(
-              label: 'Régler IP',
-              textColor: Colors.white,
-              onPressed: () => ServerConfigDialog.show(context),
-            ),
+            duration: const Duration(seconds: 4),
           ),
         );
       } finally {
@@ -141,25 +135,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                   letterSpacing: 0.8,
                                   color: Colors.white,
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.14),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.dns_rounded,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                                tooltip: 'Réseau / Serveur',
-                                padding: EdgeInsets.zero,
-                                onPressed: () => ServerConfigDialog.show(context),
                               ),
                             ),
                           ],

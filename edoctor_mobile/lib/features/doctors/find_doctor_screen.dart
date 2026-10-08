@@ -3,7 +3,6 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/patient_bottom_nav.dart';
-import '../../core/widgets/server_config_dialog.dart';
 import '../../data/models/doctor_model.dart';
 import '../dossier/patient_dossier_screen.dart';
 import '../profile/patient_profile_screen.dart';
@@ -269,15 +268,6 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
                                   onPressed: _loadDoctors,
                                   icon: const Icon(Icons.refresh_rounded, size: 18),
                                   label: const Text('Réessayer'),
-                                ),
-                                const SizedBox(width: 10),
-                                OutlinedButton.icon(
-                                  onPressed: () async {
-                                    await ServerConfigDialog.show(context);
-                                    _loadDoctors();
-                                  },
-                                  icon: const Icon(Icons.dns_rounded, size: 18),
-                                  label: const Text('Régler l\'IP'),
                                 ),
                               ],
                             ),
