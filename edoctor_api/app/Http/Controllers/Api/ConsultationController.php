@@ -42,7 +42,6 @@ class ConsultationController extends Controller
             $search = $request->string('search')->toString();
             $query->where(function ($q) use ($search) {
                 $q->where('reference_code', 'ilike', "%{$search}%")
-                    ->orWhere('diagnosis', 'ilike', "%{$search}%")
                     ->orWhereHas('patient', fn ($p) => $p->where('name', 'ilike', "%{$search}%"))
                     ->orWhereHas('doctor', fn ($d) => $d->where('name', 'ilike', "%{$search}%"));
             });
@@ -212,6 +211,13 @@ class ConsultationController extends Controller
     public function pay(Request $request, Consultation $consultation, FedaPayService $fedapay)
     {
         Gate::authorize('view', $consultation);
+
+        // Verrouillage de sécurité critique : le paiement simulé est strictement banni en production
+        abort_if(
+            ! app()->environment('local', 'testing'),
+            403,
+            'Le règlement simulé direct est formellement interdit en environnement de production. Veuillez utiliser la passerelle de paiement sécurisée (FedaPay).'
+        );
 
         abort_if(
             $fedapay->isConfigured(),

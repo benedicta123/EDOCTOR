@@ -147,17 +147,30 @@ class FedaPayPaymentController extends Controller
                 Log::warning('[FedaPay Verify] getTransaction exception : ' . $e->getMessage());
             }
 
-            // En Sandbox : la validation par le testeur confirme le paiement pour permettre
-            // de tester tout le tunnel clinique sans être bloqué par les restrictions de passerelle externe.
-            // En Production (live) : FedaPay doit strictement retourner is_approved = true.
-            $isApproved = ($txn && !empty($txn['is_approved'])) || $isSandbox;
+            // En mode simulation sans clés API configurées : auto-approbation autorisée UNIQUEMENT en dev/test local
+            if (!$fedapay->isConfigured()) {
+                abort_if(
+                    ! app()->environment('local', 'testing'),
+                    403,
+                    'La validation de paiement en mode non configuré est interdite en environnement de production.'
+                );
+                $isApproved = true;
+            } else {
+                // Avec clés API FedaPay configurées (sandbox ou live) : la transaction DOIT être strictement approuvée
+                $isApproved = ($txn && !empty($txn['is_approved'])) || (($txn['status'] ?? '') === 'approved');
+                // Contrôle strict anti-fraude sur le montant
+                if ($isApproved && isset($txn['amount']) && (float)$txn['amount'] < (float)$consultation->total_amount) {
+                    $isApproved = false;
+                    Log::warning("[FedaPay Verify] Rejet tentative de sous-paiement ({$txn['amount']} < {$consultation->total_amount}) pour consultation #{$consultation->id}.");
+                }
+            }
 
             if ($isApproved) {
                 DB::transaction(function () use ($consultation, $payment, $txn) {
                     if ($payment) {
                         $payment->update([
                             'status' => 'confirme',
-                            'transaction_ref' => $txn['reference'] ?? ($payment->transaction_ref ?? 'FP-SANDBOX-' . $consultation->id),
+                            'transaction_ref' => $txn['reference'] ?? ($payment->transaction_ref ?? 'FP-' . $consultation->id),
                         ]);
                     }
 
@@ -190,38 +203,103 @@ class FedaPayPaymentController extends Controller
     }
 
     /**
-     * Webhook FedaPay automatisé (appelé par FedaPay dès confirmation du paiement).
+     * Webhook FedaPay automatisé hautement sécurisé :
+     * 1. Contrôle de signature cryptographique (si configurée).
+     * 2. Re-vérification systématique auprès de l'API officielle FedaPay (out-of-band).
+     * 3. Vérification de cohérence du montant réglé et statut de la consultation.
      */
-    public function handleWebhook(Request $request): JsonResponse
+    public function handleWebhook(Request $request, FedaPayService $fedapay): JsonResponse
     {
+        // 1. Vérification de la signature secrète du webhook
+        $webhookSecret = (string) config('services.fedapay.webhook_secret', '');
+        
+        // En production : l'absence de secret ou une clé non configurée est une anomalie critique bloquante
+        if (app()->environment('production')) {
+            abort_if(empty($webhookSecret), 500, 'Alerte sécurité : FEDAPAY_WEBHOOK_SECRET non configuré en environnement de production.');
+            abort_unless($fedapay->isConfigured(), 500, 'Alerte sécurité : La passerelle FedaPay n\'est pas configurée en production.');
+        }
+
+        if (!empty($webhookSecret)) {
+            $signature = $request->header('X-FedaPay-Signature') ?? $request->header('X-Webhook-Secret');
+            if (!$signature || !hash_equals($webhookSecret, (string) $signature)) {
+                Log::warning('[FedaPay Webhook] Tentative d\'accès non autorisée : signature invalide.');
+                return response()->json(['error' => 'Signature invalide.'], 401);
+            }
+        }
+
         $payload = $request->all();
-        Log::info('[FedaPay Webhook] Événement reçu : ', $payload);
+        Log::info('[FedaPay Webhook] Événement reçu : ', [
+            'name' => $payload['name'] ?? $payload['event'] ?? 'unknown',
+            'id' => $payload['entity']['id'] ?? $payload['id'] ?? null,
+        ]);
 
         $eventName = $payload['name'] ?? $payload['event'] ?? '';
         $entity = $payload['entity'] ?? $payload['data'] ?? [];
+        $txnId = $entity['id'] ?? $payload['id'] ?? null;
 
-        if ($eventName === 'transaction.approved' || ($entity['status'] ?? '') === 'approved') {
-            $metadata = $entity['custom_metadata'] ?? [];
-            $consultationId = $metadata['consultation_id'] ?? null;
-            $transactionRef = $entity['reference'] ?? ('FP-' . ($entity['id'] ?? ''));
+        if (!$txnId) {
+            Log::warning('[FedaPay Webhook] Rejet : payload sans identifiant de transaction.');
+            return response()->json(['error' => 'Identifiant de transaction manquant.'], 400);
+        }
 
-            if ($consultationId) {
-                $consultation = Consultation::find($consultationId);
-                if ($consultation && $consultation->payment_status !== 'paye') {
-                    DB::transaction(function () use ($consultation, $transactionRef) {
-                        $payment = Payment::where('consultation_id', $consultation->id)->latest()->first();
-                        if ($payment) {
-                            $payment->update([
-                                'status' => 'confirme',
-                                'transaction_ref' => $transactionRef,
-                            ]);
-                        }
+        // 2. Vérification out-of-band auprès des serveurs officiels FedaPay
+        if ($fedapay->isConfigured()) {
+            try {
+                $verifiedTxn = $fedapay->getTransaction($txnId);
+            } catch (Exception $e) {
+                Log::error("[FedaPay Webhook] Impossible de joindre l'API FedaPay pour vérification de {$txnId} : " . $e->getMessage());
+                return response()->json(['error' => 'Vérification API FedaPay échouée.'], 502);
+            }
 
-                        $consultation->markAsPaid();
-                    });
+            if (empty($verifiedTxn['is_approved']) && ($verifiedTxn['status'] ?? '') !== 'approved') {
+                Log::warning("[FedaPay Webhook] Alerte sécurité : la transaction {$txnId} n'est PAS approuvée sur les serveurs FedaPay.");
+                return response()->json(['error' => 'Transaction non approuvée.'], 422);
+            }
 
-                    Log::info("[FedaPay Webhook] Consultation #{$consultationId} validée et marquée 'paye'.");
+            $transactionRef = $verifiedTxn['reference'] ?? ('FP-' . $txnId);
+            $verifiedAmount = (float) ($verifiedTxn['amount'] ?? 0);
+        } else {
+            // Interdiction formelle du mode simulation hors environnement de dev/test
+            abort_if(! app()->environment('local', 'testing'), 403, 'Simulation de webhook interdite en environnement de production.');
+
+            // Environnement de développement sans clé API FedaPay
+            if ($eventName !== 'transaction.approved' && ($entity['status'] ?? '') !== 'approved') {
+                return response()->json(['status' => 'ignored']);
+            }
+            $transactionRef = $entity['reference'] ?? ('SIM-FP-' . $txnId);
+            $verifiedAmount = null;
+        }
+
+        // 3. Identification de la consultation et validation du montant
+        $metadata = $entity['custom_metadata'] ?? [];
+        $consultationId = $metadata['consultation_id'] ?? null;
+
+        if (!$consultationId) {
+            $payment = Payment::where('transaction_ref', 'LIKE', "%{$txnId}%")->first();
+            $consultationId = $payment?->consultation_id;
+        }
+
+        if ($consultationId) {
+            $consultation = Consultation::find($consultationId);
+            if ($consultation && $consultation->payment_status !== 'paye') {
+                if ($verifiedAmount !== null && $verifiedAmount < (float) $consultation->total_amount) {
+                    Log::error("[FedaPay Webhook] Alerte fraude montant : reçu {$verifiedAmount} XOF au lieu de {$consultation->total_amount} XOF pour consultation #{$consultationId}.");
+                    return response()->json(['error' => 'Montant insuffisant.'], 422);
                 }
+
+                DB::transaction(function () use ($consultation, $transactionRef) {
+                    $payment = Payment::where('consultation_id', $consultation->id)->latest()->first();
+                    if ($payment) {
+                        $payment->update([
+                            'status' => 'confirme',
+                            'transaction_ref' => $transactionRef,
+                        ]);
+                    }
+
+                    $consultation->markAsPaid();
+                });
+
+                Log::info("[FedaPay Webhook] Consultation #{$consultationId} validée et marquée 'paye' après contrôle de sécurité certifié.");
             }
         }
 

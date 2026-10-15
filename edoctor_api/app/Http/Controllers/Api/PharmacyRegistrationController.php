@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 
 class PharmacyRegistrationController extends Controller
 {
@@ -32,7 +33,7 @@ class PharmacyRegistrationController extends Controller
             'license_number' => ['required', 'string', 'max:100'],
             'mobile_phone' => ['required', 'string', 'max:30'],
             'pharmacist_email' => ['nullable', 'string', 'email', 'max:255'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()],
 
             // Étape 3 : Documents / Fichiers optionnels
             'documents' => ['nullable', 'array'],

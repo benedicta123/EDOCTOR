@@ -104,6 +104,16 @@
     - [ ] Médecin : *"Nouvelle demande de consultation en attente"*
     - [ ] Pharmacien : *"Nouvelle commande d'ordonnance reçue"*
 
+- [x] **[P0] Configuration de la Passerelle Transactionnelle Brevo (API REST v3 & Envoi des OTP Réels)**
+  - [x] Clé API Brevo intégrée et opérationnelle (`BREVO_API_KEY` / `xkeysib-...`).
+  - [x] Expéditeur officiel vérifié : `contacts@ewaregroup.org` (Nom d'affichage : *"eDoctor Sécurité"*).
+  - [x] Service dédié ultra-robuste [`BrevoMailService`](file:///c:/Users/belou/Documents/edoctor/edoctor_api/app/Services/BrevoMailService.php) connecté à l'API v3 `/v3/smtp/email`.
+  - [x] Acheminement certifié opérationnel pour les 3 flux critiques :
+    - Double Authentification 2FA Médecin & Admin ([`AuthController`](file:///c:/Users/belou/Documents/edoctor/edoctor_api/app/Http/Controllers/Api/AuthController.php)).
+    - Vérification d'adresse email à l'inscription ([`EmailVerificationController`](file:///c:/Users/belou/Documents/edoctor/edoctor_api/app/Http/Controllers/Api/EmailVerificationController.php)).
+    - Réinitialisation sécurisée de mot de passe oublié ([`PasswordResetController`](file:///c:/Users/belou/Documents/edoctor/edoctor_api/app/Http/Controllers/Api/PasswordResetController.php)).
+    - Alerte de sécurité en cas de tentative d'intrusion / verrouillage temporaire de compte.
+
 - [ ] **[P1] Intégration de WebSockets (Laravel Reverb / Pusher)**
   - [ ] Éliminer le polling de 5 secondes sur le chat de consultation pour une réception instantanée des messages.
   - [ ] Mettre à jour en direct les statuts des commandes sans rechargement manuel.

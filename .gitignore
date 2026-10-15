@@ -5,4 +5,10 @@
 *.apk
 *.jks
 *.keystore
+.env
+.env.*
+*.tgz
+*.zip
+test_*.csv
+test_*.xlsx
 

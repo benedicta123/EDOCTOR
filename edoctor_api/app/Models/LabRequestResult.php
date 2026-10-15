@@ -20,6 +20,10 @@ class LabRequestResult extends Model
         'uploaded_by',
     ];
 
+    protected $casts = [
+        'patient_notes' => 'encrypted',
+    ];
+
     public function labRequest(): BelongsTo
     {
         return $this->belongsTo(LabRequest::class);
@@ -28,5 +32,28 @@ class LabRequestResult extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /**
+     * Génère dynamiquement une URL signée temporaire (24h) pour l'accès sécurisé
+     * au document médical stocké sur le disque privé.
+     */
+    public function getFilePathAttribute($value): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+
+        // Support rétroactif des URL complètes historiques
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+
+        // URL signée cryptographiquement (HMAC)
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'lab.secure-view',
+            now()->addHours(24),
+            ['result' => $this->id]
+        );
     }
 }

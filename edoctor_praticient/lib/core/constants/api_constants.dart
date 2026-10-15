@@ -10,6 +10,7 @@ class ApiConstants {
 
   // Auth (POST /login universel : doctor + admin hopital)
   static const String login = '/login';
+  static const String loginVerify2Fa = '/login/verify-2fa';
   static const String logout = '/logout';
   static const String me = '/me';
   static const String profile = '/profile';

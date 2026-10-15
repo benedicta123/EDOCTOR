@@ -36,7 +36,7 @@ class HospitalRegistrationController extends Controller
             // Données du compte Super-Administrateur
             'admin_name' => ['required', 'string', 'max:255'],
             'admin_email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()],
             'admin_phone' => ['nullable', 'string', 'max:30'],
 
             // Option dev/testing

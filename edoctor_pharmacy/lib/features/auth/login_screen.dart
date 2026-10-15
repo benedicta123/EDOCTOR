@@ -20,10 +20,19 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = true;
   bool _isLoading = false;
 
+  // ─── État 2FA ───
+  bool _requires2fa = false;
+  String? _twoFactorToken;
+  String? _maskedEmail;
+  String? _debug2faCode;
+  final _twoFactorCodeCtrl = TextEditingController();
+  bool _verifying2fa = false;
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _twoFactorCodeCtrl.dispose();
     super.dispose();
   }
 
@@ -75,6 +84,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/dashboard');
+    } on TwoFactorRequiredException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _requires2fa = true;
+        _twoFactorToken = e.twoFactorToken;
+        _maskedEmail = e.emailMasked;
+        _debug2faCode = e.debugCode;
+        _twoFactorCodeCtrl.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Code 2FA envoyé à ${e.emailMasked}'),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -89,6 +115,77 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<void> _submitTwoFactor() async {
+    final code = _twoFactorCodeCtrl.text.trim();
+    if (code.length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez saisir le code à 6 chiffres.'),
+          backgroundColor: AppColors.outOfStock,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    if (_twoFactorToken == null) return;
+
+    setState(() => _verifying2fa = true);
+    try {
+      final user = await ApiService.verifyTwoFactor(
+        twoFactorToken: _twoFactorToken!,
+        code: code,
+      );
+      if (!mounted) return;
+
+      if (!user.isPharmacist) {
+        throw Exception(
+          'Ce compte n\'a pas les droits d\'accès à l\'espace Pharmacie (rôle détecté : ${user.role}).',
+        );
+      }
+
+      try {
+        final pharmacy = await ApiService.getMyPharmacy();
+        if (pharmacy.isPending) {
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => VerificationPendingScreen(
+                pharmacyName: pharmacy.name,
+                pharmacistName: user.name,
+                orderNumber: pharmacy.orderNumber,
+                referenceId: pharmacy.referenceId,
+              ),
+            ),
+          );
+          return;
+        }
+      } catch (_) {}
+
+      await StorageService.clearPendingApplication();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/dashboard');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.outOfStock,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _verifying2fa = false);
+    }
+  }
+
+  void _cancelTwoFactor() {
+    setState(() {
+      _requires2fa = false;
+      _twoFactorToken = null;
+      _twoFactorCodeCtrl.clear();
+    });
   }
 
   Future<void> _showTrackApplicationDialog() async {
@@ -753,193 +850,325 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 28),
 
-                    // Champ Nom d'utilisateur / Email
-                    const Text(
-                      'Adresse e-mail professionnelle',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      style: const TextStyle(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'pharmacien@officine.tg',
-                        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
-                        fillColor: const Color(0xFFFAFBFC),
-                        filled: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                        ),
-                      ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Veuillez saisir votre adresse e-mail';
-                        }
-                        if (!val.contains('@')) {
-                          return 'Adresse e-mail invalide';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Champ Mot de passe
-                    const Text(
-                      'Mot de passe',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      style: const TextStyle(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: '••••••••••••',
-                        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
-                        fillColor: const Color(0xFFFAFBFC),
-                        filled: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            size: 18,
-                            color: AppColors.textMuted,
+                    if (_requires2fa) ...[
+                      Center(
+                        child: Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.25), width: 2),
                           ),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          child: const Icon(Icons.shield_rounded, color: AppColors.primary, size: 28),
                         ),
                       ),
-                      validator: (val) {
-                        if (val == null || val.isEmpty) {
-                          return 'Veuillez saisir votre mot de passe';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Ligne "Se souvenir de moi" et "Mot de passe oublié ?"
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: Checkbox(
-                                value: _rememberMe,
-                                activeColor: AppColors.primary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                onChanged: (val) => setState(() => _rememberMe = val ?? true),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Se souvenir de moi',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Validation 2FA requise',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.4,
                         ),
-                        TextButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Veuillez contacter le support eDoctor pour réinitialiser vos accès.'),
-                              ),
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Un code de sécurité à 6 chiffres a été envoyé par email à :',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                      ),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFAFBFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
-                          child: const Text(
-                            'Mot de passe oublié ?',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.mark_email_read_rounded, size: 15, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                _maskedEmail ?? '',
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_debug2faCode != null) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF86EFAC)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.vpn_key_rounded, size: 14, color: Color(0xFF166534)),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Code de test : $_debug2faCode',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 22),
-
-                    // Bouton de connexion officiel (Orange avec flèche)
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
+                      const SizedBox(height: 22),
+                      TextField(
+                        controller: _twoFactorCodeCtrl,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        textAlign: TextAlign.center,
+                        autofocus: true,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          letterSpacing: 8,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          counterText: '',
+                          hintText: '000000',
+                          hintStyle: TextStyle(
+                            fontSize: 22,
+                            letterSpacing: 6,
+                            color: AppColors.textMuted.withValues(alpha: 0.4),
+                          ),
+                          fillColor: const Color(0xFFFAFBFC),
+                          filled: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                        ),
+                        onSubmitted: (_) => _submitTwoFactor(),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _verifying2fa ? null : _submitTwoFactor,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: _verifying2fa
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text(
+                                  'Valider la connexion 2FA',
+                                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Colors.white),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: _verifying2fa ? null : _cancelTwoFactor,
+                          icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                          label: const Text('Retour aux identifiants'),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.textMuted),
+                        ),
+                      ),
+                    ] else ...[
+                      // Champ Nom d'utilisateur / Email
+                      const Text(
+                        'Adresse e-mail professionnelle',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'pharmacien@officine.tg',
+                          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
+                          fillColor: const Color(0xFFFAFBFC),
+                          filled: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                          enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                           ),
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Veuillez saisir votre adresse e-mail';
+                          }
+                          if (!val.contains('@')) {
+                            return 'Adresse e-mail invalide';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Champ Mot de passe
+                      const Text(
+                        'Mot de passe',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: '••••••••••••',
+                          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
+                          fillColor: const Color(0xFFFAFBFC),
+                          filled: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              size: 18,
+                              color: AppColors.textMuted,
+                            ),
+                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          ),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.isEmpty) {
+                            return 'Veuillez saisir votre mot de passe';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Ligne "Se souvenir de moi" et "Mot de passe oublié ?"
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
+                                child: Checkbox(
+                                  value: _rememberMe,
+                                  activeColor: AppColors.primary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  onChanged: (val) => setState(() => _rememberMe = val ?? true),
                                 ),
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      'Se connecter à l\'officine',
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Se souvenir de moi',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Veuillez contacter le support eDoctor pour réinitialiser vos accès.'),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Mot de passe oublié ?',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 22),
+
+                      // Bouton de connexion officiel (Orange avec flèche)
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        'Se connecter à l\'officine',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
-                                ],
-                              ),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+                                  ],
+                                ),
+                        ),
                       ),
-                    ),
+                    ],
                     const SizedBox(height: 18),
 
                     // Séparateur ou inscription

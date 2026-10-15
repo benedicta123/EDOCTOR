@@ -10,10 +10,23 @@ class PaymentController extends Controller
 {
     /**
      * POST /api/payments/{payment}/confirm
-     * À appeler depuis le callback de l'agrégateur mobile money (ou manuellement en dev).
+     * Réservé exclusivement à l'administration en environnement local ou de test.
+     * En production, les règlements doivent impérativement transiter par la passerelle officielle certifiée.
      */
     public function confirm(Request $request, Payment $payment)
     {
+        abort_if(
+            ! app()->environment('local', 'testing'),
+            403,
+            "Cet endpoint de confirmation manuelle est strictement désactivé en environnement de production."
+        );
+
+        abort_if(
+            ! $request->user()?->isAdmin(),
+            403,
+            "Accès réservé exclusivement aux administrateurs autorisés."
+        );
+
         $validated = $request->validate([
             'transaction_ref' => ['required', 'string'],
         ]);
@@ -29,8 +42,20 @@ class PaymentController extends Controller
     /**
      * POST /api/payments/{payment}/fail
      */
-    public function fail(Payment $payment)
+    public function fail(Request $request, Payment $payment)
     {
+        abort_if(
+            ! app()->environment('local', 'testing'),
+            403,
+            "Cet endpoint est strictement désactivé en environnement de production."
+        );
+
+        abort_if(
+            ! $request->user()?->isAdmin(),
+            403,
+            "Accès réservé exclusivement aux administrateurs autorisés."
+        );
+
         $payment->update(['status' => 'echoue']);
 
         return response()->json($payment);

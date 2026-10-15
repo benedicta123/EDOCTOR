@@ -23,6 +23,14 @@ class _LoginScreenState extends State<LoginScreen>
   bool _obscure = true;
   bool _rememberMe = false;
 
+  // ─── État 2FA ───
+  bool _requires2fa = false;
+  String? _twoFactorToken;
+  String? _maskedEmail;
+  String? _debug2faCode;
+  final _twoFactorCodeCtrl = TextEditingController();
+  bool _verifying2fa = false;
+
   late final AnimationController _animCtrl;
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
@@ -47,6 +55,7 @@ class _LoginScreenState extends State<LoginScreen>
     _animCtrl.dispose();
     _email.dispose();
     _password.dispose();
+    _twoFactorCodeCtrl.dispose();
     super.dispose();
   }
 
@@ -67,6 +76,16 @@ class _LoginScreenState extends State<LoginScreen>
         MaterialPageRoute(builder: (_) => next),
         (r) => false,
       );
+    } on TwoFactorRequiredException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _requires2fa = true;
+        _twoFactorToken = e.twoFactorToken;
+        _maskedEmail = e.emailMasked;
+        _debug2faCode = e.debugCode;
+        _twoFactorCodeCtrl.clear();
+      });
+      showMsg(context, 'Code 2FA envoyé à ${e.emailMasked}');
     } catch (e) {
       if (mounted) {
         showMsg(
@@ -78,6 +97,53 @@ class _LoginScreenState extends State<LoginScreen>
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _submitTwoFactor() async {
+    final code = _twoFactorCodeCtrl.text.trim();
+    if (code.length != 6) {
+      showMsg(context, 'Veuillez saisir le code à 6 chiffres.', error: true);
+      return;
+    }
+    if (_twoFactorToken == null) return;
+
+    setState(() => _verifying2fa = true);
+    try {
+      final user = await ApiService.verifyTwoFactor(
+        twoFactorToken: _twoFactorToken!,
+        code: code,
+      );
+      if (!mounted) return;
+      showMsg(
+        context,
+        'Authentification réussie. Bienvenue ${doctorDisplay(user.name)}',
+      );
+      final Widget next = user.isDoctor
+          ? const DoctorDashboard()
+          : const HospitalDashboard();
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => next),
+        (r) => false,
+      );
+    } catch (e) {
+      if (mounted) {
+        showMsg(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          error: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _verifying2fa = false);
+    }
+  }
+
+  void _cancelTwoFactor() {
+    setState(() {
+      _requires2fa = false;
+      _twoFactorToken = null;
+      _twoFactorCodeCtrl.clear();
+    });
   }
 
   @override
@@ -95,6 +161,13 @@ class _LoginScreenState extends State<LoginScreen>
                   loading: _loading,
                   obscure: _obscure,
                   rememberMe: _rememberMe,
+                  requires2fa: _requires2fa,
+                  maskedEmail: _maskedEmail ?? '',
+                  debug2faCode: _debug2faCode,
+                  twoFactorCodeCtrl: _twoFactorCodeCtrl,
+                  verifying2fa: _verifying2fa,
+                  onSubmitTwoFactor: _submitTwoFactor,
+                  onCancelTwoFactor: _cancelTwoFactor,
                   fadeAnim: _fadeAnim,
                   slideAnim: _slideAnim,
                   onToggleObscure: () => setState(() => _obscure = !_obscure),
@@ -109,6 +182,13 @@ class _LoginScreenState extends State<LoginScreen>
                   loading: _loading,
                   obscure: _obscure,
                   rememberMe: _rememberMe,
+                  requires2fa: _requires2fa,
+                  maskedEmail: _maskedEmail ?? '',
+                  debug2faCode: _debug2faCode,
+                  twoFactorCodeCtrl: _twoFactorCodeCtrl,
+                  verifying2fa: _verifying2fa,
+                  onSubmitTwoFactor: _submitTwoFactor,
+                  onCancelTwoFactor: _cancelTwoFactor,
                   fadeAnim: _fadeAnim,
                   slideAnim: _slideAnim,
                   onToggleObscure: () => setState(() => _obscure = !_obscure),
@@ -133,6 +213,13 @@ class _WideLayout extends StatelessWidget {
     required this.loading,
     required this.obscure,
     required this.rememberMe,
+    required this.requires2fa,
+    required this.maskedEmail,
+    required this.twoFactorCodeCtrl,
+    required this.verifying2fa,
+    required this.onSubmitTwoFactor,
+    required this.onCancelTwoFactor,
+    this.debug2faCode,
     required this.fadeAnim,
     required this.slideAnim,
     required this.onToggleObscure,
@@ -146,6 +233,13 @@ class _WideLayout extends StatelessWidget {
   final bool loading;
   final bool obscure;
   final bool rememberMe;
+  final bool requires2fa;
+  final String maskedEmail;
+  final TextEditingController twoFactorCodeCtrl;
+  final bool verifying2fa;
+  final VoidCallback onSubmitTwoFactor;
+  final VoidCallback onCancelTwoFactor;
+  final String? debug2faCode;
   final Animation<double> fadeAnim;
   final Animation<Offset> slideAnim;
   final VoidCallback onToggleObscure;
@@ -333,17 +427,26 @@ class _WideLayout extends StatelessWidget {
                   opacity: fadeAnim,
                   child: SlideTransition(
                     position: slideAnim,
-                    child: _LoginCard(
-                      formKey: formKey,
-                      email: email,
-                      password: password,
-                      loading: loading,
-                      obscure: obscure,
-                      rememberMe: rememberMe,
-                      onToggleObscure: onToggleObscure,
-                      onToggleRemember: onToggleRemember,
-                      onSubmit: onSubmit,
-                    ),
+                    child: requires2fa
+                        ? _TwoFactorCard(
+                            maskedEmail: maskedEmail,
+                            twoFactorCodeCtrl: twoFactorCodeCtrl,
+                            verifying: verifying2fa,
+                            onSubmit: onSubmitTwoFactor,
+                            onCancel: onCancelTwoFactor,
+                            debugCode: debug2faCode,
+                          )
+                        : _LoginCard(
+                            formKey: formKey,
+                            email: email,
+                            password: password,
+                            loading: loading,
+                            obscure: obscure,
+                            rememberMe: rememberMe,
+                            onToggleObscure: onToggleObscure,
+                            onToggleRemember: onToggleRemember,
+                            onSubmit: onSubmit,
+                          ),
                   ),
                 ),
               ),
@@ -366,6 +469,13 @@ class _NarrowLayout extends StatelessWidget {
     required this.loading,
     required this.obscure,
     required this.rememberMe,
+    required this.requires2fa,
+    required this.maskedEmail,
+    required this.twoFactorCodeCtrl,
+    required this.verifying2fa,
+    required this.onSubmitTwoFactor,
+    required this.onCancelTwoFactor,
+    this.debug2faCode,
     required this.fadeAnim,
     required this.slideAnim,
     required this.onToggleObscure,
@@ -379,6 +489,13 @@ class _NarrowLayout extends StatelessWidget {
   final bool loading;
   final bool obscure;
   final bool rememberMe;
+  final bool requires2fa;
+  final String maskedEmail;
+  final TextEditingController twoFactorCodeCtrl;
+  final bool verifying2fa;
+  final VoidCallback onSubmitTwoFactor;
+  final VoidCallback onCancelTwoFactor;
+  final String? debug2faCode;
   final Animation<double> fadeAnim;
   final Animation<Offset> slideAnim;
   final VoidCallback onToggleObscure;
@@ -405,21 +522,257 @@ class _NarrowLayout extends StatelessWidget {
               position: slideAnim,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 440),
-                child: _LoginCard(
-                  formKey: formKey,
-                  email: email,
-                  password: password,
-                  loading: loading,
-                  obscure: obscure,
-                  rememberMe: rememberMe,
-                  onToggleObscure: onToggleObscure,
-                  onToggleRemember: onToggleRemember,
-                  onSubmit: onSubmit,
-                ),
+                child: requires2fa
+                    ? _TwoFactorCard(
+                        maskedEmail: maskedEmail,
+                        twoFactorCodeCtrl: twoFactorCodeCtrl,
+                        verifying: verifying2fa,
+                        onSubmit: onSubmitTwoFactor,
+                        onCancel: onCancelTwoFactor,
+                        debugCode: debug2faCode,
+                      )
+                    : _LoginCard(
+                        formKey: formKey,
+                        email: email,
+                        password: password,
+                        loading: loading,
+                        obscure: obscure,
+                        rememberMe: rememberMe,
+                        onToggleObscure: onToggleObscure,
+                        onToggleRemember: onToggleRemember,
+                        onSubmit: onSubmit,
+                      ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// CARTE 2FA (DOUBLE AUTHENTIFICATION)
+// ─────────────────────────────────────────────
+class _TwoFactorCard extends StatelessWidget {
+  const _TwoFactorCard({
+    required this.maskedEmail,
+    required this.twoFactorCodeCtrl,
+    required this.verifying,
+    required this.onSubmit,
+    required this.onCancel,
+    this.debugCode,
+  });
+
+  final String maskedEmail;
+  final TextEditingController twoFactorCodeCtrl;
+  final bool verifying;
+  final VoidCallback onSubmit;
+  final VoidCallback onCancel;
+  final String? debugCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 40,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: AppColors.border),
+      ),
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Icone de sécurité 2FA
+          Center(
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                  width: 2,
+                ),
+              ),
+              child: const Icon(
+                Icons.shield_rounded,
+                color: AppColors.primary,
+                size: 32,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Double Authentification (2FA)',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Pour protéger vos accès médicaux, un code de sécurité à 6 chiffres a été envoyé à :',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.mark_email_read_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    maskedEmail,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (debugCode != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF86EFAC)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.vpn_key_rounded,
+                    size: 14,
+                    color: Color(0xFF166534),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Code de test local : $debugCode',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF166534),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 28),
+          TextField(
+            controller: twoFactorCodeCtrl,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            textAlign: TextAlign.center,
+            autofocus: true,
+            style: const TextStyle(
+              fontSize: 26,
+              letterSpacing: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+            decoration: InputDecoration(
+              counterText: '',
+              hintText: '000000',
+              hintStyle: TextStyle(
+                fontSize: 24,
+                letterSpacing: 8,
+                color: AppColors.textMuted.withValues(alpha: 0.4),
+              ),
+              filled: true,
+              fillColor: AppColors.background,
+              contentPadding: const EdgeInsets.symmetric(vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+            ),
+            onSubmitted: (_) => onSubmit(),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 48,
+            child: ElevatedButton(
+              onPressed: verifying ? null : onSubmit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: verifying
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Valider la connexion',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton.icon(
+              onPressed: verifying ? null : onCancel,
+              icon: const Icon(Icons.arrow_back_rounded, size: 16),
+              label: const Text('Retour aux identifiants'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

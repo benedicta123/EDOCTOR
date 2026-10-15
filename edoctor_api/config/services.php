@@ -50,4 +50,8 @@ return [
         'callback_url' => env('FEDAPAY_CALLBACK_URL', null),
     ],
 
+    'brevo' => [
+        'api_key' => env('BREVO_API_KEY', env('MAIL_PASSWORD')),
+    ],
+
 ];

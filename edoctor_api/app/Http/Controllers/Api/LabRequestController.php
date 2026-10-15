@@ -185,14 +185,14 @@ class LabRequestController extends Controller
 
         $validated = $request->validate([
             'patient_notes' => ['nullable', 'string', 'max:1000'],
-            'file' => ['nullable', 'file', 'max:15360'], // max 15MB
+            'file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:15360'], // max 15MB, formats médicaux stricts
             'file_base64' => ['nullable', 'string'],
             'file_name' => ['nullable', 'string', 'max:255'],
         ]);
 
         if (! $request->hasFile('file') && empty($validated['file_base64'])) {
             return response()->json([
-                'message' => 'Veuillez joindre au moins un document ou une photo de résultats.',
+                'message' => 'Veuillez joindre au moins un document ou une photo de résultats (PDF, JPG, PNG).',
             ], 422);
         }
 
@@ -200,39 +200,45 @@ class LabRequestController extends Controller
         $originalName = 'resultat_analyse';
         $mimeType = null;
         $fileSize = null;
+        $allowedMimes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 
         if ($request->hasFile('file')) {
             $uploadedFile = $request->file('file');
             $originalName = $uploadedFile->getClientOriginalName();
             $mimeType = $uploadedFile->getMimeType();
             $fileSize = $uploadedFile->getSize();
-            
-            $storedPath = $uploadedFile->store('lab_results', 'public');
+
+            // Stockage strictement privé (non accessible publiquement via le web)
+            $storedPath = $uploadedFile->store('medical_records/lab_results', 'local');
         } elseif (! empty($validated['file_base64'])) {
             $base64Data = $validated['file_base64'];
             $originalName = $validated['file_name'] ?? ('resultat_' . time() . '.jpg');
-            
+
             // Format data URI ? data:image/jpeg;base64,...
             if (preg_match('/^data:(.*?);base64,(.*)$/', $base64Data, $matches)) {
-                $mimeType = $matches[1];
+                $mimeType = strtolower($matches[1]);
                 $decoded = base64_decode($matches[2]);
             } else {
                 $mimeType = 'image/jpeg';
                 $decoded = base64_decode($base64Data);
             }
 
-            $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: 'jpg';
-            $fileName = 'lab_results/' . Str::uuid() . '.' . $extension;
-            Storage::disk('public')->put($fileName, $decoded);
+            if (! in_array($mimeType, $allowedMimes)) {
+                return response()->json([
+                    'message' => 'Format de fichier non autorisé. Formats acceptés : PDF, JPG, PNG, WEBP.',
+                ], 422);
+            }
+
+            $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: ($mimeType === 'application/pdf' ? 'pdf' : 'jpg');
+            $fileName = 'medical_records/lab_results/' . Str::uuid() . '.' . $extension;
+            Storage::disk('local')->put($fileName, $decoded);
             $storedPath = $fileName;
             $fileSize = strlen($decoded);
         }
 
-        $url = Storage::disk('public')->url($storedPath);
-
-        $resultRecord = DB::transaction(function () use ($labRequest, $storedPath, $url, $originalName, $mimeType, $fileSize, $validated, $user) {
+        $resultRecord = DB::transaction(function () use ($labRequest, $storedPath, $originalName, $mimeType, $fileSize, $validated, $user) {
             $result = $labRequest->results()->create([
-                'file_path' => $url,
+                'file_path' => $storedPath,
                 'file_name' => $originalName,
                 'mime_type' => $mimeType,
                 'file_size' => $fileSize,
@@ -307,5 +313,53 @@ class LabRequestController extends Controller
                 'patient:id,name',
             ]),
         ]);
+    }
+
+    /**
+     * GET /api/lab-results/{result}/secure-view
+     * Visualisation sécurisée du document médical via URL signée temporaire (HMAC).
+     */
+    public function viewResult(Request $request, LabRequestResult $result)
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403, 'Ce lien d\'accès a expiré ou est invalide.');
+        }
+
+        $rawPath = $result->getRawOriginal('file_path') ?? $result->file_path;
+
+        if (! Storage::disk('local')->exists($rawPath)) {
+            abort(404, 'Document médical introuvable sur le stockage sécurisé.');
+        }
+
+        return response()->file(Storage::disk('local')->path($rawPath), [
+            'Content-Type' => $result->mime_type ?? 'application/octet-stream',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-cache, no-store, must-revalidate',
+        ]);
+    }
+
+    /**
+     * GET /api/lab-requests/{labRequest}/results/{result}/download
+     * Téléchargement du compte-rendu médical réservé aux participants du dossier.
+     */
+    public function download(Request $request, LabRequest $labRequest, LabRequestResult $result)
+    {
+        $user = $request->user();
+        if (! $labRequest->isParticipant($user) && ! $user->isAdmin()) {
+            abort(403, 'Accès non autorisé à ce document médical.');
+        }
+
+        abort_if($result->lab_request_id !== $labRequest->id, 404);
+
+        $rawPath = $result->getRawOriginal('file_path') ?? $result->file_path;
+
+        if (! Storage::disk('local')->exists($rawPath)) {
+            abort(404, 'Document introuvable sur le stockage sécurisé.');
+        }
+
+        return Storage::disk('local')->download(
+            $rawPath,
+            $result->file_name ?? 'resultat_analyse.pdf'
+        );
     }
 }

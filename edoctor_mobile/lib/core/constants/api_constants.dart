@@ -13,6 +13,9 @@ class ApiConstants {
   static const String logout = '/logout';
   static const String me = '/me';
   static const String heartbeat = '/heartbeat';
+  static const String forgotPassword = '/password/forgot';
+  static const String verifyPasswordOtp = '/password/verify-otp';
+  static const String resetPassword = '/password/reset';
 
   // Médecins & Consultations
   static const String availableDoctors = '/doctors/available';

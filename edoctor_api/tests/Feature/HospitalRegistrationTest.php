@@ -24,8 +24,8 @@ class HospitalRegistrationTest extends TestCase
             'hospital_phone' => '+228 22 21 25 01',
             'admin_name' => 'Dr. Koffi Mensah',
             'admin_email' => 'admin@chu-so.tg',
-            'password' => 'SecurePass123!',
-            'password_confirmation' => 'SecurePass123!',
+            'password' => 'Ed0ctor2026!#UltraSecure',
+            'password_confirmation' => 'Ed0ctor2026!#UltraSecure',
             'admin_phone' => '+228 90 01 02 03',
         ];
 

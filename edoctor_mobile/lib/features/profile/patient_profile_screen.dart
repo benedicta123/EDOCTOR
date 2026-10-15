@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/biometric_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/patient_bottom_nav.dart';
 import '../../data/models/user_model.dart';
-import '../auth/register_step1_screen.dart';
+import '../auth/login_screen.dart';
 import '../claims/claims_screen.dart';
 
 class PatientProfileScreen extends StatefulWidget {
@@ -23,12 +24,26 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   bool _isLoading = true;
   bool _notificationsEnabled = true;
   bool _smsRemindersEnabled = true;
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _user = widget.user;
     _loadUser();
+    _checkBiometrics();
+  }
+
+  Future<void> _checkBiometrics() async {
+    final available = await BiometricService.isBiometricAvailable();
+    final enabled = await BiometricService.isBiometricEnabled();
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = available;
+        _biometricEnabled = enabled;
+      });
+    }
   }
 
   Future<void> _loadUser() async {
@@ -322,6 +337,72 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
             const SizedBox(height: 16),
 
+            // Section Sécurité & Biométrie
+            _buildSectionContainer(
+              title: 'Sécurité & Accès',
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _biometricEnabled,
+                  activeThumbColor: AppColors.primary,
+                  secondary: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.fingerprint_rounded, color: AppColors.primary, size: 22),
+                  ),
+                  title: const Text(
+                    'Verrouillage biométrique',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  ),
+                  subtitle: Text(
+                    _biometricAvailable
+                        ? 'Empreinte digitale / Face ID au lancement'
+                        : 'Non configuré sur cet appareil',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  onChanged: _biometricAvailable
+                      ? (val) async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          if (val) {
+                            // Test d'authentification avant d'activer
+                            final success = await BiometricService.authenticate(
+                              localizedReason: 'Confirmez votre empreinte pour activer le verrouillage de votre compte.',
+                            );
+                            if (success) {
+                              await BiometricService.setBiometricEnabled(true);
+                              if (mounted) {
+                                setState(() => _biometricEnabled = true);
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Verrouillage biométrique activé avec succès.'),
+                                    backgroundColor: AppColors.success,
+                                  ),
+                                );
+                              }
+                            }
+                          } else {
+                            await BiometricService.setBiometricEnabled(false);
+                            if (mounted) {
+                              setState(() => _biometricEnabled = false);
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Verrouillage biométrique désactivé.'),
+                                  backgroundColor: AppColors.textPrimary,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      : null,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
             // Section Aide & Numéros d'urgence
             _buildSectionContainer(
               title: 'Assistance & Urgences',
@@ -509,7 +590,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       await StorageService.clearSession();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const RegisterStep1Screen()),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
     }

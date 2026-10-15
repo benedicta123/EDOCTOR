@@ -102,6 +102,7 @@ class Consultation extends Model
         'consultation_fee' => 'decimal:2',
         'edoctor_fee' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'diagnosis' => 'encrypted',
     ];
 
     public function patient(): BelongsTo

@@ -7,7 +7,10 @@ use App\Models\Pharmacy;
 use App\Models\User;
 use App\Policies\PatientDossierPolicy;
 use App\Policies\PharmacyPolicy;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 
@@ -28,6 +31,51 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::define('viewPatientDossier', [PatientDossierPolicy::class, 'view']);
         Gate::policy(Pharmacy::class, PharmacyPolicy::class);
+
+        // ─── Rate Limiters de Sécurité Anti-Brute-Force & Anti-Abus ─────────
+        RateLimiter::for('login', function (Request $request) {
+            $key = strtolower((string) $request->input('email', '')) . '|' . $request->ip();
+            return Limit::perMinute(5)->by($key)->response(function () {
+                return response()->json([
+                    'message' => 'Trop de tentatives de connexion. Veuillez patienter 1 minute avant de réessayer.',
+                ], 429);
+            });
+        });
+
+        RateLimiter::for('otp-send', function (Request $request) {
+            $key = strtolower((string) $request->input('email', '')) . '|' . $request->ip();
+            return Limit::perMinute(3)->by($key)->response(function () {
+                return response()->json([
+                    'message' => 'Trop de demandes de code. Veuillez patienter 1 minute avant de renouveler.',
+                ], 429);
+            });
+        });
+
+        RateLimiter::for('otp-verify', function (Request $request) {
+            $key = strtolower((string) $request->input('email', '')) . '|' . $request->ip();
+            return Limit::perMinute(5)->by($key)->response(function () {
+                return response()->json([
+                    'message' => 'Trop d\'essais de code de sécurité. Veuillez patienter 1 minute avant de réessayer.',
+                ], 429);
+            });
+        });
+
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perMinute(3)->by($request->ip())->response(function () {
+                return response()->json([
+                    'message' => 'Trop de créations de compte depuis cette adresse IP (maximum 3 par minute). Veuillez patienter.',
+                ], 429);
+            });
+        });
+
+        // Limiteur anti-déni de service / anti-flooding sur les webhooks de paiement
+        RateLimiter::for('webhook', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip())->response(function () {
+                return response()->json([
+                    'error' => 'Trop de requêtes webhook envoyées. Veuillez ralentir.',
+                ], 429);
+            });
+        });
 
         // Règle critique : Ne JAMAIS faire expirer un token d'accès en cours de consultation vidéo
         Sanctum::authenticateAccessTokensUsing(function ($accessToken, $isValid) {

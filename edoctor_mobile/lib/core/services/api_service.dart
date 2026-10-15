@@ -116,7 +116,7 @@ class ApiService {
           ),
         );
       }
-      nav?.pushNamedAndRemoveUntil('/register', (_) => false);
+      nav?.pushNamedAndRemoveUntil('/login', (_) => false);
     } finally {
       Future.delayed(const Duration(seconds: 2), () {
         _redirecting401 = false;
@@ -270,6 +270,102 @@ class ApiService {
       return null;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// 1. Demande d'un code OTP de réinitialisation de mot de passe
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final url = Uri.parse('$baseUrl${ApiConstants.forgotPassword}');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email.trim().toLowerCase()}),
+      ).timeout(const Duration(seconds: 12));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200 && data['success'] == true) {
+        return data;
+      } else {
+        final message = data['message'] ?? 'Erreur lors de la demande de réinitialisation';
+        throw Exception(message.toString());
+      }
+    } catch (e) {
+      throw _handleNetworkException(e);
+    }
+  }
+
+  /// 2. Vérification du code OTP (6 chiffres)
+  static Future<String> verifyPasswordOtp({
+    required String email,
+    required String otp,
+  }) async {
+    final url = Uri.parse('$baseUrl${ApiConstants.verifyPasswordOtp}');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email.trim().toLowerCase(),
+          'otp': otp.trim(),
+        }),
+      ).timeout(const Duration(seconds: 12));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200 && data['success'] == true) {
+        return data['reset_token'] as String;
+      } else {
+        final message = data['message'] ?? 'Code de vérification invalide ou expiré';
+        throw Exception(message.toString());
+      }
+    } catch (e) {
+      throw _handleNetworkException(e);
+    }
+  }
+
+  /// 3. Réinitialisation effective du mot de passe
+  static Future<String> resetPassword({
+    required String email,
+    required String resetToken,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    final url = Uri.parse('$baseUrl${ApiConstants.resetPassword}');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email.trim().toLowerCase(),
+          'reset_token': resetToken,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        }),
+      ).timeout(const Duration(seconds: 12));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200 && data['success'] == true) {
+        return data['message'] as String? ?? 'Mot de passe mis à jour avec succès.';
+      } else {
+        final message = data['message'] ?? 'Erreur lors de la réinitialisation du mot de passe';
+        final errors = data['errors'] as Map<String, dynamic>?;
+        if (errors != null && errors.isNotEmpty) {
+          final firstError = errors.values.first as List;
+          throw Exception(firstError.first.toString());
+        }
+        throw Exception(message.toString());
+      }
+    } catch (e) {
+      throw _handleNetworkException(e);
     }
   }
 

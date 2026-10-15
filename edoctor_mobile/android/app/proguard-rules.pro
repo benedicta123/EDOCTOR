@@ -35,3 +35,8 @@
 # Flutter Play Core / Deferred Components
 -dontwarn com.google.android.play.core.**
 
+# Local Auth & BiometricPrompt
+-dontwarn androidx.biometric.**
+-keep class androidx.biometric.** { *; }
+-keep class io.flutter.plugins.localauth.** { *; }
+

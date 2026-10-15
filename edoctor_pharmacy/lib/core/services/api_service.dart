@@ -11,6 +11,26 @@ import '../../data/models/stock_item_model.dart';
 import '../../data/models/order_model.dart';
 import 'storage_service.dart';
 
+/// Exception déclenchée quand le compte requiert la double authentification (2FA).
+class TwoFactorRequiredException implements Exception {
+  final String twoFactorToken;
+  final String emailMasked;
+  final String role;
+  final String? debugCode;
+  final String message;
+
+  const TwoFactorRequiredException({
+    required this.twoFactorToken,
+    required this.emailMasked,
+    required this.role,
+    this.debugCode,
+    required this.message,
+  });
+
+  @override
+  String toString() => message;
+}
+
 class ApiService {
   ApiService._();
 
@@ -117,6 +137,17 @@ class ApiService {
 
       if (r.statusCode == 200) {
         final data = jsonDecode(r.body) as Map<String, dynamic>;
+
+        if (data['requires_2fa'] == true) {
+          throw TwoFactorRequiredException(
+            twoFactorToken: data['two_factor_token'] as String,
+            emailMasked: (data['email_masked'] as String?) ?? 'votre adresse email',
+            role: (data['role'] as String?) ?? 'pharmacist',
+            debugCode: data['debug_2fa_code']?.toString(),
+            message: (data['message'] as String?) ?? 'Double authentification requise.',
+          );
+        }
+
         final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
         final token = data['token'] as String;
 
@@ -124,6 +155,36 @@ class ApiService {
         return user;
       }
       throw Exception(_msg(r, 'Identifiants incorrects'));
+    } on TwoFactorRequiredException {
+      rethrow;
+    } on Exception catch (e) {
+      throw _net(e);
+    }
+  }
+
+  static Future<UserModel> verifyTwoFactor({
+    required String twoFactorToken,
+    required String code,
+  }) async {
+    try {
+      final r = await http.post(
+        Uri.parse('$baseUrl${ApiConstants.loginVerify2Fa}'),
+        headers: _headers(null, json: true),
+        body: jsonEncode({
+          'two_factor_token': twoFactorToken,
+          'code': code.trim(),
+        }),
+      );
+
+      if (r.statusCode == 200) {
+        final data = jsonDecode(r.body) as Map<String, dynamic>;
+        final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+        final token = data['token'] as String;
+
+        await StorageService.saveSession(token: token, user: user);
+        return user;
+      }
+      throw Exception(_msg(r, 'Code 2FA incorrect ou expiré.'));
     } on Exception catch (e) {
       throw _net(e);
     }

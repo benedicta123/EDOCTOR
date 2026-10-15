@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ConsultationVideoController;
 use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\DoctorDashboardController;
+use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\FedaPayPaymentController;
 use App\Http\Controllers\Api\HeartbeatController;
 use App\Http\Controllers\Api\HospitalRegistrationController;
@@ -31,17 +32,27 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // --- Routes Publiques ---
-// Inscription Patient dédiée (sur l'app mobile ou web)
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/patients/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+// Inscription Patient dédiée (sur l'app mobile ou web) protégée par rate limiting anti-abus
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
+Route::post('/patients/register', [AuthController::class, 'register'])->middleware('throttle:register');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/login/verify-2fa', [AuthController::class, 'verifyTwoFactor'])->middleware('throttle:otp-verify');
+
+// Vérification de l'adresse email à l'inscription (OTP 15 min)
+Route::post('/email/verify', [EmailVerificationController::class, 'verify'])->middleware('throttle:otp-verify');
+Route::post('/email/resend', [EmailVerificationController::class, 'resend'])->middleware('throttle:otp-send');
+
+// Réinitialisation de mot de passe sécurisée (Anti-Brute-Force OTP & Expiration 5 min)
+Route::post('/password/forgot', [\App\Http\Controllers\Api\PasswordResetController::class, 'forgot'])->middleware('throttle:otp-send');
+Route::post('/password/verify-otp', [\App\Http\Controllers\Api\PasswordResetController::class, 'verifyOtp'])->middleware('throttle:otp-verify');
+Route::post('/password/reset', [\App\Http\Controllers\Api\PasswordResetController::class, 'reset'])->middleware('throttle:otp-verify');
 
 // Inscription Hôpital & Super-Admin (Shopify-like)
-Route::post('/hospitals/register', [HospitalRegistrationController::class, 'register']);
+Route::post('/hospitals/register', [HospitalRegistrationController::class, 'register'])->middleware('throttle:register');
 Route::post('/hospitals/geocode', [HospitalRegistrationController::class, 'geocode']);
 
 // Inscription & Suivi d'Agrément Pharmacie (KYP)
-Route::post('/pharmacies/register', [PharmacyRegistrationController::class, 'register']);
+Route::post('/pharmacies/register', [PharmacyRegistrationController::class, 'register'])->middleware('throttle:register');
 Route::post('/pharmacies/track-status', [PharmacyRegistrationController::class, 'trackStatus']);
 
 // Catalogue médicaments & officines
@@ -54,13 +65,18 @@ Route::get('/pharmacies/{pharmacy}', [PharmacyController::class, 'show']);
 // Médecins disponibles (accessible aux patients pour recherche rapide)
 Route::get('/doctors/available', [DoctorController::class, 'available']);
 
-// Webhook / Callbacks de paiement
-Route::post('/payments/{payment}/confirm', [PaymentController::class, 'confirm']);
-Route::post('/payments/{payment}/fail', [PaymentController::class, 'fail']);
-Route::post('/webhooks/fedapay', [FedaPayPaymentController::class, 'handleWebhook']);
+// Webhook FedaPay officiel (vérification out-of-band systématique et protection anti-flooding)
+Route::post('/webhooks/fedapay', [FedaPayPaymentController::class, 'handleWebhook'])->middleware('throttle:webhook');
+
+// Visualisation sécurisée de résultats médicaux via URL signée cryptographiquement (HMAC temporaire)
+Route::get('/lab-results/{result}/secure-view', [LabRequestController::class, 'viewResult'])->name('lab.secure-view');
 
 // --- Routes Protégées (nécessitent un token Sanctum valide) ---
 Route::middleware('auth:sanctum')->group(function () {
+    // Tests manuels de paiement (réservé exclusivement à l'administration en dev/test)
+    Route::post('/payments/{payment}/confirm', [PaymentController::class, 'confirm']);
+    Route::post('/payments/{payment}/fail', [PaymentController::class, 'fail']);
+
     Route::get('/user', fn (Request $request) => $request->user());
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
@@ -101,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lab-requests/my', [LabRequestController::class, 'indexMine']);
     Route::get('/lab-requests/{labRequest}', [LabRequestController::class, 'show']);
     Route::post('/lab-requests/{labRequest}/results', [LabRequestController::class, 'uploadResults']);
+    Route::get('/lab-requests/{labRequest}/results/{result}/download', [LabRequestController::class, 'download']);
     Route::post('/lab-requests/{labRequest}/review', [LabRequestController::class, 'review']);
     Route::get('/consultations/{consultation}/lab-requests', [LabRequestController::class, 'indexConsultation']);
     Route::post('/consultations/{consultation}/lab-requests', [LabRequestController::class, 'store']);

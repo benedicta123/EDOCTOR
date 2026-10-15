@@ -2,9 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/biometric_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/app_logo.dart';
-import '../auth/register_step1_screen.dart';
+import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -43,11 +44,11 @@ class _SplashScreenState extends State<SplashScreen>
     final token = await StorageService.getToken();
     final cachedUser = await StorageService.getUser();
 
-    // Pas de session locale → inscription
+    // Pas de session locale → connexion
     if (token == null || cachedUser == null) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const RegisterStep1Screen()),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
       return;
     }
@@ -59,28 +60,36 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    if (freshUser != null) {
-      // Token valide → dashboard avec données fraîches
+    final stillHasToken = await StorageService.getToken();
+    final targetUser = freshUser ?? (stillHasToken != null ? cachedUser : null);
+
+    if (targetUser != null) {
+      // Si la biométrie est activée, on demande la confirmation de l'empreinte/visage
+      final isBioEnabled = await BiometricService.isBiometricEnabled();
+      if (isBioEnabled) {
+        final authenticated = await BiometricService.authenticate(
+          localizedReason: 'Confirmez votre empreinte digitale pour accéder à votre espace eDoctor.',
+        );
+        if (!authenticated) {
+          // Si refusé ou annulé, on redirige vers l'écran de connexion par mot de passe
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+          return;
+        }
+      }
+
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeScreen(user: freshUser)),
+        MaterialPageRoute(builder: (_) => HomeScreen(user: targetUser)),
       );
     } else {
-      // me() a retourné null — deux cas :
-      // 1. 401 (token révoqué) → clearSession() a été appelé dans me(), aller à l'inscription
-      // 2. Hors ligne → le cache est intact, utiliser cachedUser
-      final stillHasToken = await StorageService.getToken();
+      // Token révoqué ou expiré
       if (!mounted) return;
-      if (stillHasToken != null) {
-        // Hors ligne — on utilise le cache
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => HomeScreen(user: cachedUser)),
-        );
-      } else {
-        // Token révoqué (401) — retour à l'inscription
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const RegisterStep1Screen()),
-        );
-      }
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
     }
   }
 

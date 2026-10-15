@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'core/navigation/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/splash/splash_screen.dart';
+import 'features/auth/login_screen.dart';
 import 'features/auth/register_step1_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/doctors/find_doctor_screen.dart';
@@ -26,6 +27,7 @@ class EDoctorApp extends StatelessWidget {
       home: const SplashScreen(),
       routes: {
         '/splash': (_) => const SplashScreen(),
+        '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterStep1Screen(),
         '/home': (_) => const HomeScreen(),
         '/doctors': (_) => const FindDoctorScreen(),

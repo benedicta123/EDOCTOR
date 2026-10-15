@@ -15,6 +15,26 @@ import '../../data/models/nurse_visit_model.dart';
 import '../../data/models/video_meeting_config.dart';
 import 'storage_service.dart';
 
+/// Exception déclenchée quand le compte nécessite la double authentification (2FA).
+class TwoFactorRequiredException implements Exception {
+  final String twoFactorToken;
+  final String emailMasked;
+  final String role;
+  final String? debugCode;
+  final String message;
+
+  const TwoFactorRequiredException({
+    required this.twoFactorToken,
+    required this.emailMasked,
+    required this.role,
+    this.debugCode,
+    required this.message,
+  });
+
+  @override
+  String toString() => message;
+}
+
 /// Client API espace Praticien — 100% donnees reelles Laravel.
 /// Auth Sanctum : POST /login universel, routage par role ensuite.
 class ApiService {
@@ -121,6 +141,15 @@ class ApiService {
       );
       final data = jsonDecode(r.body) as Map<String, dynamic>;
       if (r.statusCode == 200) {
+        if (data['requires_2fa'] == true) {
+          throw TwoFactorRequiredException(
+            twoFactorToken: data['two_factor_token'] as String,
+            emailMasked: (data['email_masked'] as String?) ?? 'votre adresse email',
+            role: (data['role'] as String?) ?? 'doctor',
+            debugCode: data['debug_2fa_code']?.toString(),
+            message: (data['message'] as String?) ?? 'Double authentification requise.',
+          );
+        }
         final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
         if (user.role != 'doctor' && !user.isHospitalAdmin) {
           throw Exception(
@@ -134,6 +163,41 @@ class ApiService {
         return user;
       }
       throw Exception(_msg(r, 'Identifiants incorrects'));
+    } on TwoFactorRequiredException {
+      rethrow;
+    } on Exception catch (e) {
+      throw _net(e);
+    }
+  }
+
+  static Future<UserModel> verifyTwoFactor({
+    required String twoFactorToken,
+    required String code,
+  }) async {
+    try {
+      final r = await http.post(
+        Uri.parse('$baseUrl${ApiConstants.loginVerify2Fa}'),
+        headers: _headers(null, json: true),
+        body: jsonEncode({
+          'two_factor_token': twoFactorToken,
+          'code': code.trim(),
+        }),
+      );
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      if (r.statusCode == 200) {
+        final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+        if (user.role != 'doctor' && !user.isHospitalAdmin) {
+          throw Exception(
+            "Ce portail est réservé aux médecins et administrateurs d'hôpital (rôle détecté : ${user.role}).",
+          );
+        }
+        await StorageService.saveSession(
+          token: data['token'] as String,
+          user: user,
+        );
+        return user;
+      }
+      throw Exception(_msg(r, 'Code 2FA incorrect ou expiré.'));
     } on Exception catch (e) {
       throw _net(e);
     }

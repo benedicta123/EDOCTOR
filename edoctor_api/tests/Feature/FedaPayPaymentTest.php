@@ -177,6 +177,17 @@ class FedaPayPaymentTest extends TestCase
             'transaction_ref' => 'FP-99999',
         ]);
 
+        Http::fake([
+            'https://sandbox-api.fedapay.com/v1/transactions/99999' => Http::response([
+                'v1/transaction' => [
+                    'id' => 99999,
+                    'reference' => 'FP-WEBHOOK-99999',
+                    'status' => 'approved',
+                    'amount' => 4400,
+                ],
+            ], 200),
+        ]);
+
         $webhookPayload = [
             'name' => 'transaction.approved',
             'entity' => [
@@ -203,6 +214,55 @@ class FedaPayPaymentTest extends TestCase
             'id' => $payment->id,
             'status' => 'confirme',
             'transaction_ref' => 'FP-WEBHOOK-99999',
+        ]);
+    }
+
+    public function test_fedapay_webhook_rejects_unapproved_or_fraudulent_transaction(): void
+    {
+        $patient = User::factory()->create(['role' => 'patient']);
+        $doctor = User::factory()->create(['role' => 'doctor']);
+
+        $consultation = Consultation::create([
+            'doctor_id' => $doctor->id,
+            'patient_id' => $patient->id,
+            'status' => 'en_attente',
+            'scheduled_at' => now(),
+            'reference_code' => 'CNS-FEDA-FRAUD',
+            'consultation_fee' => 4000.0,
+            'edoctor_fee' => 400.0,
+            'total_amount' => 4400.0,
+            'payment_status' => 'en_attente',
+        ]);
+
+        // Simule que FedaPay retourne 'declined'
+        Http::fake([
+            'https://sandbox-api.fedapay.com/v1/transactions/11111' => Http::response([
+                'v1/transaction' => [
+                    'id' => 11111,
+                    'reference' => 'FP-FRAUD-11111',
+                    'status' => 'declined',
+                    'amount' => 4400,
+                ],
+            ], 200),
+        ]);
+
+        $fakePayload = [
+            'name' => 'transaction.approved',
+            'entity' => [
+                'id' => 11111,
+                'status' => 'approved', // Fake status prétendant être approved
+                'amount' => 4400,
+                'custom_metadata' => ['consultation_id' => $consultation->id],
+            ],
+        ];
+
+        $res = $this->postJson('/api/webhooks/fedapay', $fakePayload);
+
+        $res->assertStatus(422);
+
+        $this->assertDatabaseHas('consultations', [
+            'id' => $consultation->id,
+            'payment_status' => 'en_attente',
         ]);
     }
 }

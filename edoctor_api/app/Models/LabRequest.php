@@ -29,6 +29,8 @@ class LabRequest extends Model
         'fasting_required' => 'boolean',
         'results_uploaded_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        'clinical_notes' => 'encrypted',
+        'doctor_review_notes' => 'encrypted',
     ];
 
     protected static function booted(): void

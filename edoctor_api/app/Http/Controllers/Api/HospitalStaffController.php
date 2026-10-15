@@ -48,7 +48,7 @@ class HospitalStaffController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()],
             'phone' => ['nullable', 'string', 'max:30'],
             'specialty' => ['required', 'string', 'max:255'],
             'license_number' => ['required', 'string', 'max:255'],
@@ -83,7 +83,7 @@ class HospitalStaffController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()],
             'phone' => ['nullable', 'string', 'max:30'],
             'license_number' => ['required', 'string', 'max:255'],
         ]);

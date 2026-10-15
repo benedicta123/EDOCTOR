@@ -54,6 +54,7 @@ class User extends Authenticatable
             'is_suspended' => 'boolean',
             'suspended_at' => 'datetime',
             'consultation_fee' => 'decimal:2',
+            'medical_history_summary' => 'encrypted',
         ];
     }
 
