@@ -2,8 +2,8 @@
 class ApiConstants {
   ApiConstants._();
 
-  static const String baseUrl = 'http://127.0.0.1:8000/api';
-  static const String desktopBaseUrl = 'http://127.0.0.1:8000/api';
+  static const String baseUrl = 'https://edoctor-api.ewaregroup.org/api';
+  static const String desktopBaseUrl = 'https://edoctor-api.ewaregroup.org/api';
 
   // Authentification & profil Super-Admin
   static const String login = '/login';
