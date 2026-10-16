@@ -93,18 +93,10 @@ packages:
     dependency: "direct main"
     description:
       name: cupertino_icons
-      sha256: b7cc2390aac296c083bea762859413eb1cf5b630c70e0c7e4d831018f762a8b2
+      sha256: "41e005c33bd814be4d3096aff55b1908d419fde52ca656c8c47719ec745873cd"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
-  cupertino_ui:
-    dependency: transitive
-    description:
-      name: cupertino_ui
-      sha256: c23816577a1280cff409e989541767887011f8f1d8c1863a794ed308af46f2a9
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.1"
+    version: "1.0.9"
   dbus:
     dependency: transitive
     description:
@@ -214,11 +206,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
-  flutter_localizations:
-    dependency: transitive
-    description: flutter
-    source: sdk
-    version: "0.0.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -233,10 +220,10 @@ packages:
     dependency: "direct main"
     description:
       name: google_fonts
-      sha256: fdbbfbbb1a62f376ab29fa9627561d389751fb984da0b630ce3326e272911c8a
+      sha256: ba03d03bcaa2f6cb7bd920e3b5027181db75ab524f8891c8bc3aa603885b8055
       url: "https://pub.dev"
     source: hosted
-    version: "9.0.0"
+    version: "6.3.3"
   hooks:
     dependency: transitive
     description:
@@ -349,14 +336,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.13.0"
-  material_ui:
-    dependency: transitive
-    description:
-      name: material_ui
-      sha256: "32d98f11cf5942a095a8c3e01b03e4de3b17941437713dcf36b1088fb62e23d2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.5.0"
   meta:
     dependency: transitive
     description:
@@ -659,5 +638,5 @@ packages:
     source: hosted
     version: "3.1.4"
 sdks:
-  dart: ">=3.13.0 <4.0.0"
-  flutter: ">=3.47.0"
+  dart: ">=3.12.0 <4.0.0"
+  flutter: ">=3.44.0"
