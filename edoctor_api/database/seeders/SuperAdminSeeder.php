@@ -25,6 +25,17 @@ class SuperAdminSeeder extends Seeder
             ]
         );
 
+        $superAdminPerso = User::updateOrCreate(
+            ['email' => 'hounkanliemeraude@gmail.com'],
+            [
+                'name' => 'Dr. Kouamé / Admin Principal',
+                'password' => Hash::make('Password123!'),
+                'role' => 'admin',
+                'hospital_id' => null, // null = Super-Admin National
+                'phone' => '+228 90 00 00 01',
+            ]
+        );
+
         // 2. Hôpital en attente d'homologation MSHP
         $pendingHospitalAdmin = User::updateOrCreate(
             ['email' => 'directeur.ste-anne@edoctor.test'],

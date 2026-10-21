@@ -319,5 +319,11 @@ class DatabaseSeeder extends Seeder
                 'quantity' => 2,
             ]);
         }
+
+        // 9. Initialisation des Super-Admins & Pharmacies Partenaires Complètes
+        $this->call([
+            SuperAdminSeeder::class,
+            TestVerifiedPharmacySeeder::class,
+        ]);
     }
 }
