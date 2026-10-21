@@ -49,11 +49,21 @@ class PatientDossierController extends Controller
             ->latest()
             ->get();
 
+        $nurseVisits = \App\Models\NurseVisit::where('patient_id', $patient->id)
+            ->with([
+                'nurse:id,name,phone',
+                'hospital:id,name,address',
+                'prescription.items.medication',
+            ])
+            ->latest()
+            ->get();
+
         return response()->json([
             'patient' => $patient->only(['id', 'name', 'date_of_birth', 'address', 'medical_history_summary']),
             'consultations' => $consultations,
             'prescriptions' => $prescriptions,
             'lab_requests' => $labRequests,
+            'nurse_visits' => $nurseVisits,
         ]);
     }
 }

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Splash Screen - E-DOCTOR</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet"/>
+<style>
+    body {
+      font-family: 'Epilogue', sans-serif;
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 0.9; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.03); }
+    }
+    .pulse-mark {
+      animation: pulse-slow 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="h-full bg-[#0E6B5C] text-white flex flex-col justify-between items-center px-8 py-12 select-none overflow-hidden relative max-w-[390px] mx-auto">
+<!-- Halo lumineux subtil de fond -->
+<div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#168a76] rounded-full blur-3xl opacity-30 pointer-events-none"></div>
+<!-- Haut : espace équilibrant avec mention subtile Togo -->
+<div class="w-full flex justify-center pt-4 z-10">
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[11px] font-medium tracking-wider text-emerald-100 uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping"></span>
+      Santé Numérique • Togo
+    </div>
+</div>
+<!-- Centre : Logo principal, Icône médicale et Accroche -->
+<div class="flex flex-col items-center text-center z-10 -mt-8">
+<!-- Emblème stéthoscope / croix stylisée -->
+<div class="pulse-mark mb-6 w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center relative">
+<div class="w-16 h-16 rounded-2xl bg-white text-[#0E6B5C] flex items-center justify-center shadow-lg">
+<svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 0h24v24H0z" fill="none" stroke="none"></path>
+<path d="M6 4h-1a2 2 0 0 0 -2 2v3.5h0a5.5 5.5 0 0 0 11 0v-3.5a2 2 0 0 0 -2 -2h-1"></path>
+<path d="M8 15a6 6 0 0 0 12 0v-3"></path>
+<path d="M11 3v2"></path>
+<path d="M6 3v2"></path>
+<circle cx="20" cy="10" r="2"></circle>
+</svg>
+</div>
+<!-- Petit badge discret sécurité certifiée -->
+<div class="absolute -bottom-1 -right-1 bg-emerald-400 text-[#0E6B5C] rounded-full p-1 border-2 border-[#0E6B5C]">
+<i class="ti ti-shield-check text-xs font-bold block"></i>
+</div>
+</div>
+<!-- Nom de la marque -->
+<h1 class="text-4xl font-extrabold tracking-tight text-white mb-3">
+      E-DOCTOR
+    </h1>
+<!-- Slogan rassurant conforme -->
+<p class="text-white/80 text-base font-normal tracking-wide max-w-[260px] leading-relaxed">
+      Votre santé, à portée de main
+    </p>
+<!-- Badges de services simplifiés -->
+<div class="flex items-center gap-2 mt-6 flex-wrap justify-center">
+<span class="text-xs text-white/70 bg-white/10 px-3 py-1 rounded-full">Téléconsultation</span>
+<span class="text-xs text-white/40">•</span>
+<span class="text-xs text-white/70 bg-white/10 px-3 py-1 rounded-full">Pharmacie</span>
+<span class="text-xs text-white/40">•</span>
+<span class="text-xs text-white/70 bg-white/10 px-3 py-1 rounded-full">Soins à domicile</span>
+</div>
+</div>
+<!-- Bas : Indicateur de chargement discret et conformité -->
+<div class="w-full flex flex-col items-center pb-6 z-10">
+<div class="flex flex-col items-center gap-3 w-48">
+<!-- Barre de chargement fluide et fine -->
+<div class="w-full h-1 bg-white/20 rounded-full overflow-hidden relative">
+<div class="h-full bg-white rounded-full w-2/3 animate-pulse"></div>
+</div>
+<span class="text-white/60 text-xs font-medium tracking-wide">Chargement sécurisé...</span>
+</div>
+<div class="mt-8 text-[11px] text-white/40 font-medium">
+      Plateforme médicale certifiée • Lomé, Togo
+    </div>
+</div>
+</body>
+</html>

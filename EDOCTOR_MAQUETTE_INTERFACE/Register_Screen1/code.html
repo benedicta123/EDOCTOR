@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Inscription 1/2 : Identité - E-DOCTOR</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet"/>
+<style>
+    body {
+      font-family: 'Epilogue', sans-serif;
+    }
+  </style>
+</head>
+<body class="h-full bg-[#F5F7FA] text-slate-800 flex flex-col justify-between antialiased max-w-[390px] mx-auto">
+<!-- Contenu principal avec défilement élégant -->
+<div class="flex-1 pb-6 overflow-y-auto px-4 pt-5">
+<!-- En-tête avec logo discret & Sécurité -->
+<div class="flex items-center justify-between mb-5">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-xl bg-[#0E6B5C] text-white flex items-center justify-center shadow-sm">
+<i class="ti ti-stethoscope text-lg"></i>
+</div>
+<span class="text-lg font-extrabold text-[#0E6B5C] tracking-tight">E-DOCTOR</span>
+</div>
+<div class="flex items-center gap-1 text-xs text-slate-500 font-medium bg-white px-2.5 py-1 rounded-full border border-slate-200 shadow-sm">
+<i class="ti ti-lock text-emerald-600 text-sm"></i>
+        Données sécurisées
+      </div>
+</div>
+<!-- Barre de progression à 2 étapes -->
+<div class="mb-6 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+<div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2.5">
+<span class="text-[#0E6B5C] font-bold">Étape 1 sur 2</span>
+<span class="text-slate-400 font-normal">Identité personnelle</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<!-- Étape 1 : Remplie vert -->
+<div class="h-2 rounded-full bg-[#0E6B5C]"></div>
+<!-- Étape 2 : Grise -->
+<div class="h-2 rounded-full bg-slate-200"></div>
+</div>
+</div>
+<!-- Titre et sous-titre rassurant -->
+<div class="mb-6">
+<h1 class="text-2xl font-bold text-slate-900 tracking-tight">
+        Créons votre compte
+      </h1>
+<p class="text-sm text-slate-500 mt-1 font-normal flex items-center gap-1.5">
+<i class="ti ti-clock-hour-4 text-[#0E6B5C]"></i>
+        Ça prend moins de 2 minutes
+      </p>
+</div>
+<!-- Formulaire des champs d'identité -->
+<div class="space-y-4">
+<!-- Champ : Nom complet -->
+<div>
+<label class="block text-xs font-semibold text-slate-700 mb-1.5 ml-1">Nom complet</label>
+<div class="relative flex items-center bg-white rounded-2xl border border-slate-200 shadow-sm focus-within:border-[#0E6B5C] focus-within:ring-2 focus-within:ring-[#0E6B5C]/15 transition-all">
+<div class="w-12 h-12 flex items-center justify-center text-slate-400">
+<div class="w-8 h-8 rounded-xl bg-[#E7EEFB] text-[#0E6B5C] flex items-center justify-center">
+<i class="ti ti-user text-base"></i>
+</div>
+</div>
+<input class="w-full py-3.5 pr-4 text-sm text-slate-800 bg-transparent placeholder-slate-400 focus:outline-none font-medium" placeholder="Ex. Koffi Mensah" type="text" value="Koffi Mensah"/>
+</div>
+</div>
+<!-- Champ : Adresse email -->
+<div>
+<label class="block text-xs font-semibold text-slate-700 mb-1.5 ml-1">Adresse email</label>
+<div class="relative flex items-center bg-white rounded-2xl border border-slate-200 shadow-sm focus-within:border-[#0E6B5C] focus-within:ring-2 focus-within:ring-[#0E6B5C]/15 transition-all">
+<div class="w-12 h-12 flex items-center justify-center text-slate-400">
+<div class="w-8 h-8 rounded-xl bg-[#E7EEFB] text-[#0E6B5C] flex items-center justify-center">
+<i class="ti ti-mail text-base"></i>
+</div>
+</div>
+<input class="w-full py-3.5 pr-4 text-sm text-slate-800 bg-transparent placeholder-slate-400 focus:outline-none font-medium" inputmode="email" placeholder="nom@exemple.tg" type="email" value="koffi.mensah@gmail.com"/>
+</div>
+</div>
+<!-- Champ : Mot de passe -->
+<div>
+<label class="block text-xs font-semibold text-slate-700 mb-1.5 ml-1">Mot de passe</label>
+<div class="relative flex items-center bg-white rounded-2xl border border-slate-200 shadow-sm focus-within:border-[#0E6B5C] focus-within:ring-2 focus-within:ring-[#0E6B5C]/15 transition-all">
+<div class="w-12 h-12 flex items-center justify-center text-slate-400">
+<div class="w-8 h-8 rounded-xl bg-[#E7EEFB] text-[#0E6B5C] flex items-center justify-center">
+<i class="ti ti-lock text-base"></i>
+</div>
+</div>
+<input class="w-full py-3.5 pr-11 text-sm text-slate-800 bg-transparent placeholder-slate-400 focus:outline-none font-medium tracking-wider" placeholder="Minimum 8 caractères" type="password" value="••••••••••••"/>
+<button class="absolute right-3.5 text-slate-400 hover:text-slate-600 focus:outline-none" type="button">
+<i class="ti ti-eye text-lg"></i>
+</button>
+</div>
+</div>
+<!-- Champ : Confirmer le mot de passe avec indicateur visuel de correspondance -->
+<div>
+<div class="flex items-center justify-between mb-1.5 ml-1 mr-1">
+<label class="block text-xs font-semibold text-slate-700">Confirmer le mot de passe</label>
+<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+<i class="ti ti-check text-xs"></i> Les mots de passe correspondent
+          </span>
+</div>
+<div class="relative flex items-center bg-white rounded-2xl border-2 border-emerald-500 shadow-sm focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all">
+<div class="w-12 h-12 flex items-center justify-center text-slate-400">
+<div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+<i class="ti ti-lock-check text-base"></i>
+</div>
+</div>
+<input class="w-full py-3.5 pr-11 text-sm text-slate-800 bg-transparent placeholder-slate-400 focus:outline-none font-medium tracking-wider" placeholder="Répétez votre mot de passe" type="password" value="••••••••••••"/>
+<div class="absolute right-3.5 text-emerald-600">
+<i class="ti ti-circle-check-filled text-xl"></i>
+</div>
+</div>
+</div>
+<!-- Champ : Numéro de téléphone (+228 Togo par défaut) -->
+<div>
+<label class="block text-xs font-semibold text-slate-700 mb-1.5 ml-1">Numéro de téléphone</label>
+<div class="flex items-center bg-white rounded-2xl border border-slate-200 shadow-sm focus-within:border-[#0E6B5C] focus-within:ring-2 focus-within:ring-[#0E6B5C]/15 transition-all overflow-hidden">
+<!-- Sélecteur indicatif Togo -->
+<button class="flex items-center gap-1.5 px-3.5 py-3.5 bg-slate-50 border-r border-slate-200 hover:bg-slate-100 transition-colors" type="button">
+<!-- Drapeau Togo stylisé SVG -->
+<span class="inline-flex items-center justify-center w-5 h-3.5 rounded-[2px] overflow-hidden shadow-xs border border-slate-200">
+<svg class="w-full h-full" viewbox="0 0 500 300">
+<rect fill="#006a4e" height="60" width="500"></rect>
+<rect fill="#ffce00" height="60" width="500" y="60"></rect>
+<rect fill="#006a4e" height="60" width="500" y="120"></rect>
+<rect fill="#ffce00" height="60" width="500" y="180"></rect>
+<rect fill="#006a4e" height="60" width="500" y="240"></rect>
+<rect fill="#d21034" height="180" width="180"></rect>
+<polygon fill="#ffffff" points="90,45 104,88 149,88 113,114 126,157 90,131 54,157 67,114 31,88 76,88"></polygon>
+</svg>
+</span>
+<span class="text-xs font-bold text-slate-800">+228</span>
+<i class="ti ti-chevron-down text-xs text-slate-400"></i>
+</button>
+<!-- Input téléphone -->
+<div class="relative flex-1 flex items-center">
+<div class="w-10 h-12 flex items-center justify-center text-slate-400">
+<i class="ti ti-phone text-slate-400 text-base"></i>
+</div>
+<input class="w-full py-3.5 pr-4 text-sm text-slate-800 bg-transparent placeholder-slate-400 focus:outline-none font-medium" placeholder="90 12 34 56" type="tel" value="90 12 34 56"/>
+</div>
+</div>
+<p class="text-[11px] text-slate-400 mt-1 ml-1.5">Requis pour vos ordonnances et rendez-vous médicaux.</p>
+</div>
+</div>
+</div>
+<!-- Bas fixe : Bouton Suivant et Lien de connexion -->
+<div class="bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg p-4">
+<button class="w-full px-6 rounded-2xl bg-[#0E6B5C] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-[#0E6B5C]/25 hover:bg-[#0c594c] active:scale-[0.99] transition-all py-3.5" type="button">
+<span>Suivant</span>
+<i class="ti ti-arrow-right text-lg"></i>
+</button>
+<div class="text-center mt-3.5">
+<a class="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors" href="#">
+        Déjà un compte ? <span class="text-[#0E6B5C] font-bold underline decoration-2 underline-offset-2">Se connecter</span>
+</a>
+</div>
+</div>
+</body>
+</html>

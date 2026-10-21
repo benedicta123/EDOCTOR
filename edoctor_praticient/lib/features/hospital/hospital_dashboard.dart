@@ -16,6 +16,7 @@ import 'nurse_visits_screen.dart';
 import 'activity_screen.dart';
 import '../common_notifications_screen.dart';
 import 'hospital_profile_screen.dart';
+import '../wallet/praticien_wallet_screen.dart';
 
 /// Tableau de bord admin hôpital : effectifs + visites + établissement.
 class HospitalDashboard extends StatefulWidget {
@@ -135,7 +136,16 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
         currentSection: NavSection.dashboard,
         onLogout: _logout,
       ),
-      actions: [_notifButton(context)],
+      actions: [
+        IconButton(
+          tooltip: 'Caisse & Finances',
+          icon: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const PraticienWalletScreen(initialIsDoctor: false)),
+          ),
+        ),
+        _notifButton(context),
+      ],
       child: _loading
           ? const Center(
               child: Padding(

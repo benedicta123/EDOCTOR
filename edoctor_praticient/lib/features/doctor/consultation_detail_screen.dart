@@ -336,9 +336,14 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
       await StorageService.clearDraft('consultation_${widget.consultation.id}');
 
       if (mounted) {
-        showMsg(context,
-            'Consultation terminée et ordonnance transmise avec succès !');
-        Navigator.of(context).pop();
+        // Demande systématique d'activation du statut Disponible au médecin
+        await _promptDoctorAvailabilityAfterEnd();
+
+        if (mounted) {
+          showMsg(context,
+              'Consultation terminée et ordonnance transmise avec succès !');
+          Navigator.of(context).pop();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -347,6 +352,102 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
       }
     } finally {
       if (mounted) setState(() => _closing = false);
+    }
+  }
+
+  /// Dialogue demandant au praticien d'activer son statut "Disponible" dès la clôture
+  Future<void> _promptDoctorAvailabilityAfterEnd() async {
+    if (!mounted) return;
+    final selectedStatus = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Row(
+          children: [
+            Icon(Icons.health_and_safety_rounded,
+                color: AppColors.success, size: 26),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Activer votre statut Disponible ?',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'La téléconsultation est clôturée avec succès et vos honoraires ont été versés.',
+              style: TextStyle(
+                  fontSize: 13.5, height: 1.4, color: AppColors.textPrimary),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Souhaitez-vous repasser immédiatement en statut « Disponible » pour accueillir les prochains patients ?',
+              style: TextStyle(
+                  fontSize: 13, height: 1.4, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'indisponible'),
+            child: const Text('Rester indisponible',
+                style: TextStyle(color: Colors.blueGrey)),
+          ),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.warning,
+              side: const BorderSide(color: AppColors.warning),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.local_hospital_rounded, size: 16),
+            label: const Text('Au bloc'),
+            onPressed: () => Navigator.pop(ctx, 'au_bloc'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.check_circle_rounded, size: 16),
+            label: const Text('Oui, Disponible',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            onPressed: () => Navigator.pop(ctx, 'disponible'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedStatus != null) {
+      try {
+        await ApiService.updateDoctorAvailability(selectedStatus);
+        final user = await StorageService.getUser();
+        if (user != null) {
+          final updated = UserModel(
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            licenseNumber: user.licenseNumber,
+            specialty: user.specialty,
+            availabilityStatus: selectedStatus,
+            hospitalId: user.hospitalId,
+            dateOfBirth: user.dateOfBirth,
+            address: user.address,
+          );
+          await StorageService.saveUser(updated);
+        }
+      } catch (_) {}
     }
   }
 

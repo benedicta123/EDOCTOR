@@ -38,4 +38,10 @@ class ApiConstants {
   static const String adminClaims = '/admin/claims';
   static String adminClaimResolve(int id) => '/admin/claims/$id/resolve';
   static String adminClaimStatus(int id) => '/admin/claims/$id/status';
+
+  // Portefeuilles & Demandes de Reversement (Payouts)
+  static const String adminWallets = '/admin/wallets';
+  static const String adminPayoutRequests = '/admin/payout-requests';
+  static String adminPayoutApprove(int id) => '/admin/payout-requests/$id/approve';
+  static String adminPayoutReject(int id) => '/admin/payout-requests/$id/reject';
 }

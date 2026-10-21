@@ -20,15 +20,22 @@ Le portail **eDoctor Praticien** est l'environnement numérique de travail dédi
 
 ---
 
-## 2. Connexion, Prise de Service & Détection de Présence
+## 2. Connexion Sécurisée, Double Authentification (2FA) & Prise de Service
 
-1. Rendez-vous sur l'adresse du portail praticien.
-2. Saisissez votre **Email professionnel** et votre **Mot de passe**.
+L'accès aux dossiers médicaux et aux téléconsultations est protégé par un protocole cryptographique de niveau hospitalier :
+
+### 2.1. Authentification & Code de Sécurité 2FA
+1. Rendez-vous sur l'adresse officielle du portail praticien.
+2. Saisissez votre **Email professionnel** et votre **Mot de passe** conforme aux exigences de sécurité (8 caractères minimum avec majuscule, minuscule, chiffre et symbole).
 3. Cliquez sur **« Se connecter »**.
-4. **Gestion du statut de présence (Heartbeat) :** 
-   - Sur votre tableau de bord, activez le commutateur **« En ligne »** lorsque vous êtes prêt à recevoir des patients.
-   - Votre application émet automatiquement un signal de présence périodique (`heartbeat`) pour informer les patients de votre disponibilité immédiate.
-   - Dès qu'une consultation démarre, votre statut bascule automatiquement sur **« En consultation »** pour éviter d'être interrompu.
+4. **Validation du code OTP 2FA :** Un code d'authentification à 6 chiffres est instantanément acheminé sur votre messagerie professionnelle via le service transactionnel Brevo.
+5. Saisissez ce code pour valider votre identité (code valide pendant 10 minutes).
+6. **Sécurité anti-intrusion :** Après 10 tentatives infructueuses consécutives, l'accès au compte praticien est automatiquement suspendu pendant 30 minutes avec envoi d'un courriel d'alerte à l'administrateur hospitalier.
+
+### 2.2. Prise de Service & Détection de Présence en Direct (Heartbeat)
+- **Commutateur de présence :** Sur votre tableau de bord, activez le commutateur **« En ligne »** dès que vous débutez votre garde ou plage de consultation.
+- **Signal périodique :** Votre application émet automatiquement un signal régulier (`heartbeat`) informant les patients de votre disponibilité immédiate.
+- **Protection en consultation :** Dès qu'une consultation démarre, votre statut bascule automatiquement sur **« En consultation »** pour préserver la confidentialité de la séance et éviter toute interruption.
 
 ---
 
@@ -145,3 +152,14 @@ Pour les comptes administrateurs de centres hospitaliers :
    - Consultation des demandes de soins à domicile émises par les patients.
    - Affectation d'un infirmier selon le secteur géographique du Grand Lomé.
    - Suivi de la réalisation des soins et validation des transmissions infirmières.
+
+---
+
+## 8. Supervision Centrale & Portail Super-Admin (`edoctor_admin`)
+
+Pour la direction générale et l'équipe de gouvernance nationale :
+- **Portail Dédié :** Accessible à l'adresse sécurisée `https://admin-edoctor.ewaregroup.org` (application Flutter Web conteneurisée sous Docker / Nginx déployée sur Dokploy).
+- **Validation des Agréments Hospitaliers & Cliniques :** Examen et homologation des arrêtés ministériels MSHP et des conventions hospitalières avant ouverture des droits de téléconsultation.
+- **Audit des Flux Cliniques & Financiers :** Supervision en temps réel des actes médicaux, volumes de consultations et traçabilité des règlements Mobile Money sans intrusion dans le secret médical du diagnostic.
+- **Gestion des Litiges Usagers :** Arbitrage et suivi des réclamations déposées par les patients ou praticiens avec horodatage certifié.
+

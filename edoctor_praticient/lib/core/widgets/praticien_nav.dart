@@ -12,6 +12,7 @@ import '../../features/hospital/staff_screen.dart';
 import '../../features/hospital/nurse_visits_screen.dart';
 import '../../features/hospital/activity_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/wallet/praticien_wallet_screen.dart';
 
 /// Sections de navigation praticien — une seule source de vérité
 /// pour le menu latéral (docteur comme admin d'hôpital).
@@ -21,6 +22,7 @@ enum NavSection {
   patients,
   prescriptions,
   messages,
+  wallet,
   hospitalProfile,
   staff,
   nurseVisits,
@@ -86,6 +88,8 @@ Widget? navSectionScreen(PraticienNav nav, NavSection section) {
         return const PrescriptionsScreen();
       case NavSection.messages:
         return const DoctorMessagesScreen();
+      case NavSection.wallet:
+        return const PraticienWalletScreen(initialIsDoctor: true);
       case NavSection.profile:
         return ProfileScreen(initialIsDoctor: nav.isDoctor);
       case NavSection.hospitalProfile:
@@ -106,6 +110,8 @@ Widget? navSectionScreen(PraticienNav nav, NavSection section) {
       return NurseVisitsScreen(hospitalId: nav.hospitalId);
     case NavSection.activity:
       return const HospitalActivityScreen();
+    case NavSection.wallet:
+      return const PraticienWalletScreen(initialIsDoctor: false);
     case NavSection.profile:
       return ProfileScreen(initialIsDoctor: nav.isDoctor);
     case NavSection.consultations:
@@ -131,6 +137,7 @@ final _doctorItems = <_NavItemSpec>[
   _NavItemSpec(NavSection.patients, Icons.people_alt_rounded, 'Patients'),
   _NavItemSpec(NavSection.prescriptions, Icons.receipt_long_rounded, 'Ordonnances'),
   _NavItemSpec(NavSection.messages, Icons.chat_bubble_outline_rounded, 'Messagerie'),
+  _NavItemSpec(NavSection.wallet, Icons.account_balance_wallet_rounded, 'Mon Portefeuille'),
   _NavItemSpec(NavSection.profile, Icons.person_rounded, 'Mon profil'),
 ];
 
@@ -140,6 +147,7 @@ const _hospitalItems = <_NavItemSpec>[
   _NavItemSpec(NavSection.staff, Icons.medical_services_rounded, 'Personnel soignant'),
   _NavItemSpec(NavSection.nurseVisits, Icons.home_repair_service_rounded, 'Soins à domicile'),
   _NavItemSpec(NavSection.activity, Icons.analytics_rounded, 'Activité'),
+  _NavItemSpec(NavSection.wallet, Icons.account_balance_wallet_rounded, 'Caisse & Finances'),
   _NavItemSpec(NavSection.profile, Icons.person_rounded, 'Profil administrateur'),
 ];
 

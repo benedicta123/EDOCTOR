@@ -19,13 +19,23 @@ Le portail **eDoctor Pharmacie** est l'outil professionnel dédié aux officines
 
 ---
 
-## 2. Connexion & Identification de l'Officine
+## 2. Connexion Sécurisée, Double Authentification (2FA) & Identification de l'Officine
 
-1. Connectez-vous avec vos identifiants d'officine (**Email officiel** et **Mot de passe**).
-2. **Identification visuelle immédiate :** Dès votre connexion, vos informations réglementaires sont affichées en haut de l'interface :
-   - **En-tête supérieur (Header) :** Un badge vert mentionne le **Nom officiel de la pharmacie** et le **Nom du pharmacien titulaire** (*ex: « Grande Pharmacie Centrale • Titulaire : Dr. Luc Bernard »*).
-   - **Haut de la barre latérale :** L'intitulé certifié de votre officine s'affiche avec votre statut de vérification.
-   - **Bannière d'accueil du Dashboard :** Une carte rappelle le nom de l'établissement, son adresse certifiée (*ex: Boulevard du 13 Janvier, Lomé*) et le badge d'officine partenaire homologuée.
+L'accès à l'inventaire pharmaceutique et aux ordonnances dématérialisées est protégé par les plus hauts standards de sécurité de santé :
+
+### 2.1. Authentification & Code de Sécurité 2FA
+1. Rendez-vous sur le portail pharmacie (`edoctor_pharmacy`).
+2. Saisissez votre **Email officiel d'officine** et votre **Mot de passe** respectant les critères de sécurité (8 caractères minimum avec majuscule, minuscule, chiffre et caractère spécial).
+3. Cliquez sur **« Se connecter »**.
+4. **Validation du code OTP 2FA :** Un code d'authentification temporaire à 6 chiffres est instantanément acheminé sur l'adresse email de l'officine via la passerelle transactionnelle certifiée Brevo.
+5. Saisissez ce code (valable 10 minutes) pour finaliser l'ouverture de votre session.
+6. **Protection anti-brute force :** Après 10 tentatives erronées consécutives, l'accès au compte de l'officine est automatiquement bloqué pendant 30 minutes avec envoi d'une alerte de sécurité.
+
+### 2.2. Identification Visuelle Immédiate
+Dès votre connexion, vos informations réglementaires certifiées sont affichées sur l'interface :
+- **En-tête supérieur (Header) :** Un badge vert mentionne le **Nom officiel de la pharmacie** et le **Nom du pharmacien titulaire** (*ex: « Grande Pharmacie Centrale • Titulaire : Dr. Luc Bernard »*).
+- **Haut de la barre latérale :** L'intitulé certifié de votre officine s'affiche avec votre statut de vérification MSHP/ONPT.
+- **Bannière d'accueil du Dashboard :** Une carte rappelle le nom de l'établissement, son adresse certifiée (*ex: Boulevard du 13 Janvier, Lomé*) et le badge d'officine partenaire homologuée.
 
 ---
 
@@ -129,8 +139,9 @@ Pour prévenir les ruptures imprévues sur les molécules vitales :
 
 ---
 
-## 7. Agréments Réglementaires & Support Officine
-
+## 7. Agréments Réglementaires, Supervision Super-Admin & Support
 Dans l'onglet **« Officine »** :
-- Retrouvez les informations de votre licence d'officine validée par le MSHP.
-- Contactez le support technique prioritaire eDoctor pour l'assistance logistique ou les litiges de livraison.
+- **Statut d'agrément certifié :** Retrouvez les informations de votre licence d'officine validée par le Ministère de la Santé et de l'Hygiène Publique (MSHP) et homologuée sur le portail central `edoctor_admin` (`admin-edoctor.ewaregroup.org`).
+- **Traçabilité des dispensations :** Chaque acte de dispensation est consigné avec horodatage certifié, assurant une protection juridique totale contre les ordonnances falsifiées ou réutilisées.
+- **Support technique & logistique :** Contactez le support technique prioritaire eDoctor pour l'assistance logistique, le suivi des coursiers ou l'arbitrage des litiges de livraison.
+

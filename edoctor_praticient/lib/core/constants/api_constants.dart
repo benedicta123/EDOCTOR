@@ -54,9 +54,19 @@ class ApiConstants {
   static String hospitalNurseVisits(int hospitalId) =>
       '/hospitals/$hospitalId/nurse-visits';
   static String nurseVisitAssign(int id) => '/nurse-visits/$id/assign';
+  static const String myNurseVisits = '/my-nurse-visits';
+  static String nurseVisitAccept(int id) => '/nurse-visits/$id/accept';
+  static String nurseVisitDecline(int id) => '/nurse-visits/$id/decline';
+  static String nurseVisitComplete(int id) => '/nurse-visits/$id/complete';
 
   // Notifications
   static const String notifications = '/notifications';
+
+  // Portefeuille & Versements (Wallets & Payouts)
+  static const String myWallet = '/wallet/my-wallet';
+  static const String walletTransactions = '/wallet/transactions';
+  static const String walletPayoutRequest = '/wallet/payout-request';
+  static const String walletPayoutAccount = '/wallet/payout-account';
 
   // Téléconsultation vidéo : Jitsi as a Service (8x8.vc).
   // Domaine + salle + JWT fournis par POST /consultations/{id}/join.

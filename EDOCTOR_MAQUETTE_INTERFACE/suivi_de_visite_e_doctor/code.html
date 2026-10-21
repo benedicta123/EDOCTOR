@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Suivi de commande - E-DOCTOR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;600;700&amp;family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#6c2106",
+                        "on-primary-fixed-variant": "#005048",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#00504a",
+                        "surface-bright": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#9cf2e8",
+                        "on-surface": "#0b1c30",
+                        "primary-fixed-dim": "#4fdbc8",
+                        "tertiary": "#9b4426",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffdbd0",
+                        "surface-tint": "#006b5f",
+                        "tertiary-fixed-dim": "#ffb59e",
+                        "on-surface-variant": "#3c4947",
+                        "surface": "#f8f9ff",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#dce9ff",
+                        "outline": "#6c7a77",
+                        "on-primary": "#ffffff",
+                        "on-secondary-container": "#006f67",
+                        "inverse-primary": "#4fdbc8",
+                        "secondary": "#006a63",
+                        "secondary-container": "#99efe5",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-fixed": "#3a0b00",
+                        "on-primary-fixed": "#00201c",
+                        "surface-variant": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#006b5f",
+                        "surface-container-low": "#eff4ff",
+                        "primary-container": "#14b8a6",
+                        "background": "#f8f9ff",
+                        "secondary-fixed-dim": "#80d5cb",
+                        "tertiary-container": "#f38764",
+                        "on-secondary-fixed": "#00201d",
+                        "inverse-surface": "#213145",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary-fixed": "#71f8e4",
+                        "on-primary-container": "#00423b",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-highest": "#d3e4fe",
+                        "outline-variant": "#bbcac6",
+                        "on-tertiary-fixed-variant": "#7c2d11"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "xl": "32px",
+                        "gutter": "16px",
+                        "base": "4px",
+                        "xs": "4px",
+                        "margin-mobile": "16px",
+                        "lg": "24px",
+                        "margin-desktop": "64px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Atkinson Hyperlegible Next"],
+                        "body-sm": ["Atkinson Hyperlegible Next"],
+                        "display-lg": ["Epilogue"],
+                        "body-lg": ["Atkinson Hyperlegible Next"],
+                        "caption": ["Atkinson Hyperlegible Next"],
+                        "headline-sm": ["Epilogue"],
+                        "headline-lg": ["Epilogue"],
+                        "headline-md": ["Epilogue"],
+                        "label-md": ["Atkinson Hyperlegible Next"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Atkinson Hyperlegible Next', sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-headline-sm, .font-headline-md, .font-headline-lg, .font-display-lg { font-family: 'Epilogue', sans-serif; }
+        /* Safe Area Padding for mobile */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky flex justify-between items-center px-margin-mobile py-sm z-50 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline flat no shadows">
+<div class="flex items-center gap-sm">
+<button aria-label="Go back" class="p-2 rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 text-primary dark:text-primary-fixed">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm font-epilogue text-primary dark:text-primary-fixed">Suivi de soin</h1>
+</div>
+<div class="flex items-center">
+<button aria-label="Notifications" class="p-2 rounded-full hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 text-on-surface-variant dark:text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full overflow-hidden ml-2 border border-outline-variant">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="A professional headshot of a person, used as a user profile photo, neutral lighting, modern corporate style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFaJX0y7c-21chDFMRrl3BdEg0mv7ak0yV3bsjBbFMa1rJkX71IueCFglSSlJWvcNbVA-n4nFtWQmf0o0ySdehI8D0JyBVjevYjBw6UiUJzdQvAmo3rfzeG_CmMMiHYJ6C_OvWHwtiI--8TiAcGUMjZLR0Wej5BvW56pMFVeZ0Je8cqWjzD6TKL88A17nrS-K7b-eQ7mHSqWqdR0g8LzrVglybic0ahYEkUDkSPpplor9udkF1o2A"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<!-- Content logic: Linear/Transactional intent, so bottom nav is suppressed -->
+<main class="flex-grow container mx-auto max-w-[1200px] px-margin-mobile md:px-margin-desktop py-lg flex flex-col gap-lg pb-32">
+<!-- Order Header Card -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-md shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-md"><div><p class="font-body-sm text-body-sm text-on-surface-variant">Soin #SOIN-2023-8492</p><h2 class="font-headline-md text-headline-md text-on-surface mt-xs">Mme. Akossiwa Dossou</h2><p class="font-body-md text-body-md text-on-surface-variant mt-xs">Arrivée estimée : Aujourd'hui, 16h00</p></div><div class="inline-flex items-center gap-xs bg-secondary-container px-3 py-1 rounded-full border border-secondary-fixed-dim shadow-sm"><span class="material-symbols-outlined text-on-secondary-container text-sm">schedule</span><span class="font-label-md text-label-md text-on-secondary-container">Infirmière assignée</span></div></section>
+<!-- Vertical Timeline -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-md md:p-lg shadow-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-md">État d'avancement</h3>
+<div class="relative pl-sm md:pl-md"><div class="absolute left-[27px] md:left-[35px] top-6 bottom-6 w-0.5 bg-surface-container-high z-0"></div><div class="absolute left-[27px] md:left-[35px] top-6 h-[25%] w-0.5 bg-primary z-0"></div><div class="flex items-start mb-xl relative z-10"><div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center border-2 border-surface-container-lowest shadow-sm mt-1"><span class="material-symbols-outlined text-on-primary text-[20px]">check</span></div><div class="ml-md"><h4 class="font-label-md text-label-md text-on-surface">Demande confirmée</h4><p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Votre demande de soin a été validée.</p><p class="font-caption text-caption text-outline mt-xs">10:30 AM</p></div></div><div class="flex items-start mb-xl relative z-10"><div class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center border-2 border-primary shadow-sm mt-1"><span class="material-symbols-outlined text-primary text-[20px]">person</span></div><div class="ml-md"><h4 class="font-label-md text-label-md text-primary">Infirmière assignée</h4><p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Mme. Akossiwa Dossou s'occupera de vous.</p><p class="font-caption text-caption text-primary mt-xs font-medium">En cours...</p></div></div><div class="flex items-start mb-xl relative z-10 opacity-50"><div class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center border-2 border-outline-variant mt-1"><span class="material-symbols-outlined text-outline text-[20px]">directions_run</span></div><div class="ml-md"><h4 class="font-label-md text-label-md text-on-surface">Infirmière en route</h4><p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">L'infirmière se déplace vers votre domicile.</p></div></div><div class="flex items-start relative z-10 opacity-50"><div class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center border-2 border-outline-variant mt-1"><span class="material-symbols-outlined text-outline text-[20px]">task_alt</span></div><div class="ml-md"><h4 class="font-label-md text-label-md text-on-surface">Soin terminé</h4><p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Le soin a été effectué avec succès.</p></div></div></div>
+</section>
+<!-- Action Buttons -->
+<section class="flex flex-col sm:flex-row gap-sm mt-md"><button class="flex-1 flex items-center justify-center gap-xs px-md py-3 rounded-full border-[1.5px] border-primary text-primary hover:bg-surface-container-low transition-colors active:scale-95 duration-150 font-label-md text-label-md"><span class="material-symbols-outlined">call</span>Contacter l'infirmière</button><button class="flex-1 flex items-center justify-center gap-xs px-md py-3 rounded-full border-[1.5px] border-primary text-primary hover:bg-surface-container-low transition-colors active:scale-95 duration-150 font-label-md text-label-md"><span class="material-symbols-outlined">chat</span>Envoyer un message</button></section>
+</main>
+<!-- BottomNavBar intentionally omitted as this is a transactional/focused screen (Suivi de commande implies a temporary departure from main nav flow) -->
+</body></html>

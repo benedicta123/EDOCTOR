@@ -79,6 +79,15 @@ class _ConsultationPaymentScreenState extends State<ConsultationPaymentScreen> {
     });
 
     try {
+      // 0. Vérification préventive de disponibilité
+      if (!_doctor.isAvailable && widget.existingConsultation == null) {
+        throw Exception(
+          _doctor.availabilityStatus == 'au_bloc'
+              ? 'Le Dr ${_doctor.name} est actuellement au bloc opératoire et ne peut recevoir de téléconsultation.'
+              : 'Le Dr ${_doctor.name} est actuellement indisponible ou en consultation. Veuillez choisir un autre confrère disponible.',
+        );
+      }
+
       // 1. Consultation : existante ou nouvelle demande
       final consultation = widget.existingConsultation ??
           await ApiService.requestConsultation(_doctor.id);

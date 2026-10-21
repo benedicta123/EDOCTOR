@@ -26,6 +26,7 @@ class UserModel {
   });
 
   bool get isDoctor => role == 'doctor';
+  bool get isNurse => role == 'nurse';
   bool get isHospitalAdmin => role == 'admin' && hospitalId != null;
   bool get isSuperAdmin => role == 'admin' && hospitalId == null;
 

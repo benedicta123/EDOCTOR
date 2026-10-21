@@ -19,22 +19,33 @@ Bienvenue sur **eDoctor**, votre application mobile de santé au quotidien au To
 
 ---
 
-## 2. Inscription & Première Connexion
+## 2. Inscription, Sécurité & Première Connexion
 
-L'inscription s'effectue en deux étapes simples pour garantir la fiabilité de vos données médicales :
+L'accès à l'application eDoctor est hautement sécurisé pour garantir la stricte confidentialité de vos données médicales personnelles :
 
-### 2.1. Étape 1 : Création des identifiants
+### 2.1. Étape 1 : Création des identifiants & Vérification de l'Email
 1. Ouvrez l'application et appuyez sur **« Créer un compte »**.
 2. Renseignez votre **Nom et Prénom**.
-3. Saisissez une adresse **Email** valide et définissez un **Mot de passe** sécurisé (8 caractères minimum avec majuscule, chiffre et symbole).
+3. Saisissez une adresse **Email** valide et définissez un **Mot de passe** sécurisé (8 caractères minimum comprenant obligatoirement majuscule, minuscule, chiffre et symbole).
 4. Choisissez l'indicatif de votre pays (**+228 Togo** ou **+225 Côte d'Ivoire**) et saisissez votre **numéro de téléphone mobile**.
 5. Appuyez sur **« Continuer »**.
+6. **Vérification d'email par OTP :** Un code de vérification à 6 chiffres vous est immédiatement expédié par email via notre passerelle transactionnelle certifiée Brevo. Saisissez ce code dans l'application pour confirmer l'authenticité de votre adresse email.
 
 ### 2.2. Étape 2 : Profil médical initial
-1. Indiquez votre **Date de naissance** (permet aux praticiens d'adapter les posologies).
-2. Saisissez votre **Adresse de résidence ou quartier** (ex: *Lomé, Tokoin Hôpital*).
+1. Indiquez votre **Date de naissance** (permet aux praticiens d'adapter les posologies pédiatriques ou gériatriques).
+2. Saisissez votre **Adresse de résidence ou quartier** (ex: *Lomé, Tokoin Hôpital*, utile pour localiser les pharmacies de garde et organiser les livraisons express).
 3. Mentionnez vos **Antécédents médicaux connus** et vos éventuelles **Allergies médicamenteuses** (ex: *Allergie à la pénicilline, asthme*).
-4. Cliquez sur **« Terminer mon inscription »**. Vous êtes automatiquement connecté à votre espace personnel.
+4. Cliquez sur **« Terminer mon inscription »**. Votre dossier médical patient est initialisé.
+
+### 2.3. Double Authentification Obligatoire (2FA OTP)
+Pour protéger votre secret médical contre toute usurpation d'identité :
+- **À chaque nouvelle connexion**, après avoir saisi votre email et mot de passe, un **code de sécurité temporaire à 6 chiffres (OTP)** est automatiquement généré et expédié à votre adresse email.
+- Ce code est valide pendant **10 minutes** et à usage unique.
+- Saisissez le code sur l'écran de validation pour accéder à votre espace de santé personnel.
+
+### 2.4. Protection Anti-Force Brute & Récupération de Compte
+- **Verrouillage automatique de sécurité :** En cas de **10 tentatives infructueuses consécutives** de mot de passe, votre compte est automatiquement verrouillé pendant **30 minutes** par mesure de précaution, et un email d'alerte vous est envoyé pour vous avertir.
+- **Mot de passe oublié :** En cas d'oubli, cliquez sur *« Mot de passe oublié ? »*. Un code OTP de réinitialisation sécurisé vous est transmis par email afin de définir en toute sérénité un nouveau mot de passe conforme aux exigences de sécurité.
 
 ---
 

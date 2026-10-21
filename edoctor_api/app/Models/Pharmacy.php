@@ -44,4 +44,19 @@ class Pharmacy extends Model
     {
         return $this->hasMany(PharmacyStock::class);
     }
+
+    public function wallet(): \Illuminate\Database\Eloquent\Relations\MorphOne
+    {
+        return $this->morphOne(Wallet::class, 'holder');
+    }
+
+    public function getOrCreateWallet(): Wallet
+    {
+        return $this->wallet()->firstOrCreate([], [
+            'balance' => 0.00,
+            'pending_balance' => 0.00,
+            'currency' => 'XOF',
+            'is_active' => true,
+        ]);
+    }
 }

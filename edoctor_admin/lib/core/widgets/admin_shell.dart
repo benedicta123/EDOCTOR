@@ -11,6 +11,7 @@ enum AdminSection {
   pharmacies,
   users,
   claims,
+  finance,
 }
 
 class AdminShell extends StatefulWidget {
@@ -190,6 +191,14 @@ class _AdminShellState extends State<AdminShell> {
                         icon: Icons.report_problem_rounded,
                         label: 'Journal des Réclamations',
                         section: AdminSection.claims,
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildNavSectionHeader('TRÉSORERIE & FINANCES'),
+                      _buildNavItem(
+                        icon: Icons.account_balance_wallet_rounded,
+                        label: 'Portefeuilles & Versements',
+                        section: AdminSection.finance,
                       ),
                     ],
                   ),

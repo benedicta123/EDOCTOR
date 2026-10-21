@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>E-DOCTOR - Médecins Disponibles</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;600;700&amp;family=Atkinson+Hyperlegible+Next:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#6c2106",
+                        "on-primary-fixed-variant": "#005048",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#00504a",
+                        "surface-bright": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#9cf2e8",
+                        "on-surface": "#0b1c30",
+                        "primary-fixed-dim": "#4fdbc8",
+                        "tertiary": "#9b4426",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffdbd0",
+                        "surface-tint": "#006b5f",
+                        "tertiary-fixed-dim": "#ffb59e",
+                        "on-surface-variant": "#3c4947",
+                        "surface": "#f8f9ff",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#dce9ff",
+                        "outline": "#6c7a77",
+                        "on-primary": "#ffffff",
+                        "on-secondary-container": "#006f67",
+                        "inverse-primary": "#4fdbc8",
+                        "secondary": "#006a63",
+                        "secondary-container": "#99efe5",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-fixed": "#3a0b00",
+                        "on-primary-fixed": "#00201c",
+                        "surface-variant": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#006b5f",
+                        "surface-container-low": "#eff4ff",
+                        "primary-container": "#14b8a6",
+                        "background": "#f8f9ff",
+                        "secondary-fixed-dim": "#80d5cb",
+                        "tertiary-container": "#f38764",
+                        "on-secondary-fixed": "#00201d",
+                        "inverse-surface": "#213145",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary-fixed": "#71f8e4",
+                        "on-primary-container": "#00423b",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-highest": "#d3e4fe",
+                        "outline-variant": "#bbcac6",
+                        "on-tertiary-fixed-variant": "#7c2d11"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "xl": "32px",
+                        "gutter": "16px",
+                        "base": "4px",
+                        "xs": "4px",
+                        "margin-mobile": "16px",
+                        "lg": "24px",
+                        "margin-desktop": "64px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Atkinson Hyperlegible Next"],
+                        "body-sm": ["Atkinson Hyperlegible Next"],
+                        "display-lg": ["Epilogue"],
+                        "body-lg": ["Atkinson Hyperlegible Next"],
+                        "caption": ["Atkinson Hyperlegible Next"],
+                        "headline-sm": ["Epilogue"],
+                        "headline-lg": ["Epilogue"],
+                        "headline-md": ["Epilogue"],
+                        "label-md": ["Atkinson Hyperlegible Next"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen font-body-md pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky border-b border-outline-variant dark:border-outline flex justify-between items-center px-margin-mobile py-sm w-full z-50 bg-surface dark:bg-surface-dim">
+<div class="flex items-center gap-sm">
+<img alt="User Profile" class="w-10 h-10 rounded-full object-cover border border-outline-variant" data-alt="A small, professional avatar of a user with a neutral background, suitable for a healthcare application profile picture. The lighting is soft and natural, emphasizing a modern corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeaGbHIPYGuDDH-BnYmdlyfI7zspgKFpsTxfgXrPdMrE8ej7gNs7fPBe7xKAG81ujMO9IkJ743jectem6elbyaDCOikneSYS0cn-gRucyQV51bNJ_pbwq5QGJ-NF4jSitiHxR4fXnHIB__isZm2zm8SFlN1_9yz7W-YSBXq7AvBH4UkybFr4MLfNM4v4TaWRmVrP42AyM_TdEj3z4Zs7IcnUypv9WQLXy3pm9P6-ZeZdBMzQ9Ucs0"/>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">E-DOCTOR</span>
+</div>
+<button class="hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150 p-2 rounded-full text-on-surface-variant dark:text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="max-w-[1200px] mx-auto px-margin-mobile md:px-margin-desktop py-lg">
+<div class="mb-lg">
+<h1 class="font-headline-lg text-headline-lg mb-sm">Médecins Disponibles</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Sélectionnez un professionnel de santé en ligne pour démarrer votre consultation immédiatement.</p>
+</div>
+<!-- Doctor List Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+<!-- Doctor Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-lg hover:shadow-sm transition-shadow duration-200 flex flex-col h-full">
+<div class="flex items-start gap-md mb-md">
+<div class="relative">
+<img alt="Dr. Amadou Fall" class="w-20 h-20 rounded-full object-cover border border-outline-variant" data-alt="A portrait of a male doctor in his 40s wearing a white lab coat and a stethoscope around his neck. He has a warm, reassuring smile. The background is a clean, bright, out-of-focus clinic setting. Modern corporate style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5blZYVcFeS93To-TcX1eZHj3WrWLuvxi0a_wAGTTQTmO3jP6OwDq8BcXzxHTXG9qp7aDxSOVXTrCfwBxlus-8vxhkwfjts7B1Ykikgvmnz3dSCpkbBf6UTOZZ85mtfM6_Q-mv3CJA3XOYP1rlPoiFsngku-R_aCNR88FTXvVY2zwQr53Cl2kfvNAuRVf-dBlb_NsTT0axshoOaM5KXzm_qDKPIuTlQwGRGWX8jPHjJkL_V1MdZFg"/>
+<span class="absolute bottom-0 right-0 w-4 h-4 bg-primary rounded-full border-2 border-surface-container-lowest"></span>
+</div>
+<div class="flex-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Dr. Amadou Fall</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-xs">Médecin Généraliste</p>
+<div class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container">
+<span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+<span class="font-caption text-caption">En ligne maintenant</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-sm text-on-surface-variant mb-md font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px]">star</span>
+<span>4.8 (120 avis)</span>
+<span class="mx-1">•</span>
+<span class="material-symbols-outlined text-[18px]">translate</span>
+<span>Français, Éwé</span>
+</div>
+<div class="mt-auto">
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-full hover:bg-surface-tint transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">video_camera_front</span>
+                        Démarrer la consultation
+                    </button>
+</div>
+</div>
+<!-- Doctor Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-lg hover:shadow-sm transition-shadow duration-200 flex flex-col h-full">
+<div class="flex items-start gap-md mb-md">
+<div class="relative">
+<img alt="Dr. Koffi Abla" class="w-20 h-20 rounded-full object-cover border border-outline-variant" data-alt="A portrait of a female pediatrician in her 30s wearing a light blue scrub top. She is smiling gently. The background is a bright, modern pediatric office with soft lighting. Modern corporate style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPvtLOUtTnrSzJ4trOpREqm8hKkRNwuOOdvZSH0OFg393Y3-7fpjgyGvOKEfQ-fj87cVhu-aNtSPH0ggS1t1cnS8Ve8qw1RX33nz_zmHCcJ7VpkjgTFqCbY-i-6BXvhwQqc-VwCr0fZHzMuX583Yg_SIWP03k4GUQwrRQRohiuNPeS2_0G7k47c4Be1oOScxvkOy3nw1zGGujWRl2bhEf9BwUZLpCxBKBbP9Xr1EoHslasN_FWJWc"/>
+<span class="absolute bottom-0 right-0 w-4 h-4 bg-primary rounded-full border-2 border-surface-container-lowest"></span>
+</div>
+<div class="flex-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Dr. Koffi Abla</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-xs">Pédiatre</p>
+<div class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container">
+<span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+<span class="font-caption text-caption">En ligne maintenant</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-sm text-on-surface-variant mb-md font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px]">star</span>
+<span>4.9 (85 avis)</span>
+<span class="mx-1">•</span>
+<span class="material-symbols-outlined text-[18px]">translate</span>
+<span>Français, Kabyè</span>
+</div>
+<div class="mt-auto">
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-full hover:bg-surface-tint transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">video_camera_front</span>
+                        Démarrer la consultation
+                    </button>
+</div>
+</div>
+<!-- Doctor Card 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-lg hover:shadow-sm transition-shadow duration-200 flex flex-col h-full">
+<div class="flex items-start gap-md mb-md">
+<div class="relative">
+<img alt="Dr. Mensah Kwame" class="w-20 h-20 rounded-full object-cover border border-outline-variant" data-alt="A portrait of a male doctor in his 50s wearing a suit with a stethoscope. He has a calm, experienced demeanor. The background is a sophisticated clinic with light filtering through blinds. Modern corporate style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGEk98G9IQyJ0F4sXqAfsbju07p7g4vSlrnFqlrDFlmU47mwvVvRwY5oEfXSjqQMS4BWsedqzkPdjthcFddDLSMG0gowwnuCrK5k8ptqWqfeHFup20shFVGKptNN76vk1WL0WR999EmLyiG_6JorsCmoARyrwtdEm_O2cdD4Chfsle5eFkMPewhq-PX-U6nf6247D7O3jZbwTMiRwasywf3FevQGG-N7TPIy8ABNjHzfK8GgufONY"/>
+<span class="absolute bottom-0 right-0 w-4 h-4 bg-primary rounded-full border-2 border-surface-container-lowest"></span>
+</div>
+<div class="flex-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Dr. Mensah Kwame</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-xs">Cardiologue</p>
+<div class="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container">
+<span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+<span class="font-caption text-caption">En ligne maintenant</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-sm text-on-surface-variant mb-md font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px]">star</span>
+<span>4.7 (210 avis)</span>
+<span class="mx-1">•</span>
+<span class="material-symbols-outlined text-[18px]">translate</span>
+<span>Français, Anglais</span>
+</div>
+<div class="mt-auto">
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-full hover:bg-surface-tint transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">video_camera_front</span>
+                        Démarrer la consultation
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter py-base bg-surface dark:bg-surface-dim pb-safe border-t border-outline-variant dark:border-outline shadow-md rounded-t-lg">
+<a class="flex flex-col items-center justify-center text-outline dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-md text-label-md font-body-md mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed bg-secondary-container dark:bg-on-secondary-fixed-variant rounded-full px-4 py-1 active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-label-md text-label-md font-body-md mt-1">Appointments</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-label-md text-label-md font-body-md mt-1">Records</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-md text-label-md font-body-md mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

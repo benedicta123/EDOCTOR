@@ -196,6 +196,18 @@ class _PharmacyDashboardState extends State<PharmacyDashboard> {
                             ],
                           ),
                         ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.inStock,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          icon: const Icon(Icons.account_balance_wallet_rounded, size: 18),
+                          label: const Text('Ma Caisse', style: TextStyle(fontWeight: FontWeight.w700)),
+                          onPressed: () => Navigator.of(context).pushReplacementNamed('/wallet'),
+                        ),
                       ],
                     ),
                   ),

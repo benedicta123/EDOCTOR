@@ -6,6 +6,8 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/hospital_register_screen.dart';
 import 'features/doctor/doctor_dashboard.dart';
 import 'features/hospital/hospital_dashboard.dart';
+import 'features/nurse/nurse_dashboard.dart';
+import 'features/wallet/praticien_wallet_screen.dart';
 
 class PraticienApp extends StatelessWidget {
   const PraticienApp({super.key});
@@ -23,6 +25,8 @@ class PraticienApp extends StatelessWidget {
         '/hospital-register': (_) => const HospitalRegisterScreen(),
         '/doctor': (_) => const DoctorDashboard(),
         '/hospital': (_) => const HospitalDashboard(),
+        '/nurse': (_) => const NurseDashboard(),
+        '/wallet': (_) => const PraticienWalletScreen(),
       },
     );
   }

@@ -68,6 +68,18 @@ class ConsultationController extends Controller
             ->whereHas('hospital', fn ($q) => $q->where('status', 'verifie'))
             ->firstOrFail();
 
+        // Protection du patient : blocage si le médecin est déjà en consultation, au bloc ou indisponible
+        $isBusy = $doctor->consultations()->where('status', 'en_cours')->exists()
+            || in_array($doctor->availability_status, ['indisponible', 'en_consultation', 'au_bloc']);
+
+        abort_if(
+            $isBusy,
+            422,
+            $doctor->availability_status === 'au_bloc'
+                ? 'Ce médecin est actuellement au bloc opératoire et ne peut recevoir de téléconsultation.'
+                : 'Ce médecin est actuellement indisponible ou en consultation. Veuillez choisir un autre praticien disponible.'
+        );
+
         $pricing = MonetizationService::calculateConsultationPricing($doctor->hospital, $doctor);
 
         // Nettoyage automatique des anciennes demandes abandonnées non payées du même patient
@@ -162,6 +174,32 @@ class ConsultationController extends Controller
                 'diagnosis' => $validated['diagnosis'] ?? $consultation->diagnosis,
             ]);
             $consultation->doctor->update(['availability_status' => null]);
+
+            // Libération automatique des honoraires vers le solde disponible
+            if ($consultation->payment_status === 'paye') {
+                $beneficiary = $consultation->doctor?->hospital ?? $consultation->doctor;
+                if ($beneficiary) {
+                    $wallet = $beneficiary->getOrCreateWallet();
+                    $fee = (float) $consultation->consultation_fee;
+                    if ($fee > 0) {
+                        if ((float) $wallet->pending_balance >= $fee) {
+                            $wallet->release(
+                                $fee,
+                                "Honoraires libérés pour consultation #{$consultation->id} clôturée avec diagnostic",
+                                'consultation',
+                                $consultation->id
+                            );
+                        } else {
+                            $wallet->credit(
+                                $fee,
+                                "Honoraires crédités pour consultation #{$consultation->id} clôturée avec diagnostic",
+                                'consultation',
+                                $consultation->id
+                            );
+                        }
+                    }
+                }
+            }
         });
 
         NotificationService::send(
@@ -181,6 +219,23 @@ class ConsultationController extends Controller
             $consultation->update(['status' => 'annulee']);
             if ($consultation->doctor?->availability_status === 'en_consultation') {
                 $consultation->doctor->update(['availability_status' => null]);
+            }
+
+            // Si la consultation avait été payée, annuler le séquestre des honoraires
+            if ($consultation->payment_status === 'paye') {
+                $beneficiary = $consultation->doctor?->hospital ?? $consultation->doctor;
+                if ($beneficiary) {
+                    $wallet = $beneficiary->wallet;
+                    $fee = (float) $consultation->consultation_fee;
+                    if ($wallet && $fee > 0 && (float) $wallet->pending_balance >= $fee) {
+                        $wallet->cancelHold(
+                            $fee,
+                            "Annulation du séquestre d'honoraires pour consultation #{$consultation->id} annulée",
+                            'consultation',
+                            $consultation->id
+                        );
+                    }
+                }
             }
         });
 

@@ -138,25 +138,57 @@ class NurseVisitController extends Controller
         return response()->json($nurseVisit);
     }
 
+    public function myVisits(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user->isNurse(), 403, 'Accès réservé aux infirmiers.');
+
+        $visits = NurseVisit::where('nurse_id', $user->id)
+            ->with([
+                'patient:id,name,phone,email,address,date_of_birth',
+                'prescription.doctor:id,name,phone',
+                'prescription.items.medication',
+                'hospital:id,name,phone,address',
+            ])
+            ->latest()
+            ->get();
+
+        return response()->json($visits);
+    }
+
     public function complete(Request $request, NurseVisit $nurseVisit)
     {
         Gate::authorize('respond', $nurseVisit);
 
         $validated = $request->validate([
-            'report' => ['nullable', 'string', 'max:2000'],
+            'report' => ['nullable', 'string', 'max:5000'],
+            'blood_pressure' => ['nullable', 'string', 'max:50'],
+            'blood_glucose' => ['nullable', 'string', 'max:50'],
+            'temperature' => ['nullable', 'string', 'max:50'],
+            'heart_rate' => ['nullable', 'string', 'max:50'],
+            'acts_performed' => ['nullable', 'array'],
         ]);
 
         DB::transaction(function () use ($nurseVisit, $validated) {
             $nurseVisit->nurse()->update(['availability_status' => 'disponible']);
-            $nurseVisit->update(['status' => 'terminee', 'report' => $validated['report'] ?? null]);
+            $nurseVisit->update([
+                'status' => 'terminee',
+                'report' => $validated['report'] ?? $nurseVisit->report,
+                'blood_pressure' => $validated['blood_pressure'] ?? null,
+                'blood_glucose' => $validated['blood_glucose'] ?? null,
+                'temperature' => $validated['temperature'] ?? null,
+                'heart_rate' => $validated['heart_rate'] ?? null,
+                'acts_performed' => $validated['acts_performed'] ?? null,
+                'completed_at' => now(),
+            ]);
         });
 
-        $nurseVisit->load('patient');
+        $nurseVisit->load(['patient', 'nurse']);
         if ($nurseVisit->patient) {
             NotificationService::send(
                 $nurseVisit->patient,
                 'nurse_visit_completed',
-                "Votre visite de soins à domicile est terminée. Le compte-rendu a été enregistré."
+                "Votre visite de soins à domicile est terminée. Le compte-rendu et vos constantes ont été enregistrés."
             );
         }
 

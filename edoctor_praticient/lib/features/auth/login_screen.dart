@@ -5,6 +5,7 @@ import '../../core/services/api_service.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../doctor/doctor_dashboard.dart';
 import '../hospital/hospital_dashboard.dart';
+import '../nurse/nurse_dashboard.dart';
 import 'hospital_register_step1_screen.dart';
 
 /// Connexion unique — l'API renvoie le rôle, on redirige médecin vs admin hôpital.
@@ -71,7 +72,9 @@ class _LoginScreenState extends State<LoginScreen>
       showMsg(context, 'Bienvenue ${doctorDisplay(user.name)}');
       final Widget next = user.isDoctor
           ? const DoctorDashboard()
-          : const HospitalDashboard();
+          : (user.isNurse
+              ? const NurseDashboard()
+              : const HospitalDashboard());
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => next),
         (r) => false,
@@ -120,7 +123,9 @@ class _LoginScreenState extends State<LoginScreen>
       );
       final Widget next = user.isDoctor
           ? const DoctorDashboard()
-          : const HospitalDashboard();
+          : (user.isNurse
+              ? const NurseDashboard()
+              : const HospitalDashboard());
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => next),
         (r) => false,

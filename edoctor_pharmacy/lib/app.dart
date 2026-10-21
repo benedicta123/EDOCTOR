@@ -9,6 +9,7 @@ import 'features/dashboard/pharmacy_dashboard.dart';
 import 'features/orders/orders_screen.dart';
 import 'features/inventory/stock_screen.dart';
 import 'features/profile/pharmacy_profile_screen.dart';
+import 'features/wallet/pharmacy_wallet_screen.dart';
 
 class PharmacyApp extends StatelessWidget {
   const PharmacyApp({super.key});
@@ -29,6 +30,7 @@ class PharmacyApp extends StatelessWidget {
         '/dashboard': (_) => const PharmacyDashboard(),
         '/orders': (_) => const OrdersScreen(),
         '/inventory': (_) => const StockScreen(),
+        '/wallet': (_) => const PharmacyWalletScreen(),
         '/profile': (_) => const PharmacyProfileScreen(),
       },
     );

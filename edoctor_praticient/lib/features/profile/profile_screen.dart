@@ -145,6 +145,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     switch (s) {
       case 'disponible':
         return 'Disponible';
+      case 'au_bloc':
+        return 'Au bloc opératoire';
       case 'indisponible':
         return 'Indisponible';
       case 'en_consultation':
@@ -376,7 +378,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? AppColors.success
         : status == 'en_consultation'
             ? AppColors.primaryLight
-            : Colors.white54;
+            : status == 'au_bloc'
+                ? AppColors.warning
+                : Colors.white54;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -387,11 +391,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(status == 'disponible'
-              ? Icons.check_circle_rounded
-              : status == 'en_consultation'
-                  ? Icons.sensors_rounded
-                  : Icons.do_not_disturb_on_rounded, size: 12, color: color),
+          Icon(
+            status == 'disponible'
+                ? Icons.check_circle_rounded
+                : status == 'en_consultation'
+                    ? Icons.sensors_rounded
+                    : status == 'au_bloc'
+                        ? Icons.local_hospital_rounded
+                        : Icons.do_not_disturb_on_rounded,
+            size: 12,
+            color: color,
+          ),
           const SizedBox(width: 5),
           Text(
             _availabilityLabel(status),
@@ -636,6 +646,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.check_circle_outline_rounded,
                   label: 'Disponible',
                   selected: availability == 'disponible',
+                ),
+                _availabilityOption(
+                  value: 'au_bloc',
+                  icon: Icons.local_hospital_rounded,
+                  label: 'Au bloc opératoire',
+                  selected: availability == 'au_bloc',
                 ),
                 _availabilityOption(
                   value: 'en_consultation',

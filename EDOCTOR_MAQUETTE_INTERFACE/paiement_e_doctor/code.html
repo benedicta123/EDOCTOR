@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Écran de Paiement - E-DOCTOR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@100..900&family=Epilogue:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#6c2106",
+                        "on-primary-fixed-variant": "#005048",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#00504a",
+                        "surface-bright": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#9cf2e8",
+                        "on-surface": "#0b1c30",
+                        "primary-fixed-dim": "#4fdbc8",
+                        "tertiary": "#9b4426",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffdbd0",
+                        "surface-tint": "#006b5f",
+                        "tertiary-fixed-dim": "#ffb59e",
+                        "on-surface-variant": "#3c4947",
+                        "surface": "#f8f9ff",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#dce9ff",
+                        "outline": "#6c7a77",
+                        "on-primary": "#ffffff",
+                        "on-secondary-container": "#006f67",
+                        "inverse-primary": "#4fdbc8",
+                        "secondary": "#006a63",
+                        "secondary-container": "#99efe5",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-fixed": "#3a0b00",
+                        "on-primary-fixed": "#00201c",
+                        "surface-variant": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#006b5f",
+                        "surface-container-low": "#eff4ff",
+                        "primary-container": "#14b8a6",
+                        "background": "#f8f9ff",
+                        "secondary-fixed-dim": "#80d5cb",
+                        "tertiary-container": "#f38764",
+                        "on-secondary-fixed": "#00201d",
+                        "inverse-surface": "#213145",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary-fixed": "#71f8e4",
+                        "on-primary-container": "#00423b",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-highest": "#d3e4fe",
+                        "outline-variant": "#bbcac6",
+                        "on-tertiary-fixed-variant": "#7c2d11"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "xl": "32px",
+                        "gutter": "16px",
+                        "base": "4px",
+                        "xs": "4px",
+                        "margin-mobile": "16px",
+                        "lg": "24px",
+                        "margin-desktop": "64px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Atkinson Hyperlegible Next"],
+                        "body-sm": ["Atkinson Hyperlegible Next"],
+                        "display-lg": ["Epilogue"],
+                        "body-lg": ["Atkinson Hyperlegible Next"],
+                        "caption": ["Atkinson Hyperlegible Next"],
+                        "headline-sm": ["Epilogue"],
+                        "headline-lg": ["Epilogue"],
+                        "headline-md": ["Epilogue"],
+                        "label-md": ["Atkinson Hyperlegible Next"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container flex justify-center">
+<!-- Mobile/Tablet Container -->
+<main class="w-full max-w-[480px] min-h-screen bg-surface relative flex flex-col shadow-2xl shadow-surface-dim/50 pb-24">
+<!-- Transactional Header (Shell Suppressed) -->
+<header class="flex items-center px-margin-mobile py-sm w-full sticky top-0 z-50 bg-surface/90 backdrop-blur-sm border-b border-outline-variant/50">
+<button class="p-2 -ml-2 rounded-full hover:bg-surface-container-high transition-colors active:scale-95 text-on-surface">
+<span class="material-symbols-outlined text-headline-md">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-on-surface ml-2">Paiement</h1>
+</header>
+<div class="flex-1 overflow-y-auto px-margin-mobile py-lg flex flex-col gap-lg">
+<!-- Order Summary Card (Level 1 Elevation) -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md flex flex-col gap-md">
+<div class="flex items-start justify-between">
+<div>
+<h2 class="font-label-md text-label-md text-primary tracking-wider uppercase mb-1">Pharmacie Choisie</h2>
+<p class="font-headline-sm text-headline-sm text-on-surface">Pharmacie de l'Aéroport</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                            Lomé, Togo
+                        </p>
+</div>
+<div class="h-10 w-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">local_pharmacy</span>
+</div>
+</div>
+<div class="border-t border-outline-variant/50 pt-md mt-sm flex flex-col gap-sm">
+<h3 class="font-label-md text-label-md text-on-surface-variant">Articles (2)</h3>
+<div class="flex justify-between items-start">
+<div>
+<p class="font-body-md text-body-md text-on-surface">Paracétamol 500mg</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Boîte de 20 comprimés</p>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium">1 500 FCFA</p>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<p class="font-body-md text-body-md text-on-surface">Vitamine C Upsa 1000mg</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tube de 10 comprimés effervescents</p>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium">2 300 FCFA</p>
+</div>
+</div>
+<div class="border-t border-outline-variant/50 pt-md mt-sm">
+<div class="flex justify-between items-center mb-2">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Sous-total</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">3 800 FCFA</p>
+</div>
+<div class="flex justify-between items-center mb-4">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Frais de service E-Doctor</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">200 FCFA</p>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-sm rounded-lg">
+<p class="font-headline-sm text-headline-sm text-on-surface">Total à payer</p>
+<p class="font-headline-lg text-headline-lg text-primary">4 000 FCFA</p>
+</div>
+</div>
+</section>
+<!-- Payment Methods -->
+<section class="flex flex-col gap-md">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Moyen de paiement</h2>
+<div class="flex flex-col gap-sm">
+<!-- Selected Method: T-Money -->
+<label class="relative flex items-center p-md rounded-xl border-2 border-primary bg-secondary-container/20 cursor-pointer transition-colors">
+<input checked="" class="peer sr-only" name="payment_method" type="radio" value="tmoney"/>
+<div class="w-12 h-12 rounded-lg bg-surface-container-lowest border border-outline-variant flex items-center justify-center mr-md overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="A minimalist, modern corporate vector logo for a mobile money service, featuring a stylized yellow abstract shape on a pristine white background. The design is clean, geometric, and utilizes a soft, light-mode aesthetic suitable for a professional healthcare app in West Africa." src="https://lh3.googleusercontent.com/aida-public/AB6AXuARcihWsXacJgbpcyVHimPmJPnr4n0SykrUsKVLei3wheqMhr907SZHTcKCdkMgUUfRZoy2k-GAexSbhksqVRBgGAAo_f9NRQsti_8SwDKpo7EXYX_eJac0-seU7FA3bJs5gEEMcGrZGMVVrLFi8TepzQy_-K_zEFM0tqaNdjw0tjOfKAxhd66XEKyZGlNSrFUM9wEK4TTKAC7C77GcHPACjZrUceOpQsoAPxo18PWsAX4ExKJipM0"/>
+</div>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface">T-Money</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Paiement mobile instantané</p>
+</div>
+<div class="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+</div>
+</label>
+<!-- Unselected Method: Flooz -->
+<label class="relative flex items-center p-md rounded-xl border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low cursor-pointer transition-colors">
+<input class="peer sr-only" name="payment_method" type="radio" value="flooz"/>
+<div class="w-12 h-12 rounded-lg bg-surface-container-lowest border border-outline-variant flex items-center justify-center mr-md overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="A sleek, modern corporate vector logo for a mobile wallet service, featuring a stylized blue and green graphic mark on a clean white background. The design is minimalist, professional, and aligns with a trustworthy health-tech light-mode visual identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCJHsef_DjMxiNFssSNeCJ2uJdQsKf3VHY5En-WW_OjhUliIznbmet0NKVLIREeaxfsqWdl966h3o0D_frJFykun0QeuuYiSJoi8t7b6hV8OaHLJ0UX_hmLMaYGJ7wfDyhCHZjlgeIJlYdk3CBCJf1XKca1I_SvtbXWxe15sXgdmpZ8qs5sXv5XhcHWSeVNFSDj6tX8gqn1uRz98fHIwBo_eVtQUiVOETA3kE2SbsnqVQVwYxdm98"/>
+</div>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface">Flooz</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Paiement mobile Moov</p>
+</div>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center">
+</div>
+</label>
+<!-- Unselected Method: Carte Bancaire -->
+<label class="relative flex items-center p-md rounded-xl border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low cursor-pointer transition-colors">
+<input class="peer sr-only" name="payment_method" type="radio" value="card"/>
+<div class="w-12 h-12 rounded-lg bg-surface-container-lowest border border-outline-variant flex items-center justify-center mr-md shrink-0 text-primary">
+<span class="material-symbols-outlined text-[28px]">credit_card</span>
+</div>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface">Carte Bancaire</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Visa, Mastercard</p>
+</div>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center">
+</div>
+</label>
+</div>
+</section>
+</div>
+<!-- Sticky Footer Action -->
+<div class="fixed bottom-0 left-0 w-full md:absolute md:w-[480px] bg-surface border-t border-outline-variant/30 p-margin-mobile pb-[calc(16px+env(safe-area-inset-bottom))] z-40">
+<button class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container font-label-md text-label-md py-4 px-6 rounded-full transition-all active:scale-95 shadow-md shadow-primary/20">
+<span class="material-symbols-outlined text-[20px]">lock</span>
+                Confirmer le paiement
+            </button>
+<p class="text-center font-caption text-caption text-on-surface-variant mt-3 flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[14px]">shield</span>
+                Paiement 100% sécurisé
+            </p>
+</div>
+</main>
+<script>
+        // Simple script to handle radio button visual state toggling
+        const radioLabels = document.querySelectorAll('label:has(input[type="radio"])');
+        
+        radioLabels.forEach(label => {
+            const radio = label.querySelector('input[type="radio"]');
+            radio.addEventListener('change', (e) => {
+                // Reset all
+                radioLabels.forEach(l => {
+                    l.classList.remove('border-2', 'border-primary', 'bg-secondary-container/20');
+                    l.classList.add('border', 'border-outline-variant', 'bg-surface-container-lowest');
+                    const indicator = l.querySelector('.w-6.h-6');
+                    indicator.classList.remove('border-primary');
+                    indicator.classList.add('border-outline-variant');
+                    indicator.innerHTML = '';
+                });
+
+                // Set active
+                if(e.target.checked) {
+                    label.classList.remove('border', 'border-outline-variant', 'bg-surface-container-lowest');
+                    label.classList.add('border-2', 'border-primary', 'bg-secondary-container/20');
+                    const indicator = label.querySelector('.w-6.h-6');
+                    indicator.classList.remove('border-outline-variant');
+                    indicator.classList.add('border-primary');
+                    indicator.innerHTML = '<div class="w-3 h-3 rounded-full bg-primary"></div>';
+                }
+            });
+        });
+    </script>
+</body></html>

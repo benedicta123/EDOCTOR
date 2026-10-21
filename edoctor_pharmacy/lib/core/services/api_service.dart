@@ -9,6 +9,7 @@ import '../../data/models/user_model.dart';
 import '../../data/models/pharmacy_model.dart';
 import '../../data/models/stock_item_model.dart';
 import '../../data/models/order_model.dart';
+import '../../data/models/wallet_model.dart';
 import 'storage_service.dart';
 
 /// Exception déclenchée quand le compte requiert la double authentification (2FA).
@@ -363,17 +364,127 @@ class ApiService {
     throw Exception(_msg(r, 'Impossible de marquer la commande comme prête'));
   }
 
-  static Future<OrderModel> markOrderCollected(int orderId) async {
+  static Future<OrderModel> markOrderCollected(int orderId, {required String pickupCode}) async {
     final token = await StorageService.getToken();
     final r = await http.post(
       Uri.parse('$baseUrl${ApiConstants.orderMarkCollected(orderId)}'),
-      headers: _headers(token),
+      headers: _headers(token, json: true),
+      body: jsonEncode({'pickup_code': pickupCode.trim()}),
     );
 
     if (r.statusCode == 200) {
       return OrderModel.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
     }
-    throw Exception(_msg(r, 'Impossible de valider la remise de commande'));
+    throw Exception(_msg(r, 'Code de retrait invalide ou erreur lors de la remise'));
+  }
+
+  static Future<void> assignDeliveryCourier(int deliveryId, {required String courierName}) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl${ApiConstants.deliveryAssign(deliveryId)}'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({'courier_name': courierName.trim()}),
+    );
+
+    if (r.statusCode != 200) {
+      throw Exception(_msg(r, "Impossible d'assigner le coursier"));
+    }
+  }
+
+  static Future<void> markDeliveryDelivered(int deliveryId, {required String pickupCode}) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl${ApiConstants.deliveryMarkDelivered(deliveryId)}'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({'pickup_code': pickupCode.trim()}),
+    );
+
+    if (r.statusCode != 200) {
+      throw Exception(_msg(r, "Code secret de livraison invalide"));
+    }
+  }
+
+  // ─── PORTEFEUILLE OFFICINE & REVERSEMENTS (WALLET & PAYOUTS) ─────────────
+
+  static Future<WalletModel> getWallet() async {
+    final token = await StorageService.getToken();
+    final r = await http.get(
+      Uri.parse('$baseUrl${ApiConstants.myWallet}'),
+      headers: _headers(token),
+    );
+
+    if (r.statusCode == 200) {
+      return WalletModel.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
+    }
+    throw Exception(_msg(r, "Impossible de charger le portefeuille de l'officine"));
+  }
+
+  static Future<List<WalletTransactionModel>> getWalletTransactions({int page = 1}) async {
+    final token = await StorageService.getToken();
+    final r = await http.get(
+      Uri.parse('$baseUrl${ApiConstants.walletTransactions}?page=$page'),
+      headers: _headers(token),
+    );
+
+    if (r.statusCode == 200) {
+      final dynamic data = jsonDecode(r.body);
+      final list = (data is Map && data['data'] != null) ? data['data'] as List : (data as List);
+      return list
+          .map((item) => WalletTransactionModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception(_msg(r, 'Impossible de charger l\'historique des transactions'));
+  }
+
+  static Future<PayoutRequestModel> requestPayout({
+    required double amount,
+    required String payoutMethod,
+    required String accountNumber,
+    String? accountName,
+    String? notes,
+  }) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl${ApiConstants.walletPayoutRequest}'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({
+        'amount': amount,
+        'payout_method': payoutMethod,
+        'account_number': accountNumber.trim(),
+        if (accountName != null && accountName.isNotEmpty) 'account_name': accountName.trim(),
+        if (notes != null && notes.isNotEmpty) 'notes': notes.trim(),
+      }),
+    );
+
+    if (r.statusCode == 201 || r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      final payoutData = data['payout_request'] as Map<String, dynamic>? ?? data;
+      return PayoutRequestModel.fromJson(payoutData);
+    }
+    throw Exception(_msg(r, 'Échec de la demande de reversement'));
+  }
+
+  static Future<WalletModel> updatePayoutAccount({
+    required String payoutChannel,
+    required String payoutAccount,
+    String? payoutAccountName,
+  }) async {
+    final token = await StorageService.getToken();
+    final r = await http.put(
+      Uri.parse('$baseUrl${ApiConstants.walletPayoutAccount}'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({
+        'payout_channel': payoutChannel,
+        'payout_account': payoutAccount.trim(),
+        if (payoutAccountName != null) 'payout_account_name': payoutAccountName.trim(),
+      }),
+    );
+
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      return WalletModel.fromJson(data);
+    }
+    throw Exception(_msg(r, 'Impossible de mettre à jour le compte de versement'));
   }
 
   static Future<OrderModel> cancelOrder(int orderId) async {

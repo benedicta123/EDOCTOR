@@ -74,6 +74,19 @@ class _FindDoctorScreenState extends State<FindDoctorScreen> {
   }
 
   void _startConsultation(DoctorModel doctor) {
+    if (!doctor.isAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            doctor.availabilityStatus == 'au_bloc'
+                ? 'Le ${doctor.name} est actuellement au bloc opératoire.'
+                : 'Le ${doctor.name} est actuellement indisponible ou en consultation.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ConsultationPaymentScreen(doctor: doctor),

@@ -11,6 +11,7 @@ import '../../data/models/hospital_model.dart';
 import '../../data/models/overview_metrics_model.dart';
 import '../../data/models/pharmacy_model.dart';
 import '../../data/models/user_model.dart';
+import '../../data/models/admin_wallet_model.dart';
 import 'storage_service.dart';
 
 /// Exception déclenchée quand le compte Super-Admin requiert la double authentification (2FA).
@@ -500,5 +501,88 @@ class ApiService {
       defaultErrorMessage: 'Erreur lors de la mise à jour.',
     );
     return ClaimModel.fromJson(data['claim'] as Map<String, dynamic>);
+  }
+
+  // ----------------------------------------------------
+  // MODULE TRÉSORERIE & PORTEFEUILLES (FINANCES)
+  // ----------------------------------------------------
+
+  static Future<Map<String, dynamic>> getWalletsData() async {
+    final token = await _getRequiredToken();
+    final uri = Uri.parse('$baseUrl${ApiConstants.adminWallets}');
+    final response = await http.get(uri, headers: _headers(token));
+    final data = _processResponse(
+      response,
+      defaultErrorMessage: 'Erreur lors du chargement des portefeuilles.',
+    );
+
+    final summary = AdminWalletSummaryModel.fromJson(data['summary'] as Map<String, dynamic>? ?? {});
+    final walletsList = (data['wallets'] as List? ?? [])
+        .map((w) => AdminWalletItemModel.fromJson(w as Map<String, dynamic>))
+        .toList();
+
+    return {
+      'summary': summary,
+      'wallets': walletsList,
+    };
+  }
+
+  static Future<List<AdminPayoutRequestModel>> getPayoutRequests({String? status}) async {
+    final token = await _getRequiredToken();
+    final queryParams = <String, String>{};
+    if (status != null && status != 'tous') queryParams['status'] = status;
+
+    final uri = Uri.parse('$baseUrl${ApiConstants.adminPayoutRequests}').replace(
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+    final response = await http.get(uri, headers: _headers(token));
+    final data = _processResponse(
+      response,
+      defaultErrorMessage: 'Erreur lors du chargement des demandes de reversement.',
+    );
+
+    final list = (data is Map && data['data'] != null) ? data['data'] as List : (data as List? ?? []);
+    return list.map((e) => AdminPayoutRequestModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  static Future<AdminPayoutRequestModel> approvePayout(
+    int payoutRequestId, {
+    String? transactionRef,
+    String? notes,
+  }) async {
+    final token = await _getRequiredToken();
+    final uri = Uri.parse('$baseUrl${ApiConstants.adminPayoutApprove(payoutRequestId)}');
+    final bodyMap = <String, dynamic>{};
+    if (transactionRef != null && transactionRef.isNotEmpty) bodyMap['transaction_ref'] = transactionRef.trim();
+    if (notes != null && notes.isNotEmpty) bodyMap['notes'] = notes.trim();
+
+    final response = await http.post(
+      uri,
+      headers: _headers(token, json: true),
+      body: jsonEncode(bodyMap),
+    );
+    final data = _processResponse(
+      response,
+      defaultErrorMessage: 'Erreur lors de la validation du reversement.',
+    );
+    return AdminPayoutRequestModel.fromJson(data['payout_request'] as Map<String, dynamic>);
+  }
+
+  static Future<AdminPayoutRequestModel> rejectPayout(
+    int payoutRequestId, {
+    required String reason,
+  }) async {
+    final token = await _getRequiredToken();
+    final uri = Uri.parse('$baseUrl${ApiConstants.adminPayoutReject(payoutRequestId)}');
+    final response = await http.post(
+      uri,
+      headers: _headers(token, json: true),
+      body: jsonEncode({'reason': reason.trim()}),
+    );
+    final data = _processResponse(
+      response,
+      defaultErrorMessage: 'Erreur lors du rejet du reversement.',
+    );
+    return AdminPayoutRequestModel.fromJson(data['payout_request'] as Map<String, dynamic>);
   }
 }

@@ -5,6 +5,7 @@ import 'core/constants/app_colors.dart';
 import 'core/services/storage_service.dart';
 import 'features/auth/login_screen.dart';
 import 'features/claims/claims_screen.dart';
+import 'features/finance/finance_payouts_screen.dart';
 import 'features/hospitals/hospital_validation_screen.dart';
 import 'features/overview/overview_screen.dart';
 import 'features/pharmacies/pharmacy_validation_screen.dart';
@@ -72,6 +73,7 @@ class EDoctorAdminApp extends StatelessWidget {
         '/pharmacies': (_) => const PharmacyValidationScreen(),
         '/users': (_) => const UsersModerationScreen(),
         '/claims': (_) => const ClaimsScreen(),
+        '/finance': (_) => const FinancePayoutsScreen(),
       },
     );
   }

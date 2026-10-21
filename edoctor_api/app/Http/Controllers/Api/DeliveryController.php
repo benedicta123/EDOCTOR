@@ -129,20 +129,91 @@ class DeliveryController extends Controller
 
     /**
      * POST /api/deliveries/{delivery}/mark-delivered
+     * Valide la livraison à domicile et crédite immédiatement le portefeuille de la pharmacie.
+     * Accessible :
+     *  - Au pharmacien (avec saisie obligatoire du code secret remis par le patient au livreur)
+     *  - Au patient lui-même (confirmation directe "J'ai bien reçu mon colis" sur son application)
+     *  - À l'administrateur
      */
     public function markDelivered(Request $request, Delivery $delivery)
     {
-        abort_if($delivery->order->pharmacy->owner_id !== $request->user()->id, 403);
+        $user = $request->user();
+        $order = $delivery->order;
+        $pharmacy = $order->pharmacy;
 
-        $delivery->update(['status' => 'livree']);
-        $delivery->order->update(['status' => 'collectee']);
+        $isPharmacyOwner = $pharmacy && $pharmacy->owner_id === $user->id;
+        $isPatient = $order->patient_id === $user->id;
+        $isAdmin = $user->isAdmin();
 
-        NotificationService::send(
-            $delivery->order->patient,
-            'delivery_livree',
-            "Votre commande #{$delivery->order_id} a été livrée."
-        );
+        abort_unless($isPharmacyOwner || $isPatient || $isAdmin, 403, "Accès non autorisé pour valider cette livraison.");
 
-        return response()->json($delivery);
+        if ($delivery->status === 'livree' || $order->status === 'collectee') {
+            return response()->json(['message' => 'Cette livraison a déjà été marquée comme effectuée.'], 422);
+        }
+
+        // Si c'est la pharmacie ou un tiers qui valide, le code secret à 4 chiffres du patient est OBLIGATOIRE
+        if (!$isPatient && !$isAdmin) {
+            $validated = $request->validate([
+                'pickup_code' => ['required', 'string'],
+            ]);
+
+            if (!empty($order->pickup_code) && trim((string) $validated['pickup_code']) !== trim((string) $order->pickup_code)) {
+                return response()->json([
+                    'message' => 'Code secret de livraison invalide. Veuillez demander au patient son code à 4 chiffres ou scanner son QR code.',
+                ], 422);
+            }
+        }
+
+        DB::transaction(function () use ($delivery, $order, $pharmacy) {
+            $delivery->update(['status' => 'livree']);
+            $order->update([
+                'status' => 'collectee',
+                'collected_at' => now(),
+            ]);
+
+            // 1. Crédit automatique du portefeuille de la pharmacie pour les médicaments vendus
+            if ($pharmacy) {
+                $wallet = $pharmacy->getOrCreateWallet();
+                $itemsAmount = (float) $order->items_amount;
+                if ($itemsAmount > 0) {
+                    $wallet->credit(
+                        $itemsAmount,
+                        "Encaissement vente de médicaments livrés à domicile — Commande #{$order->id}",
+                        'order',
+                        $order->id
+                    );
+                }
+            }
+
+            // 2. Marquer le paiement comme confirmé si applicable
+            if ($order->payment && $order->payment->status !== 'confirme') {
+                $order->payment->update(['status' => 'confirme']);
+            }
+        });
+
+        $order->load(['pharmacy.owner', 'patient']);
+
+        // Notifications automatiques
+        if ($order->patient) {
+            NotificationService::send(
+                $order->patient,
+                'delivery_livree',
+                "Votre commande #{$order->id} a été livrée avec succès à votre domicile."
+            );
+        }
+
+        if ($order->pharmacy && $order->pharmacy->owner) {
+            NotificationService::send(
+                $order->pharmacy->owner,
+                'order_collected',
+                "La livraison à domicile de la commande #{$order->id} est confirmée. Le montant des médicaments a été versé sur votre solde disponible."
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Livraison confirmée avec succès. Portefeuille de la pharmacie crédité.',
+            'delivery' => $delivery->fresh(['order']),
+        ]);
     }
 }

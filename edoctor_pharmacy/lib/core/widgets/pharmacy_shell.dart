@@ -8,6 +8,7 @@ enum PharmacySection {
   dashboard,
   orders,
   inventory,
+  wallet,
   profile,
 }
 
@@ -42,6 +43,9 @@ class PharmacyShell extends StatelessWidget {
         break;
       case PharmacySection.inventory:
         Navigator.of(context).pushReplacementNamed('/inventory');
+        break;
+      case PharmacySection.wallet:
+        Navigator.of(context).pushReplacementNamed('/wallet');
         break;
       case PharmacySection.profile:
         Navigator.of(context).pushReplacementNamed('/profile');
@@ -167,6 +171,11 @@ class PharmacyShell extends StatelessWidget {
             label: 'Stocks',
           ),
           NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet_rounded, color: AppColors.primary),
+            label: 'Caisse',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.storefront_outlined),
             selectedIcon: Icon(Icons.storefront_rounded, color: AppColors.primary),
             label: 'Officine',
@@ -266,6 +275,13 @@ class PharmacyShell extends StatelessWidget {
                   icon: Icons.inventory_2_outlined,
                   selectedIcon: Icons.inventory_2_rounded,
                   label: 'Gestion des stocks',
+                ),
+                _navItem(
+                  context,
+                  section: PharmacySection.wallet,
+                  icon: Icons.account_balance_wallet_outlined,
+                  selectedIcon: Icons.account_balance_wallet_rounded,
+                  label: 'Caisse & Versements',
                 ),
                 _navItem(
                   context,

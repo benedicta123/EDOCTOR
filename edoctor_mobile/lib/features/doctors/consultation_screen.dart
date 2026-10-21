@@ -87,10 +87,17 @@ class _PatientConsultationScreenState
         HapticFeedback.vibrate();
 
         String? reason;
-        if (updated.diagnosis != null && updated.diagnosis!.contains('Refus praticien :')) {
+        final isTimeout = updated.diagnosis?.contains('20 minutes') == true;
+        if (isTimeout) {
+          reason = "Délai d'attente de 20 minutes dépassé sans réponse du praticien.";
+        } else if (updated.diagnosis != null && updated.diagnosis!.contains('Refus praticien :')) {
           reason = updated.diagnosis!.replaceFirst('Refus praticien :', '').trim();
         }
-        _showDeclinedDialog(doctorName: _consultation.doctorName, reason: reason);
+        _showDeclinedDialog(
+          doctorName: _consultation.doctorName,
+          reason: reason,
+          isTimeout: isTimeout,
+        );
         return;
       }
 
@@ -152,6 +159,7 @@ class _PatientConsultationScreenState
   Future<void> _showDeclinedDialog({
     required String doctorName,
     String? reason,
+    bool isTimeout = false,
   }) async {
     if (!mounted) return;
     final dr = doctorName.isNotEmpty ? doctorName : 'Le praticien';
@@ -165,20 +173,26 @@ class _PatientConsultationScreenState
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.12),
+                color: (isTimeout ? AppColors.warning : AppColors.error)
+                    .withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.phone_disabled_rounded,
-                color: AppColors.error,
+              child: Icon(
+                isTimeout
+                    ? Icons.timer_off_rounded
+                    : Icons.phone_disabled_rounded,
+                color: isTimeout ? AppColors.warning : AppColors.error,
                 size: 24,
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Consultation déclinée',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                isTimeout
+                    ? 'Délai d\'attente dépassé'
+                    : 'Consultation déclinée',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -188,14 +202,16 @@ class _PatientConsultationScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Le Dr $dr n\'est pas disponible pour cette consultation immédiate.',
+              isTimeout
+                  ? 'Le Dr $dr n\'a pas pu se libérer dans le délai imparti de 20 minutes.\n\nVos fonds (${_consultation.totalAmount.toInt()} FCFA) sont intégralement sécurisés et n\'ont pas été encaissés par le médecin.'
+                  : 'Le Dr $dr n\'est pas disponible pour cette consultation immédiate.',
               style: const TextStyle(
                 fontSize: 14,
                 height: 1.4,
                 color: AppColors.textPrimary,
               ),
             ),
-            if (reason != null && reason.isNotEmpty) ...[
+            if (reason != null && reason.isNotEmpty && !isTimeout) ...[
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
@@ -230,8 +246,11 @@ class _PatientConsultationScreenState
             ],
             const SizedBox(height: 14),
             const Text(
-              'Vous pouvez solliciter un autre praticien disponible dès maintenant.',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              'Que souhaitez-vous faire ?',
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary),
             ),
           ],
         ),
@@ -239,11 +258,15 @@ class _PatientConsultationScreenState
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (mounted) Navigator.of(context).pop();
+              _showRefundInfoDialog();
             },
-            child: const Text('Fermer'),
+            child: const Text(
+              'Remboursement',
+              style: TextStyle(
+                  color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+            ),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -251,6 +274,8 @@ class _PatientConsultationScreenState
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
+            icon: const Icon(Icons.people_outline_rounded, size: 16),
+            label: const Text('Choisir un autre médecin'),
             onPressed: () {
               Navigator.of(ctx).pop();
               if (mounted) {
@@ -259,7 +284,46 @@ class _PatientConsultationScreenState
                 );
               }
             },
-            child: const Text('Trouver un autre médecin'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRefundInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded,
+                color: AppColors.success, size: 24),
+            SizedBox(width: 10),
+            Text(
+              'Remboursement des fonds',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: Text(
+          'La demande de remboursement de votre paiement de ${_consultation.totalAmount.toInt()} FCFA (Consultation #${_consultation.id}) a bien été prise en compte.\n\nLes fonds seront reversés sur votre compte Mobile Money sous 24h ouvrées par le service financier eDoctor.',
+          style: const TextStyle(
+              fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              if (mounted) Navigator.of(context).pop();
+            },
+            child: const Text('Compris'),
           ),
         ],
       ),
@@ -697,30 +761,103 @@ class _StatusBanner extends StatelessWidget {
         );
       }
 
+      final created = DateTime.tryParse(consultation.createdAt ?? '');
+      final elapsedMin = created != null
+          ? DateTime.now().difference(created).inMinutes
+          : 0;
+      final remainingMin = (20 - elapsedMin).clamp(0, 20);
+
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: AppColors.warningLight,
-        child: Row(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: AppColors.warning),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                consultation.doctorName.isNotEmpty
-                    ? 'Demande payée transmise au Dr. ${consultation.doctorName}. En attente de démarrage…'
-                    : 'Demande payée transmise au médecin. En attente de démarrage…',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.warning,
-                  fontWeight: FontWeight.w600,
+            Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFFD97706),
+                  ),
                 ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    consultation.doctorName.isNotEmpty
+                        ? 'En attente du Dr. ${consultation.doctorName}'
+                        : 'En attente du médecin',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF92400E),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color:
+                            const Color(0xFFF59E0B).withValues(alpha: 0.5)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.timer_outlined,
+                          size: 12, color: Color(0xFFB45309)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$remainingMin min restantes',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFB45309),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Votre consultation a été réglée (${consultation.totalAmount.toInt()} FCFA). Si le médecin ne décroche pas avant la fin du délai de 20 minutes, la consultation sera automatiquement annulée avec réaffectation sans frais ou remboursement.',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF78350F),
+                height: 1.35,
               ),
             ),
+            if (onCancel != null) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  ),
+                  icon: const Icon(Icons.cancel_outlined, size: 16),
+                  label: const Text(
+                    'Annuler ma demande',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: onCancel,
+                ),
+              ),
+            ],
           ],
         ),
       );

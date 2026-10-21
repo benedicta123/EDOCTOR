@@ -590,6 +590,16 @@ class ApiService {
         .toList();
   }
 
+  /// Demander des soins infirmiers à domicile pour une ordonnance
+  /// POST /api/prescriptions/{id}/nurse-visit
+  static Future<Map<String, dynamic>> requestNurseVisit(int prescriptionId) async {
+    final response = await _consultationRequest(
+      '/prescriptions/$prescriptionId/nurse-visit',
+      post: true,
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   // ─── Notifications ───────────────────────────────────────────────────────
 
   /// Récupérer les notifications du patient connecté.

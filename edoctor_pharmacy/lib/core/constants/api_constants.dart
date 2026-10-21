@@ -30,6 +30,16 @@ class ApiConstants {
   static String orderCancel(int id) => '/orders/$id/cancel';
   static String orderDelivery(int id) => '/orders/$id/delivery';
 
+  // Livraison & Courriers
+  static String deliveryAssign(int id) => '/deliveries/$id/assign';
+  static String deliveryMarkDelivered(int id) => '/deliveries/$id/mark-delivered';
+
+  // Portefeuille Officine & Versements (Wallets & Payouts)
+  static const String myWallet = '/wallet/my-wallet';
+  static const String walletTransactions = '/wallet/transactions';
+  static const String walletPayoutRequest = '/wallet/payout-request';
+  static const String walletPayoutAccount = '/wallet/payout-account';
+
   // Catalogue Médicaments
   static const String medications = '/medications';
   static String medication(int id) => '/medications/$id';

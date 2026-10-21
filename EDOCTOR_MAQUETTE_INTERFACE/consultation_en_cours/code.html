@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Téléconsultation - E-DOCTOR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Epilogue:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error-container": "#93000a",
+                      "on-tertiary-container": "#6c2106",
+                      "on-primary-fixed-variant": "#005048",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-fixed-variant": "#00504a",
+                      "surface-bright": "#f8f9ff",
+                      "on-error": "#ffffff",
+                      "secondary-fixed": "#9cf2e8",
+                      "on-surface": "#0b1c30",
+                      "primary-fixed-dim": "#4fdbc8",
+                      "tertiary": "#9b4426",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed": "#ffdbd0",
+                      "surface-tint": "#006b5f",
+                      "tertiary-fixed-dim": "#ffb59e",
+                      "on-surface-variant": "#3c4947",
+                      "surface": "#f8f9ff",
+                      "error": "#ba1a1a",
+                      "error-container": "#ffdad6",
+                      "surface-container-high": "#dce9ff",
+                      "outline": "#6c7a77",
+                      "on-primary": "#ffffff",
+                      "on-secondary-container": "#006f67",
+                      "inverse-primary": "#4fdbc8",
+                      "secondary": "#006a63",
+                      "secondary-container": "#99efe5",
+                      "surface-container": "#e5eeff",
+                      "on-tertiary-fixed": "#3a0b00",
+                      "on-primary-fixed": "#00201c",
+                      "surface-variant": "#d3e4fe",
+                      "on-background": "#0b1c30",
+                      "surface-container-lowest": "#ffffff",
+                      "primary": "#006b5f",
+                      "surface-container-low": "#eff4ff",
+                      "primary-container": "#14b8a6",
+                      "background": "#f8f9ff",
+                      "secondary-fixed-dim": "#80d5cb",
+                      "tertiary-container": "#f38764",
+                      "on-secondary-fixed": "#00201d",
+                      "inverse-surface": "#213145",
+                      "inverse-on-surface": "#eaf1ff",
+                      "primary-fixed": "#71f8e4",
+                      "on-primary-container": "#00423b",
+                      "surface-dim": "#cbdbf5",
+                      "surface-container-highest": "#d3e4fe",
+                      "outline-variant": "#bbcac6",
+                      "on-tertiary-fixed-variant": "#7c2d11"
+              },
+              "borderRadius": {
+                      "DEFAULT": "1rem",
+                      "lg": "2rem",
+                      "xl": "3rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "sm": "8px",
+                      "xl": "32px",
+                      "gutter": "16px",
+                      "base": "4px",
+                      "xs": "4px",
+                      "margin-mobile": "16px",
+                      "lg": "24px",
+                      "margin-desktop": "64px",
+                      "md": "16px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Atkinson Hyperlegible Next"
+                      ],
+                      "body-sm": [
+                              "Atkinson Hyperlegible Next"
+                      ],
+                      "display-lg": [
+                              "Epilogue"
+                      ],
+                      "body-lg": [
+                              "Atkinson Hyperlegible Next"
+                      ],
+                      "caption": [
+                              "Atkinson Hyperlegible Next"
+                      ],
+                      "headline-sm": [
+                              "Epilogue"
+                      ],
+                      "headline-lg": [
+                              "Epilogue"
+                      ],
+                      "headline-md": [
+                              "Epilogue"
+                      ],
+                      "label-md": [
+                              "Atkinson Hyperlegible Next"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "caption": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background h-screen flex flex-col font-body-md antialiased overflow-hidden">
+<!-- TopAppBar Semantic Translation -->
+<header class="flex justify-between items-center px-margin-mobile py-sm w-full z-50 bg-surface dark:bg-surface-dim w-full top-0 sticky border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-sm">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a friendly female doctor wearing a white coat and a stethoscope, warm lighting, modern clinic background, high quality portrait, soft focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkXVUG0kksZIKcGCcMp8jz5hK8M9IW9SFSYeyvAYD5EyxHJuOzP-fa3h-POM98OWLa_BH4niCln9ZXrSYow_ZlbEStss7LpK_R2Ek1wiX7j5hA50lIJoAQD4-qg6WjI6odwbqZOMDvAcZc82kpu2OhqN_pgWBI_4CtoShPwh95cIEz9W-Zy4LjbWH8RwK8CWks_XtAHg2ykCVPEg5sCUaD3FYi8YFmTFt0StAJhfv8wPRzinOPLTE"/>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-epilogue text-primary dark:text-primary-fixed">Dr. Aminata Diallo</span>
+<span class="font-caption text-caption text-secondary flex items-center gap-xs">
+<span class="w-2 h-2 rounded-full bg-secondary-container"></span>
+                        En ligne
+                     </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-xs">
+<button class="p-2 text-primary hover:bg-surface-container rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="call">call</span>
+</button>
+<button class="p-2 text-primary hover:bg-surface-container rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="videocam">videocam</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors active:scale-95 duration-150 hidden md:flex">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Confidentiality Banner -->
+<div class="bg-surface-container-high py-2 px-margin-mobile flex items-center justify-center gap-sm shadow-sm z-40">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="lock" style="font-size: 16px;">lock</span>
+<span class="font-caption text-caption text-on-surface-variant">Conversation confidentielle &amp; chiffrée de bout en bout</span>
+</div>
+<!-- Chat Canvas -->
+<main class="flex-1 overflow-y-auto px-margin-mobile py-lg flex flex-col gap-md relative">
+<!-- Date Divider -->
+<div class="flex justify-center my-2">
+<span class="bg-surface-variant text-on-surface-variant font-caption text-caption px-3 py-1 rounded-full">Aujourd'hui, 14:30</span>
+</div>
+<!-- Doctor Message -->
+<div class="flex items-end gap-sm self-start max-w-[85%] md:max-w-[70%]">
+<div class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a friendly female doctor wearing a white coat and a stethoscope, warm lighting, modern clinic background, high quality portrait, soft focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAgzDTtMN-de5FZSWqtmrsPvAMOW9XcqcFBZdrn5Uf80W_r7UQcjmH2uIYmXbelWSURt25XqAhW4pYYBSdeO7Vf7i7N29u0r9gxyQ6uZDxHjWKTfFszJTcjabzcxU2I05nHWzGByzA9ALqsb2vk91DUp1iaQZZtwluLArffnm_o0lTc8EVHgzWoV5qDUQTjwigJLcw9teFfLFfr6AzNkJWOLiQM_Z_nYyNmPPHofKoWqpLlfg_tQU"/>
+</div>
+<div class="bg-surface-container rounded-2xl rounded-bl-none p-3 shadow-sm border border-outline-variant">
+<p class="font-body-md text-body-md text-on-surface">Bonjour, je suis le Dr. Diallo. Comment puis-je vous aider aujourd'hui ?</p>
+<span class="font-caption text-caption text-on-surface-variant text-right block mt-1">14:31</span>
+</div>
+</div>
+<!-- Patient Message -->
+<div class="flex items-end gap-sm self-end max-w-[85%] md:max-w-[70%]">
+<div class="bg-primary rounded-2xl rounded-br-none p-3 shadow-sm">
+<p class="font-body-md text-body-md text-on-primary">Bonjour Docteur, j'ai des maux de tête persistants depuis deux jours, accompagnés d'une légère fièvre.</p>
+<span class="font-caption text-caption text-primary-fixed-dim text-right block mt-1">14:33</span>
+</div>
+</div>
+<!-- Doctor Message -->
+<div class="flex items-end gap-sm self-start max-w-[85%] md:max-w-[70%]">
+<div class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a friendly female doctor wearing a white coat and a stethoscope, warm lighting, modern clinic background, high quality portrait, soft focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1RR6U56wq17moww0HiJnusUV0JOJLwZ_hHjnpJRAJ1crkxOdt2v1gykr6ZcoFup5tj-2q6PSpME_d0u-AapVCmFSt6Ovi2PKZLA2-p6hWr5juMyv08b6DR_yL_-YFxej3U1I7eXSyGVBZ8wcbydforgCiK4v6QHSXjKW2mTk5ZjZNkI1kSme_IZn13-sfS6BGG_n7oAKqVEggaRosWTdvKkVAO5UG6GVTYXyG_5WmfFvLvEAqsL4"/>
+</div>
+<div class="bg-surface-container rounded-2xl rounded-bl-none p-3 shadow-sm border border-outline-variant">
+<p class="font-body-md text-body-md text-on-surface">Je comprends. Avez-vous pris des médicaments pour soulager la douleur ? Avez-vous d'autres symptômes comme des nausées ou une sensibilité à la lumière ?</p>
+<span class="font-caption text-caption text-on-surface-variant text-right block mt-1">14:34</span>
+</div>
+</div>
+</main>
+<!-- Input Area -->
+<footer class="bg-surface border-t border-outline-variant p-margin-mobile flex items-center gap-sm sticky bottom-0 z-50">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors active:scale-95 flex-shrink-0">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+</button>
+<div class="flex-1 bg-surface-container rounded-full flex items-center px-4 py-2 border border-outline-variant focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<input class="bg-transparent border-none outline-none w-full font-body-md text-body-md text-on-surface placeholder-outline flex-1" placeholder="Écrivez votre message..." type="text"/>
+<button class="p-1 text-on-surface-variant hover:text-primary transition-colors flex-shrink-0 ml-2">
+<span class="material-symbols-outlined" data-icon="attach_file">attach_file</span>
+</button>
+</div>
+<button class="w-10 h-10 bg-primary text-on-primary rounded-full flex items-center justify-center hover:bg-surface-tint transition-colors active:scale-95 shadow-sm flex-shrink-0">
+<span class="material-symbols-outlined" data-icon="send">send</span>
+</button>
+</footer>
+</body></html>

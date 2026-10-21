@@ -26,20 +26,27 @@ class OrderController extends Controller
 
         if ($user->isPharmacist()) {
             $query->whereHas('pharmacy', fn ($q) => $q->where('owner_id', $user->id));
+            $orders = $query->latest()->get();
+            $orders->makeHidden('pickup_code');
+            return response()->json($orders);
         } else {
             $query->where('patient_id', $user->id);
+            return response()->json($query->latest()->get());
         }
-
-        return response()->json($query->latest()->get());
     }
 
     public function show(Request $request, Order $order)
     {
         Gate::authorize('view', $order);
 
-        return response()->json(
-            $order->load(['items.medication', 'pharmacy', 'prescription.items.medication', 'payment', 'delivery'])
-        );
+        $order->load(['items.medication', 'pharmacy', 'prescription.items.medication', 'payment', 'delivery']);
+
+        // Sécurité anti-fraude : Seul le patient propriétaire a accès au code secret de retrait
+        if ($request->user()->id !== $order->patient_id && !$request->user()->isAdmin()) {
+            $order->makeHidden('pickup_code');
+        }
+
+        return response()->json($order);
     }
 
     /**
@@ -214,12 +221,14 @@ class OrderController extends Controller
 
             // Calcul officiel de la monétisation DG v2.0
             $pricing = MonetizationService::calculateOrderPricing($itemsTotal, $withDelivery, $distanceKm);
+            $pickupCode = str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
 
             $order = Order::create([
                 'patient_id' => $request->user()->id,
                 'pharmacy_id' => $validated['pharmacy_id'],
                 'prescription_id' => $validated['prescription_id'] ?? null,
                 'status' => 'confirmee',
+                'pickup_code' => $pickupCode,
                 'items_amount' => $pricing['items_amount'],
                 'edoctor_fee' => $pricing['edoctor_fee'],
                 'delivery_fee' => $pricing['delivery_fee'],
@@ -279,32 +288,73 @@ class OrderController extends Controller
     {
         Gate::authorize('managePharmacySide', $order);
 
-        $order->update(['status' => 'prete']);
+        $pickupCode = $order->pickup_code ?? str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+        $order->update([
+            'status' => 'prete',
+            'pickup_code' => $pickupCode,
+        ]);
 
         $order->load('patient');
         if ($order->patient) {
             NotificationService::send(
                 $order->patient,
                 'order_ready',
-                "Votre commande #{$order->id} est prête à être récupérée ou expédiée."
+                "Votre commande #{$order->id} est prête au comptoir. Votre code secret de retrait est : {$pickupCode}."
             );
         }
 
-        return response()->json($order);
+        // Sécurité anti-fraude : le pharmacien ne doit pas voir le code secret dans la réponse JSON
+        return response()->json($order->makeHidden('pickup_code'));
     }
 
     public function markCollected(Request $request, Order $order)
     {
         Gate::authorize('managePharmacySide', $order);
 
-        $order->update(['status' => 'collectee']);
+        // Validation du code secret de retrait (saisie manuelle ou via scan QR Code)
+        $validated = $request->validate([
+            'pickup_code' => ['required', 'string'],
+        ]);
+
+        if (!empty($order->pickup_code) && trim((string) $validated['pickup_code']) !== trim((string) $order->pickup_code)) {
+            return response()->json([
+                'message' => 'Code de retrait invalide. Veuillez demander au patient son code secret à 4 chiffres ou scanner son QR code.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->update([
+                'status' => 'collectee',
+                'collected_at' => now(),
+            ]);
+
+            // Crédit automatique du portefeuille de la pharmacie
+            $pharmacy = $order->pharmacy;
+            if ($pharmacy) {
+                $wallet = $pharmacy->getOrCreateWallet();
+                $itemsAmount = (float) $order->items_amount;
+                if ($itemsAmount > 0) {
+                    $wallet->credit(
+                        $itemsAmount,
+                        "Encaissement vente de médicaments — Commande #{$order->id} délivrée",
+                        'order',
+                        $order->id
+                    );
+                }
+            }
+
+            // Marquer le paiement comme confirmé si applicable
+            if ($order->payment && $order->payment->status !== 'confirme') {
+                $order->payment->update(['status' => 'confirme']);
+            }
+        });
 
         $order->load('patient');
         if ($order->patient) {
             NotificationService::send(
                 $order->patient,
                 'order_collected',
-                "Votre commande #{$order->id} a été retirée."
+                "Votre commande #{$order->id} a été retirée avec succès."
             );
         }
 

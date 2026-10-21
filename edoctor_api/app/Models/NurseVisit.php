@@ -11,11 +11,25 @@ class NurseVisit extends Model
     use HasFactory;
 
     protected $fillable = [
-        'prescription_id', 'patient_id', 'nurse_id', 'hospital_id', 'status', 'scheduled_at', 'report',
+        'prescription_id',
+        'patient_id',
+        'nurse_id',
+        'hospital_id',
+        'status',
+        'scheduled_at',
+        'report',
+        'blood_pressure',
+        'blood_glucose',
+        'temperature',
+        'heart_rate',
+        'acts_performed',
+        'completed_at',
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'acts_performed' => 'array',
     ];
 
     public function prescription(): BelongsTo

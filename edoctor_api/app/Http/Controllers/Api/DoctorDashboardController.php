@@ -108,7 +108,7 @@ class DoctorDashboardController extends Controller
     {
         $doctor = $this->doctor($request);
         $validated = $request->validate([
-            'availability_status' => ['required', Rule::in(['disponible', 'indisponible', 'en_consultation'])],
+            'availability_status' => ['required', Rule::in(['disponible', 'indisponible', 'en_consultation', 'au_bloc'])],
         ]);
         abort_if($validated['availability_status'] === 'en_consultation' && ! $doctor->consultations()->where('status', 'en_cours')->exists(), 422, 'Aucune consultation en cours.');
         $doctor->update($validated);

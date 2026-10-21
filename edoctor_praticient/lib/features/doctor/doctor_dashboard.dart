@@ -17,6 +17,7 @@ import 'consultations_screen.dart';
 import 'video_consultation_screen.dart';
 import 'widgets/consultation_card.dart';
 import '../common_notifications_screen.dart';
+import '../wallet/praticien_wallet_screen.dart';
 
 /// Tableau de bord médecin : statistiques + consultations + ordonnances récentes.
 /// Heartbeat toutes les 45 s pour la présence en ligne.
@@ -169,6 +170,47 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
 
   int _count(String s) => _consultations.where((c) => c.status == s).length;
 
+  bool _updatingStatus = false;
+
+  Future<void> _changeAvailability(String status) async {
+    setState(() => _updatingStatus = true);
+    try {
+      await ApiService.updateDoctorAvailability(status);
+      final user = await StorageService.getUser();
+      if (user != null) {
+        final updated = UserModel(
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          licenseNumber: user.licenseNumber,
+          specialty: user.specialty,
+          availabilityStatus: status,
+          hospitalId: user.hospitalId,
+          dateOfBirth: user.dateOfBirth,
+          address: user.address,
+        );
+        await StorageService.saveUser(updated);
+        if (mounted) setState(() => _user = updated);
+      }
+      if (mounted) {
+        final label = status == 'au_bloc'
+            ? 'Au bloc opératoire'
+            : status == 'disponible'
+                ? 'Disponible'
+                : 'Indisponible';
+        showMsg(context, 'Statut médical mis à jour : $label');
+      }
+    } catch (e) {
+      if (mounted) {
+        showMsg(context, e.toString().replaceFirst('Exception: ', ''), error: true);
+      }
+    } finally {
+      if (mounted) setState(() => _updatingStatus = false);
+    }
+  }
+
   Future<void> _logout() async {
     IncomingCallWatcher.instance.stop();
     await ApiService.logout();
@@ -209,6 +251,13 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
         onLogout: _logout,
       ),
       actions: [
+        IconButton(
+          tooltip: 'Mon Portefeuille',
+          icon: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const PraticienWalletScreen(initialIsDoctor: true)),
+          ),
+        ),
         _notifButton(context),
       ],
       child: _loading
@@ -219,6 +268,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                 if (ongoingList.isNotEmpty) ...[
                   ...ongoingList.map(_buildLiveOngoingBanner),
                 ],
+                _buildAvailabilityControlCard(ongoingList.isNotEmpty),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final w = constraints.maxWidth;
@@ -554,6 +604,187 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
       actingId: _actingId,
       onAccept: _accept,
       onDecline: _decline,
+    );
+  }
+
+  Widget _buildAvailabilityControlCard(bool hasOngoingConsultation) {
+    final rawStatus = _user?.availabilityStatus ?? 'disponible';
+    final effectiveStatus =
+        hasOngoingConsultation ? 'en_consultation' : rawStatus;
+
+    Color badgeColor;
+    IconData badgeIcon;
+    String statusTitle;
+    String statusSubtitle;
+
+    if (effectiveStatus == 'en_consultation') {
+      badgeColor = AppColors.error;
+      badgeIcon = Icons.sensors_rounded;
+      statusTitle = 'En consultation vidéo';
+      statusSubtitle =
+          'Vous êtes actuellement en ligne avec un patient. Les nouvelles demandes sont bloquées.';
+    } else if (effectiveStatus == 'au_bloc') {
+      badgeColor = AppColors.warning;
+      badgeIcon = Icons.local_hospital_rounded;
+      statusTitle = 'Au bloc opératoire';
+      statusSubtitle =
+          'Vos téléconsultations sont suspendues. Le bouton est désactivé pour les patients.';
+    } else if (effectiveStatus == 'indisponible') {
+      badgeColor = Colors.blueGrey;
+      badgeIcon = Icons.do_not_disturb_on_rounded;
+      statusTitle = 'Indisponible';
+      statusSubtitle =
+          'Vous êtes actuellement hors service pour les téléconsultations.';
+    } else {
+      badgeColor = AppColors.success;
+      badgeIcon = Icons.check_circle_rounded;
+      statusTitle = 'Disponible pour téléconsultation';
+      statusSubtitle =
+          'Votre profil est visible en ligne. Vous recevez directement les appels des patients.';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border:
+            Border.all(color: badgeColor.withValues(alpha: 0.35), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: badgeColor.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(badgeIcon, color: badgeColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          statusTitle,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: badgeColor,
+                          ),
+                        ),
+                        if (_updatingStatus) ...[
+                          const SizedBox(width: 8),
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      statusSubtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildStatusPill(
+                label: 'Disponible',
+                icon: Icons.check_circle_outline_rounded,
+                color: AppColors.success,
+                isSelected: effectiveStatus == 'disponible',
+                onTap: () => _changeAvailability('disponible'),
+              ),
+              _buildStatusPill(
+                label: 'Au bloc opératoire',
+                icon: Icons.local_hospital_rounded,
+                color: AppColors.warning,
+                isSelected: effectiveStatus == 'au_bloc',
+                onTap: () => _changeAvailability('au_bloc'),
+              ),
+              _buildStatusPill(
+                label: 'Indisponible',
+                icon: Icons.do_not_disturb_on_outlined,
+                color: Colors.blueGrey,
+                isSelected: effectiveStatus == 'indisponible',
+                onTap: () => _changeAvailability('indisponible'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusPill({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: _updatingStatus || isSelected ? null : onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.15) : AppColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? color : AppColors.border,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 16,
+                color: isSelected ? color : AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? color : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

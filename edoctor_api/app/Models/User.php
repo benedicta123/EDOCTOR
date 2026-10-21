@@ -90,6 +90,11 @@ class User extends Authenticatable
         return $this->hasMany(Consultation::class, 'patient_id');
     }
 
+    public function nurseVisits(): HasMany
+    {
+        return $this->hasMany(NurseVisit::class, 'nurse_id');
+    }
+
     /**
      * En ligne = un heartbeat reçu récemment. Ne dépend d'aucun champ à
      * remettre à zéro manuellement — s'auto-corrige dès que l'app arrête d'appeler /heartbeat.
@@ -128,5 +133,20 @@ class User extends Authenticatable
             : (int) env('SANCTUM_EXPIRATION_PATIENT_MINUTES', 10080);
 
         return $this->createToken($name, ['*'], now()->addMinutes($minutes));
+    }
+
+    public function wallet(): \Illuminate\Database\Eloquent\Relations\MorphOne
+    {
+        return $this->morphOne(Wallet::class, 'holder');
+    }
+
+    public function getOrCreateWallet(): Wallet
+    {
+        return $this->wallet()->firstOrCreate([], [
+            'balance' => 0.00,
+            'pending_balance' => 0.00,
+            'currency' => 'XOF',
+            'is_active' => true,
+        ]);
     }
 }

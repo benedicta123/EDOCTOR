@@ -15,6 +15,11 @@ class StorageService {
     await prefs.setString(_keyUser, jsonEncode(user.toJson()));
   }
 
+  static Future<void> saveUser(UserModel user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUser, jsonEncode(user.toJson()));
+  }
+
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyToken);

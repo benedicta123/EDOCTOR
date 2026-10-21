@@ -6,6 +6,7 @@ import '../../data/models/user_model.dart';
 import '../auth/login_screen.dart';
 import '../doctor/doctor_dashboard.dart';
 import '../hospital/hospital_dashboard.dart';
+import '../nurse/nurse_dashboard.dart';
 
 /// Splash PWA : relit token + rôle puis route vers le bon tableau de bord.
 class SplashScreen extends StatefulWidget {
@@ -56,6 +57,8 @@ class _SplashScreenState extends State<SplashScreen> {
     Widget next = const LoginScreen();
     if (userToRoute.isDoctor) {
       next = const DoctorDashboard();
+    } else if (userToRoute.isNurse) {
+      next = const NurseDashboard();
     } else if (userToRoute.isHospitalAdmin) {
       next = const HospitalDashboard();
     }

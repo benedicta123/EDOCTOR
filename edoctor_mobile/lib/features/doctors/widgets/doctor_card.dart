@@ -86,7 +86,11 @@ class DoctorCard extends StatelessWidget {
                         width: 14,
                         height: 14,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF22C55E),
+                          color: !doctor.isAvailable
+                              ? (doctor.availabilityStatus == 'au_bloc'
+                                  ? const Color(0xFFF59E0B)
+                                  : const Color(0xFFEF4444))
+                              : const Color(0xFF22C55E),
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
@@ -114,33 +118,84 @@ class DoctorCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // Rating pill badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                size: 14,
-                                color: Color(0xFFD97706),
+                        if (!doctor.isAvailable)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: (doctor.availabilityStatus == 'au_bloc'
+                                      ? const Color(0xFFF59E0B)
+                                      : const Color(0xFFEF4444))
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: (doctor.availabilityStatus == 'au_bloc'
+                                        ? const Color(0xFFF59E0B)
+                                        : const Color(0xFFEF4444))
+                                    .withValues(alpha: 0.4),
                               ),
-                              const SizedBox(width: 3),
-                              Text(
-                                '${doctor.rating}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF92400E),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  doctor.availabilityStatus == 'au_bloc'
+                                      ? Icons.local_hospital_rounded
+                                      : Icons.sensors_rounded,
+                                  size: 11,
+                                  color: doctor.availabilityStatus == 'au_bloc'
+                                      ? const Color(0xFFD97706)
+                                      : const Color(0xFFEF4444),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  doctor.availabilityStatus == 'au_bloc'
+                                      ? 'Au bloc'
+                                      : doctor.availabilityStatus ==
+                                              'en_consultation'
+                                          ? 'En consultation'
+                                          : 'Indisponible',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color:
+                                        doctor.availabilityStatus == 'au_bloc'
+                                            ? const Color(0xFFD97706)
+                                            : const Color(0xFFEF4444),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          // Rating pill badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: Color(0xFFD97706),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '${doctor.rating}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF92400E),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 3),
@@ -248,25 +303,43 @@ class DoctorCard extends StatelessWidget {
           // Bouton d'action
           SizedBox(
             width: double.infinity,
-            height: 42,
+            height: 44,
             child: ElevatedButton(
-              onPressed: onStartConsultation,
+              onPressed: doctor.isAvailable ? onStartConsultation : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
+                disabledBackgroundColor: const Color(0xFFF1F5F9),
+                disabledForegroundColor: const Color(0xFF94A3B8),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
+                  side: doctor.isAvailable
+                      ? BorderSide.none
+                      : const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.videocam_rounded, size: 18),
-                  SizedBox(width: 8),
+                  Icon(
+                    doctor.isAvailable
+                        ? Icons.videocam_rounded
+                        : (doctor.availabilityStatus == 'au_bloc'
+                            ? Icons.local_hospital_rounded
+                            : Icons.event_busy_rounded),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    'Prendre rendez-vous',
-                    style: TextStyle(
+                    doctor.isAvailable
+                        ? 'Consulter maintenant'
+                        : (doctor.availabilityStatus == 'au_bloc'
+                            ? 'Médecin au bloc opératoire'
+                            : doctor.availabilityStatus == 'en_consultation'
+                                ? 'Médecin en consultation'
+                                : 'Médecin actuellement indisponible'),
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),

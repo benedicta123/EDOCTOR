@@ -173,6 +173,21 @@ class Consultation extends Model
 
         $this->update(['payment_status' => 'paye']);
 
+        // Séquestre automatique des honoraires dans le portefeuille hospitalier / médical
+        $beneficiary = $this->doctor?->hospital ?? $this->doctor;
+        if ($beneficiary) {
+            $wallet = $beneficiary->getOrCreateWallet();
+            $fee = (float) $this->consultation_fee;
+            if ($fee > 0) {
+                $wallet->hold(
+                    $fee,
+                    "Honoraires sous séquestre pour téléconsultation #{$this->id}",
+                    'consultation',
+                    $this->id
+                );
+            }
+        }
+
         if ($this->status === 'en_attente' && $this->doctor) {
             NotificationService::send(
                 $this->doctor,
@@ -183,10 +198,13 @@ class Consultation extends Model
     }
 
     /**
-     * Clôture automatiquement les téléconsultations en cours depuis plus de 2 heures (120 minutes).
+     * Clôture automatiquement les téléconsultations en cours depuis plus de 2 heures (120 minutes)
+     * et annule les consultations payées restées sans réponse du praticien après 20 minutes.
      */
     public static function closeExpiredConsultations(): int
     {
+        $count = static::cancelUnansweredConsultations();
+
         $cutoff = now()->subHours(2);
 
         $expired = static::where('status', 'en_cours')
@@ -195,7 +213,6 @@ class Consultation extends Model
             ->with(['doctor', 'patient'])
             ->get();
 
-        $count = 0;
         foreach ($expired as $consultation) {
             DB::transaction(function () use ($consultation) {
                 $consultation->update([
@@ -226,6 +243,68 @@ class Consultation extends Model
                     $consultation->doctor,
                     'consultation_ended',
                     "La téléconsultation avec {$consultation->patient?->name} a été coupée automatiquement par le système (durée maximale de 2h atteinte)."
+                );
+            }
+
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * Annule automatiquement les demandes payées non prises en charge par le praticien
+     * après un délai de 20 minutes d'attente en salle d'attente.
+     */
+    public static function cancelUnansweredConsultations(): int
+    {
+        $cutoff = now()->subMinutes(20);
+
+        $expired = static::where('status', 'en_attente')
+            ->where('payment_status', 'paye')
+            ->where('created_at', '<=', $cutoff)
+            ->with(['doctor.hospital', 'patient'])
+            ->get();
+
+        $count = 0;
+        foreach ($expired as $consultation) {
+            DB::transaction(function () use ($consultation) {
+                $consultation->update([
+                    'status' => 'annulee',
+                    'diagnosis' => "[Annulation automatique : délai d'attente de 20 minutes dépassé sans réponse du praticien. Fonds éligibles au remboursement/réaffectation]",
+                ]);
+
+                // Annulation du séquestre dans le portefeuille du praticien/hôpital
+                $beneficiary = $consultation->doctor?->hospital ?? $consultation->doctor;
+                if ($beneficiary) {
+                    $wallet = $beneficiary->wallet;
+                    $fee = (float) $consultation->consultation_fee;
+                    if ($wallet && $fee > 0 && (float) $wallet->pending_balance >= $fee) {
+                        $wallet->cancelHold(
+                            $fee,
+                            "Annulation du séquestre d'honoraires pour consultation expirée #{$consultation->id} (non prise en charge après 20 min)",
+                            'consultation',
+                            $consultation->id
+                        );
+                    }
+                }
+            });
+
+            // Notifier le patient
+            if ($consultation->patient) {
+                NotificationService::send(
+                    $consultation->patient,
+                    'consultation_expired',
+                    "Le Dr {$consultation->doctor?->name} n'a pas pu se libérer dans le délai de 20 minutes. Votre consultation a été annulée. Vous pouvez consulter un autre médecin disponible immédiatement ou demander votre remboursement."
+                );
+            }
+
+            // Notifier le médecin
+            if ($consultation->doctor) {
+                NotificationService::send(
+                    $consultation->doctor,
+                    'consultation_expired_doctor',
+                    "La demande de consultation #{$consultation->id} a expiré après 20 minutes d'attente sans prise en charge."
                 );
             }
 

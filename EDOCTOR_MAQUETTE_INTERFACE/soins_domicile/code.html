@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>E-DOCTOR - Soins à domicile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@600;700&amp;family=Atkinson+Hyperlegible+Next:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#6c2106",
+                        "on-primary-fixed-variant": "#005048",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#00504a",
+                        "surface-bright": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#9cf2e8",
+                        "on-surface": "#0b1c30",
+                        "primary-fixed-dim": "#4fdbc8",
+                        "tertiary": "#9b4426",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffdbd0",
+                        "surface-tint": "#006b5f",
+                        "tertiary-fixed-dim": "#ffb59e",
+                        "on-surface-variant": "#3c4947",
+                        "surface": "#f8f9ff",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#dce9ff",
+                        "outline": "#6c7a77",
+                        "on-primary": "#ffffff",
+                        "on-secondary-container": "#006f67",
+                        "inverse-primary": "#4fdbc8",
+                        "secondary": "#006a63",
+                        "secondary-container": "#99efe5",
+                        "surface-container": "#e5eeff",
+                        "on-tertiary-fixed": "#3a0b00",
+                        "on-primary-fixed": "#00201c",
+                        "surface-variant": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#006b5f",
+                        "surface-container-low": "#eff4ff",
+                        "primary-container": "#14b8a6",
+                        "background": "#f8f9ff",
+                        "secondary-fixed-dim": "#80d5cb",
+                        "tertiary-container": "#f38764",
+                        "on-secondary-fixed": "#00201d",
+                        "inverse-surface": "#213145",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary-fixed": "#71f8e4",
+                        "on-primary-container": "#00423b",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-highest": "#d3e4fe",
+                        "outline-variant": "#bbcac6",
+                        "on-tertiary-fixed-variant": "#7c2d11"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "xl": "32px",
+                        "gutter": "16px",
+                        "base": "4px",
+                        "xs": "4px",
+                        "margin-mobile": "16px",
+                        "lg": "24px",
+                        "margin-desktop": "64px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Atkinson Hyperlegible Next"],
+                        "body-sm": ["Atkinson Hyperlegible Next"],
+                        "display-lg": ["Epilogue"],
+                        "body-lg": ["Atkinson Hyperlegible Next"],
+                        "caption": ["Atkinson Hyperlegible Next"],
+                        "headline-sm": ["Epilogue"],
+                        "headline-lg": ["Epilogue"],
+                        "headline-md": ["Epilogue"],
+                        "label-md": ["Atkinson Hyperlegible Next"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky border-b border-outline-variant bg-surface flex justify-between items-center px-margin-mobile py-sm z-50">
+<div class="flex items-center gap-4">
+<button aria-label="Retour" class="p-2 rounded-full hover:bg-surface-container active:scale-95 duration-150 transition-colors text-primary">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">E-DOCTOR</h1>
+</div>
+<div class="flex items-center gap-2">
+<button aria-label="Notifications" class="p-2 rounded-full hover:bg-surface-container active:scale-95 duration-150 transition-colors text-primary">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-variant overflow-hidden border border-outline-variant">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="Portrait of a friendly West African professional in a bright modern medical setting. Soft lighting, teal and white aesthetic, clean and trustworthy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-z-Q2ANEHWQp7yoUZgYSqiWZIOfYVSSAnmzwqcYy4sTDOZW5jyApeJtBNS1u7VfcftEgAkEltjIz2ZPQtXNS-qblXSB81RjFg_X2cKXEHW4oAuZx-bWIKl3X6MJAg70RIxUSXRITj28PydD0bBt94PPrpYwn1Jmk8cYZ9Zw44w7op85FT5CrHYf8LYs6QLtNVxOjNickT8NuWPOhrDQL7WVjrycK-SVPovpkfJfpm8GdN1uJAkzk"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-4xl mx-auto px-margin-mobile py-lg pb-32 md:pb-lg flex flex-col gap-lg">
+<!-- Header Section -->
+<div class="flex flex-col gap-sm">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Demande de soins à domicile</h2>
+<p class="text-body-lg text-on-surface-variant">Remplissez ce formulaire pour qu'un professionnel de santé se déplace chez vous.</p>
+</div>
+<!-- Trust Card -->
+<div class="bg-surface-container-low rounded-lg p-lg border border-outline-variant flex gap-md items-start shadow-sm transition-all hover:shadow-md">
+<div class="p-3 bg-primary-container text-on-primary-container rounded-full shrink-0">
+<span class="material-symbols-outlined" data-icon="medical_services" data-weight="fill" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+</div>
+<div class="flex flex-col gap-xs">
+<h3 class="font-headline-sm text-headline-sm text-primary">Intervention Rapide</h3>
+<p class="text-body-md text-on-surface-variant">Une infirmière qualifiée à proximité sera envoyée pour vous assister dès confirmation de votre demande.</p>
+</div>
+</div>
+<!-- Form Section -->
+<form action="#" class="bg-surface-container-lowest rounded-lg p-lg border border-outline-variant flex flex-col gap-lg shadow-sm" method="POST">
+<!-- Address Input -->
+<div class="flex flex-col gap-sm relative">
+<label class="font-label-md text-label-md text-on-surface" for="address">Adresse de visite</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">location_on</span>
+<input class="w-full pl-10 pr-4 py-3 bg-surface-bright border border-outline-variant rounded-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors text-body-md text-on-surface placeholder-on-surface-variant/50" id="address" name="address" placeholder="Entrez votre adresse complète" required="" type="text"/>
+</div>
+</div>
+<!-- Reason Input -->
+<div class="flex flex-col gap-sm">
+<label class="font-label-md text-label-md text-on-surface" for="reason">Motif de la demande</label>
+<textarea class="w-full p-4 bg-surface-bright border border-outline-variant rounded-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors text-body-md text-on-surface resize-none placeholder-on-surface-variant/50" id="reason" name="reason" placeholder="Décrivez brièvement les symptômes ou le soin requis (ex: pansement, injection, fièvre...)" required="" rows="4"></textarea>
+</div>
+<!-- Urgency Selector -->
+<div class="flex flex-col gap-sm">
+<label class="font-label-md text-label-md text-on-surface">Est-ce une urgence ?</label>
+<div class="flex gap-4">
+<label class="flex-1 cursor-pointer">
+<input checked="" class="peer sr-only" name="urgency" type="radio" value="non"/>
+<div class="p-4 border border-outline-variant rounded-md text-center text-body-md text-on-surface-variant peer-checked:bg-secondary-container peer-checked:border-secondary peer-checked:text-on-secondary-container transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+                            Non, soin de routine
+                        </div>
+</label>
+<label class="flex-1 cursor-pointer">
+<input class="peer sr-only" name="urgency" type="radio" value="oui"/>
+<div class="p-4 border border-outline-variant rounded-md text-center text-body-md text-on-surface-variant peer-checked:bg-error-container peer-checked:border-error peer-checked:text-on-error-container transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="warning">warning</span>
+                            Oui, urgence relative
+                        </div>
+</label>
+</div>
+<p class="text-caption font-caption text-on-surface-variant mt-1">En cas d'urgence vitale, veuillez contacter directement les urgences ou le SAMU.</p>
+</div>
+<!-- Submit Button -->
+<button class="mt-4 w-full bg-primary hover:bg-primary/90 text-on-primary font-label-md text-label-md py-4 rounded-full flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-sm" type="submit">
+<span class="material-symbols-outlined" data-icon="send" data-weight="fill" style="font-variation-settings: 'FILL' 1;">send</span>
+                Envoyer la demande
+            </button>
+</form>
+</main>
+<!-- BottomNavBar (Hidden on desktop, shown on mobile) -->
+<!-- Note: Following rule to exclude navigation shell if page intent is linear/transactional. 
+         However, a "request form" might be a primary action. Given the strictness of "Transaction/Linear", 
+         it's often safer to omit it if it's a deep focus flow. But standard app design often keeps it. 
+         I will include it but marked inactive to maintain app context, or as per rules: 
+         "Automatic Suppression: You MUST exclude the navigation shell if the page intent is: Linear/Transactional... 
+         Task-Focused: Any sub-page featuring a 'Close' or 'Back' action". 
+         Since I added a 'Back' button in the header, I MUST exclude the BottomNav to prioritize the Canvas. -->
+<script>
+        // Simple form interaction logging
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('button[type="submit"]');
+            const originalContent = btn.innerHTML;
+            
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin" data-icon="progress_activity">progress_activity</span> Traitement...`;
+            btn.classList.add('opacity-80', 'cursor-not-allowed');
+            
+            setTimeout(() => {
+                btn.innerHTML = `<span class="material-symbols-outlined" data-icon="check" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span> Demande Envoyée`;
+                btn.classList.remove('bg-primary', 'hover:bg-primary/90');
+                btn.classList.add('bg-secondary', 'hover:bg-secondary');
+                
+                setTimeout(() => {
+                    // Reset form or redirect (simulated)
+                    btn.innerHTML = originalContent;
+                    btn.classList.remove('bg-secondary', 'hover:bg-secondary', 'opacity-80', 'cursor-not-allowed');
+                    btn.classList.add('bg-primary', 'hover:bg-primary/90');
+                    this.reset();
+                }, 2000);
+            }, 1500);
+        });
+    </script>
+</body></html>

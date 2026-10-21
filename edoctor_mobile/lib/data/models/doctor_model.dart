@@ -8,6 +8,9 @@ class DoctorModel {
   final String languages;
   final String? avatarUrl;
   final bool isOnline;
+  final bool isAvailable;
+  final String availabilityStatus;
+  final String availabilityLabel;
   final double consultationFee;
   final double edoctorFee;
   final double totalAmount;
@@ -22,6 +25,9 @@ class DoctorModel {
     this.languages = 'Français, Éwé',
     this.avatarUrl,
     this.isOnline = true,
+    this.isAvailable = true,
+    this.availabilityStatus = 'disponible',
+    this.availabilityLabel = 'Disponible',
     this.consultationFee = 3000.0,
     this.edoctorFee = 600.0,
     this.totalAmount = 3600.0,
@@ -48,6 +54,12 @@ class DoctorModel {
     final eFee = parseDouble(json['edoctor_fee'], 300.0);
     final tAmount = parseDouble(json['total_amount'], cFee + eFee);
 
+    final isAvailable = json['is_available'] as bool? ?? true;
+    final availabilityStatus =
+        json['availability_status'] as String? ?? 'disponible';
+    final availabilityLabel = json['availability_label'] as String? ??
+        (isAvailable ? 'Disponible' : 'Indisponible');
+
     return DoctorModel(
       id: parseInt(json['id']),
       name: json['name'] as String? ?? 'Médecin',
@@ -58,6 +70,9 @@ class DoctorModel {
       languages: json['languages'] as String? ?? 'Français, Éwé',
       avatarUrl: json['avatar_url'] as String?,
       isOnline: json['is_online'] as bool? ?? true,
+      isAvailable: isAvailable,
+      availabilityStatus: availabilityStatus,
+      availabilityLabel: availabilityLabel,
       consultationFee: cFee,
       edoctorFee: eFee,
       totalAmount: tAmount,

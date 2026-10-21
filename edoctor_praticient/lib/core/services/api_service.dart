@@ -13,6 +13,7 @@ import '../../data/models/prescription_model.dart';
 import '../../data/models/lab_request_model.dart';
 import '../../data/models/nurse_visit_model.dart';
 import '../../data/models/video_meeting_config.dart';
+import '../../data/models/wallet_model.dart';
 import 'storage_service.dart';
 
 /// Exception déclenchée quand le compte nécessite la double authentification (2FA).
@@ -828,6 +829,75 @@ class ApiService {
     }
   }
 
+  static Future<List<NurseVisitModel>> getMyNurseVisits() async {
+    final token = await StorageService.getToken();
+    final r = await http.get(
+      Uri.parse('$baseUrl${ApiConstants.myNurseVisits}'),
+      headers: _headers(token),
+    );
+    if (r.statusCode == 200) {
+      final list = jsonDecode(r.body) as List;
+      return list
+          .map((e) => NurseVisitModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception(_msg(r, 'Impossible de charger vos visites'));
+  }
+
+  static Future<void> acceptNurseVisit(int visitId) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl${ApiConstants.nurseVisitAccept(visitId)}'),
+      headers: _headers(token, json: true),
+    );
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception(_msg(r, 'Impossible de démarrer la mission'));
+    }
+  }
+
+  static Future<void> declineNurseVisit(int visitId) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl${ApiConstants.nurseVisitDecline(visitId)}'),
+      headers: _headers(token, json: true),
+    );
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception(_msg(r, 'Impossible de décliner la mission'));
+    }
+  }
+
+  static Future<void> completeNurseVisit(
+    int visitId, {
+    String? report,
+    String? bloodPressure,
+    String? bloodGlucose,
+    String? temperature,
+    String? heartRate,
+    List<String>? actsPerformed,
+  }) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl${ApiConstants.nurseVisitComplete(visitId)}'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({
+        if (report != null && report.isNotEmpty) 'report': report,
+        if (bloodPressure != null && bloodPressure.isNotEmpty)
+          'blood_pressure': bloodPressure,
+        if (bloodGlucose != null && bloodGlucose.isNotEmpty)
+          'blood_glucose': bloodGlucose,
+        if (temperature != null && temperature.isNotEmpty)
+          'temperature': temperature,
+        if (heartRate != null && heartRate.isNotEmpty)
+          'heart_rate': heartRate,
+        if (actsPerformed != null && actsPerformed.isNotEmpty)
+          'acts_performed': actsPerformed,
+      }),
+    );
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception(_msg(r, 'Impossible de valider la visite'));
+    }
+  }
+
   static Future<List<AppNotification>> getNotifications() async {
     final token = await StorageService.getToken();
     final r = await http.get(
@@ -853,5 +923,89 @@ class ApiService {
     if (r.statusCode < 200 || r.statusCode >= 300) {
       throw Exception(_msg(r, 'Notification inaccessible'));
     }
+  }
+
+  // ─── PORTEFEUILLE PRATICIEN / HÔPITAL (WALLET & PAYOUTS) ─────────────────
+
+  static Future<WalletModel> getWallet() async {
+    final token = await StorageService.getToken();
+    final r = await http.get(
+      Uri.parse('$baseUrl${ApiConstants.myWallet}'),
+      headers: _headers(token),
+    );
+
+    if (r.statusCode == 200) {
+      final dynamic body = jsonDecode(r.body);
+      return WalletModel.fromJson(body as Map<String, dynamic>);
+    }
+    throw Exception(_msg(r, 'Impossible de charger le portefeuille'));
+  }
+
+  static Future<List<WalletTransactionModel>> getWalletTransactions({int page = 1}) async {
+    final token = await StorageService.getToken();
+    final r = await http.get(
+      Uri.parse('$baseUrl${ApiConstants.walletTransactions}?page=$page'),
+      headers: _headers(token),
+    );
+
+    if (r.statusCode == 200) {
+      final dynamic data = jsonDecode(r.body);
+      final list = (data is Map && data['data'] != null) ? data['data'] as List : (data as List);
+      return list
+          .map((item) => WalletTransactionModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception(_msg(r, 'Impossible de charger l\'historique des transactions'));
+  }
+
+  static Future<PayoutRequestModel> requestPayout({
+    required double amount,
+    required String payoutMethod,
+    required String accountNumber,
+    String? accountName,
+    String? notes,
+  }) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl${ApiConstants.walletPayoutRequest}'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({
+        'amount': amount,
+        'payout_method': payoutMethod,
+        'account_number': accountNumber.trim(),
+        if (accountName != null && accountName.isNotEmpty) 'account_name': accountName.trim(),
+        if (notes != null && notes.isNotEmpty) 'notes': notes.trim(),
+      }),
+    );
+
+    if (r.statusCode == 201 || r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      final payoutData = data['payout_request'] as Map<String, dynamic>? ?? data;
+      return PayoutRequestModel.fromJson(payoutData);
+    }
+    throw Exception(_msg(r, 'Échec de la demande de virement'));
+  }
+
+  static Future<WalletModel> updatePayoutAccount({
+    required String payoutChannel,
+    required String payoutAccount,
+    String? payoutAccountName,
+  }) async {
+    final token = await StorageService.getToken();
+    final r = await http.put(
+      Uri.parse('$baseUrl${ApiConstants.walletPayoutAccount}'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({
+        'payout_channel': payoutChannel,
+        'payout_account': payoutAccount.trim(),
+        if (payoutAccountName != null) 'payout_account_name': payoutAccountName.trim(),
+      }),
+    );
+
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      return WalletModel.fromJson(data);
+    }
+    throw Exception(_msg(r, 'Impossible de mettre à jour le compte de versement'));
   }
 }

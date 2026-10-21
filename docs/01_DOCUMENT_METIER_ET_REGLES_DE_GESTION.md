@@ -24,12 +24,12 @@ eDoctor est une plateforme numérique de santé conçue pour désenclaver l'acc�
        │       (API Laravel • PostgreSQL • Données HDS)        │
        └───────────────────────────┬────────────────────────────┘
                                    │
-         ┌─────────────────────────┼─────────────────────────┐
-         ▼                         ▼                         ▼
-┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
-│  ESPACE PATIENT  │      │ ESPACE PRATICIEN │      │ ESPACE PHARMACIE │
-│ (Mobile Flutter) │      │ (Médecin/Hôpital)│      │  (Web & Stocks)  │
-└──────────────────┘      └──────────────────┘      └──────────────────┘
+         ┌─────────────────────────┼─────────────────────────┬─────────────────────────┐
+         ▼                         ▼                         ▼                         ▼
+┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+│  ESPACE PATIENT  │      │ ESPACE PRATICIEN │      │ ESPACE PHARMACIE │      │   SUPER-ADMIN    │
+│ (Mobile Flutter) │      │ (Médecin/Hôpital)│      │  (Web & Stocks)  │      │ (`edoctor_admin`)│
+└──────────────────┘      └──────────────────┘      └──────────────────┘      └──────────────────┘
 ```
 
 ---
@@ -113,6 +113,18 @@ Le cycle d'une consultation médicale suit un état d'automate strict :
 ### 3.8. Règle RG-08 : Gestion des Litiges & Réclamations Usagers
 * Tout usager (patient ou praticien) dispose d'un droit de réclamation en cas d'incident technique, litige financier ou manquement professionnel.
 * Le dossier est assigné au Super-Administrateur eDoctor avec suivi d'état transparent : `en_attente` ──► `en_cours` ──► `resolu` / `rejete`.
+
+### 3.9. Règle RG-09 : Double Authentification (2FA) & Protection Anti-Brute-Force
+* **Double Authentification (2FA OTP) :** Pour toute tentative de connexion (patients, praticiens, pharmaciens, administrateurs), un code temporaire à 6 chiffres est obligatoirement expédié à l'adresse email de l'utilisateur via la passerelle transactionnelle Brevo REST API v3 (`contacts@ewaregroup.org`).
+* **Durée de validité :** Le jeton OTP expire après 10 minutes.
+* **Complexité des mots de passe :** Minimum 8 caractères, associant lettres minuscules, majuscules, chiffres et caractères spéciaux.
+* **Verrouillage automatique (Account Lockout) :** Tout compte subissant **10 tentatives infructueuses consécutives** est immédiatement verrouillé pendant **30 minutes**. Un courriel d'alerte de sécurité est expédié à l'utilisateur avec réinitialisation du compteur lors d'une connexion validée.
+
+### 3.10. Règle RG-10 : Sécurisation FinTech & Intégrité Webhook FedaPay
+* **Interdiction des paiements simulés en production :** Tout paiement direct fictif est strictement bloqué en environnement de production (`APP_ENV=production`).
+* **Validation cryptographique HMAC :** Chaque notification webhook émise par la passerelle FedaPay doit obligatoirement comporter une signature valide vérifiée à l'aide de la clé secrète `FEDAPAY_WEBHOOK_SECRET` avant tout déblocage d'acte médical ou de commande.
+* **Limitation de débit (Rate Limiting) :** Les routes de réception des webhooks financiers sont protégées par un throttle strict fixé à 60 requêtes par minute (`throttle:webhook`) pour neutraliser toute tentative de saturation ou de rejeu frauduleux.
+* **Mécanisme d'Escrow (Séquestre) :** Les fonds perçus sont séquestrés sur le compte de la plateforme jusqu'à la délivrance effective de la consultation médicale ou la remise des médicaments au comptoir/coursier.
 
 ---
 

@@ -15,6 +15,7 @@ class Order extends Model
     protected $fillable = [
         'patient_id', 'pharmacy_id', 'prescription_id', 'status', 'total_amount',
         'items_amount', 'edoctor_fee', 'delivery_fee', 'delivery_distance_km',
+        'pickup_code', 'collected_at',
     ];
 
     protected $casts = [
@@ -23,6 +24,7 @@ class Order extends Model
         'edoctor_fee' => 'decimal:2',
         'delivery_fee' => 'decimal:2',
         'delivery_distance_km' => 'decimal:2',
+        'collected_at' => 'datetime',
     ];
 
     public function patient(): BelongsTo

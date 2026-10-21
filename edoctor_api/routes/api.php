@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AdminWalletController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClaimController;
 use App\Http\Controllers\Api\ConsultationController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Api\PharmacyController;
 use App\Http\Controllers\Api\PharmacyRegistrationController;
 use App\Http\Controllers\Api\PharmacyStockController;
 use App\Http\Controllers\Api\PrescriptionController;
+use App\Http\Controllers\Api\WalletController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -154,7 +156,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pharmacies/{pharmacy}/stocks/import', [PharmacyStockController::class, 'importCsv']);
     Route::delete('/pharmacies/{pharmacy}/stocks/{stock}', [PharmacyStockController::class, 'destroy']);
 
+    // Portefeuilles & Reversements (Médecins, Hôpitaux, Pharmacies)
+    Route::get('/wallet/my-wallet', [WalletController::class, 'show']);
+    Route::get('/wallet/transactions', [WalletController::class, 'transactions']);
+    Route::post('/wallet/payout-request', [WalletController::class, 'requestPayout'])->middleware('throttle:login');
+    Route::put('/wallet/payout-account', [WalletController::class, 'updatePayoutAccount']);
+
     // Soins à domicile (Visites infirmières)
+    Route::get('/my-nurse-visits', [NurseVisitController::class, 'myVisits']);
     Route::post('/prescriptions/{prescription}/nurse-visit', [NurseVisitController::class, 'store']);
     Route::get('/hospitals/{hospital}/nurse-visits', [NurseVisitController::class, 'index']);
     Route::post('/nurse-visits/{nurseVisit}/assign', [NurseVisitController::class, 'assign']);
@@ -212,6 +221,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/claims', [AdminController::class, 'storeClaim']);
         Route::post('/claims/{claim}/resolve', [AdminController::class, 'resolveClaim']);
         Route::post('/claims/{claim}/status', [AdminController::class, 'updateClaimStatus']);
+
+        // Gestion des portefeuilles et reversements (Super-Admin)
+        Route::get('/wallets', [AdminWalletController::class, 'indexWallets']);
+        Route::get('/payout-requests', [AdminWalletController::class, 'indexPayouts']);
+        Route::post('/payout-requests/{payoutRequest}/approve', [AdminWalletController::class, 'approvePayout']);
+        Route::post('/payout-requests/{payoutRequest}/reject', [AdminWalletController::class, 'rejectPayout']);
     });
 
     // Utilitaire développement (Auto-vérification en 1 clic)

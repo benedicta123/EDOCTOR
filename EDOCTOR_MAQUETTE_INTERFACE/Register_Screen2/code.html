@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Inscription 2/2 : Profil santé - E-DOCTOR</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet"/>
+<style>
+    body {
+      font-family: 'Epilogue', sans-serif;
+    }
+  </style>
+</head>
+<body class="h-full bg-[#F5F7FA] text-slate-800 flex flex-col justify-between antialiased max-w-[390px] mx-auto">
+<!-- Contenu principal scrollable -->
+<div class="flex-1 pt-6 pb-6 overflow-y-auto px-4"><!-- Barre supérieure mobile : Flèche retour & Logo -->
+<div class="flex items-center justify-between mb-4 pt-1">
+<button class="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-sm" type="button">
+<i class="ti ti-arrow-left text-xl"></i>
+</button>
+<div class="flex items-center gap-1.5">
+<div class="w-7 h-7 rounded-lg bg-[#0E6B5C] text-white flex items-center justify-center shadow-xs">
+<i class="ti ti-heartbeat text-sm"></i>
+</div>
+<span class="text-sm font-bold text-[#0E6B5C] tracking-tight">E-DOCTOR</span>
+</div>
+<div class="w-10"></div>
+</div>
+<!-- Indicateur de progression Étape 2 sur 2 -->
+<div class="mb-5 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm">
+<div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
+<span class="text-[#0E6B5C] font-bold">Étape 2 sur 2</span>
+<span class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full text-[11px]">Dernière étape !</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<div class="h-2 rounded-full bg-[#0E6B5C]"></div>
+<div class="h-2 rounded-full bg-[#0E6B5C]"></div>
+</div>
+</div>
+<!-- Titre et sous-titre rassurant -->
+<div class="mb-5">
+<h1 class="text-xl font-bold text-slate-900 tracking-tight leading-snug">
+        Encore un peu d'informations
+      </h1>
+<p class="text-xs text-slate-500 mt-1 font-normal leading-relaxed">
+        Ces informations aident le médecin à mieux vous soigner et à personnaliser vos ordonnances.
+      </p>
+</div>
+<!-- Formulaire Étape 2 -->
+<div class="space-y-4">
+<!-- Champ : Date de naissance -->
+<div>
+<label class="block text-xs font-semibold text-slate-700 mb-1.5 ml-1">Date de naissance</label>
+<div class="relative flex items-center bg-white rounded-2xl border border-slate-200 shadow-sm focus-within:border-[#0E6B5C] focus-within:ring-2 focus-within:ring-[#0E6B5C]/15 transition-all">
+<div class="w-11 h-11 flex items-center justify-center text-slate-400 shrink-0">
+<div class="w-8 h-8 rounded-xl bg-[#E7EEFB] text-[#0E6B5C] flex items-center justify-center">
+<i class="ti ti-calendar text-base"></i>
+</div>
+</div>
+<input class="w-full py-3 pr-10 text-sm text-slate-800 bg-transparent placeholder-slate-400 focus:outline-none font-medium" placeholder="JJ / MM / AAAA" type="text" value="14 / 04 / 1995"/>
+<div class="absolute right-3.5 text-slate-400 pointer-events-none">
+<i class="ti ti-selector text-base"></i>
+</div>
+</div>
+<p class="text-[11px] text-slate-400 mt-1 ml-1">Nécessaire pour ajuster les posologies médicamenteuses.</p>
+</div>
+<!-- Champ : Adresse avec bouton position actuelle -->
+<div>
+<div class="flex items-center justify-between mb-1.5 ml-1 mr-1">
+<label class="block text-xs font-semibold text-slate-700">Adresse de résidence (Togo)</label>
+<button class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6B5C] bg-[#E7EEFB] hover:bg-emerald-100 px-2.5 py-0.5 rounded-full transition-colors" type="button">
+<i class="ti ti-current-location text-xs"></i>
+            Position actuelle
+          </button>
+</div>
+<div class="relative flex items-center bg-white rounded-2xl border border-slate-200 shadow-sm focus-within:border-[#0E6B5C] focus-within:ring-2 focus-within:ring-[#0E6B5C]/15 transition-all">
+<div class="w-11 h-11 flex items-center justify-center text-slate-400 shrink-0">
+<div class="w-8 h-8 rounded-xl bg-[#E7EEFB] text-[#0E6B5C] flex items-center justify-center">
+<i class="ti ti-map-pin text-base"></i>
+</div>
+</div>
+<input class="w-full py-3 pr-4 text-sm text-slate-800 bg-transparent placeholder-slate-400 focus:outline-none font-medium" placeholder="Quartier, Ville (ex: Tokoin, Lomé)" type="text" value="Quartier Tokoin Ouest, Lomé"/>
+</div>
+<p class="text-[11px] text-slate-400 mt-1 ml-1">Permet de géolocaliser les pharmacies proches et les soins infirmiers.</p>
+</div>
+<!-- Champ : Antécédents médicaux (Optionnel & Rassurant) -->
+<div class="bg-white p-3.5 rounded-2xl border-2 border-dashed border-emerald-300 shadow-xs relative">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-1.5">
+<div class="w-7 h-7 rounded-lg bg-emerald-100 text-[#0E6B5C] flex items-center justify-center shrink-0">
+<i class="ti ti-notes text-sm"></i>
+</div>
+<label class="block text-xs font-bold text-slate-800 leading-tight">
+              Antécédents médicaux <span class="text-slate-400 font-normal text-[11px]">(optionnel)</span>
+</label>
+</div>
+<span class="text-[10px] uppercase tracking-wider font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+            Facultatif
+          </span>
+</div>
+<textarea class="w-full p-3 text-xs text-slate-800 bg-[#F8FAFC] border border-slate-200 rounded-xl placeholder-slate-400 focus:outline-none focus:border-[#0E6B5C] focus:bg-white transition-all font-medium resize-none leading-relaxed" placeholder="Ex : Allergie connue à la pénicilline, asthme, hypertension artérielle, prise d'insuline..." rows="3">Allergie modérée à la Pénicilline (urticaire en 2021). Pas d'autre traitement chronique.</textarea>
+<!-- Explication de confidentialité médicale -->
+<div class="mt-2.5 flex items-start gap-2 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-emerald-900">
+<i class="ti ti-shield-lock text-sm text-[#0E6B5C] mt-0.5 shrink-0"></i>
+<p class="text-[11px] leading-relaxed text-slate-600">
+<strong class="text-[#0E6B5C] font-semibold">Confidentialité garantie :</strong> Données strictement réservées aux médecins consultés.
+          </p>
+</div>
+</div>
+<!-- Engagement et conditions -->
+<div class="flex items-start gap-2.5 px-0.5 pt-0.5 pb-1">
+<input checked="" class="mt-0.5 w-4 h-4 text-[#0E6B5C] rounded border-slate-300 focus:ring-[#0E6B5C]" id="consent" type="checkbox"/>
+<label class="text-[11px] text-slate-500 leading-snug" for="consent">
+          J'accepte les conditions d'utilisation et la politique de protection des données (ONMT Togo).
+        </label>
+</div>
+</div></div>
+<!-- Bas fixe : Bouton principal "Créer mon compte" avec état de chargement prévu -->
+<div class="bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg p-4">
+<!-- Bouton principal Créer mon compte -->
+<button class="w-full py-4 px-6 rounded-2xl bg-[#0E6B5C] text-white font-bold text-base flex items-center justify-center gap-2.5 shadow-lg shadow-[#0E6B5C]/25 hover:bg-[#0c594c] active:scale-[0.99] transition-all" type="button">
+<!-- Spinner / état de chargement élégant -->
+<svg class="animate-spin -ml-1 mr-1 h-5 w-5 text-white/90" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+<path class="opacity-90" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+<span>Création de votre compte...</span>
+</button>
+<p class="text-center text-[11px] text-slate-400 mt-2.5">
+      Sécurisé par le chiffrement médical e-Santé Togo
+    </p>
+</div>
+</body>
+</html>
