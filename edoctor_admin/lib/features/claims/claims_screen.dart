@@ -63,7 +63,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Réclamation ${c.referenceId} résolue avec notification au plaignant.'),
+            content: Text('Réclamation ${c.referenceId} résolue avec notification au plaignant.'),
             backgroundColor: AppColors.verified,
           ),
         );
@@ -402,11 +402,61 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                           value: _priorityFilter,
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                           items: const [
-                            DropdownMenuItem(value: 'tous', child: Text('Toutes priorités')),
-                            DropdownMenuItem(value: 'urgente', child: Text('🔥 Urgente')),
-                            DropdownMenuItem(value: 'haute', child: Text('⚠️ Haute')),
-                            DropdownMenuItem(value: 'normale', child: Text('Normale')),
-                            DropdownMenuItem(value: 'faible', child: Text('Faible')),
+                            DropdownMenuItem(
+                              value: 'tous',
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.filter_list_rounded, size: 15, color: AppColors.textSecondary),
+                                  SizedBox(width: 8),
+                                  Text('Toutes priorités'),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'urgente',
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.error_rounded, size: 15, color: AppColors.priorityUrgent),
+                                  SizedBox(width: 8),
+                                  Text('Urgente', style: TextStyle(color: AppColors.priorityUrgent, fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'haute',
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.warning_amber_rounded, size: 15, color: AppColors.priorityHigh),
+                                  SizedBox(width: 8),
+                                  Text('Haute', style: TextStyle(color: AppColors.priorityHigh, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'normale',
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.info_outline_rounded, size: 15, color: AppColors.priorityNormal),
+                                  SizedBox(width: 8),
+                                  Text('Normale', style: TextStyle(color: AppColors.priorityNormal)),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'faible',
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.remove_circle_outline_rounded, size: 15, color: AppColors.priorityLow),
+                                  SizedBox(width: 8),
+                                  Text('Faible', style: TextStyle(color: AppColors.priorityLow)),
+                                ],
+                              ),
+                            ),
                           ],
                           onChanged: (val) {
                             if (val != null) {
