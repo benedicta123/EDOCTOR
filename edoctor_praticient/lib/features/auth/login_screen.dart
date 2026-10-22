@@ -670,36 +670,6 @@ class _TwoFactorCard extends StatelessWidget {
               ),
             ),
           ),
-          if (debugCode != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF86EFAC)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.vpn_key_rounded,
-                    size: 14,
-                    color: Color(0xFF166534),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Code de test local : $debugCode',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF166534),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
           const SizedBox(height: 28),
           TextField(
             controller: twoFactorCodeCtrl,

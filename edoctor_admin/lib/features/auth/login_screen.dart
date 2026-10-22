@@ -21,7 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _requires2fa = false;
   String? _twoFactorToken;
   String? _maskedEmail;
-  String? _debug2faCode;
   final _twoFactorCodeCtrl = TextEditingController();
   bool _verifying2fa = false;
 
@@ -62,7 +61,6 @@ class _LoginScreenState extends State<LoginScreen> {
           _requires2fa = true;
           _twoFactorToken = e.twoFactorToken;
           _maskedEmail = e.emailMasked;
-          _debug2faCode = e.debugCode;
           _errorMessage = null;
           _twoFactorCodeCtrl.clear();
         });
@@ -275,32 +273,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    if (_debug2faCode != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF86EFAC)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.vpn_key_rounded, size: 14, color: Color(0xFF166534)),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Code de test local : $_debug2faCode',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF166534),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 24),
                     TextField(
                       controller: _twoFactorCodeCtrl,

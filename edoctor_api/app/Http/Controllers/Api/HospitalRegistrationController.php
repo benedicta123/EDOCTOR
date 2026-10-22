@@ -20,6 +20,17 @@ class HospitalRegistrationController extends Controller
      */
     public function register(Request $request, GeocodingService $geocoding)
     {
+        $mergeData = [];
+        if ($request->has('admin_email')) {
+            $mergeData['admin_email'] = strtolower(trim((string) $request->admin_email));
+        }
+        if ($request->has('official_email')) {
+            $mergeData['official_email'] = strtolower(trim((string) $request->official_email));
+        }
+        if (! empty($mergeData)) {
+            $request->merge($mergeData);
+        }
+
         $validated = $request->validate([
             // Données de l'établissement
             'hospital_name' => ['required', 'string', 'max:255'],

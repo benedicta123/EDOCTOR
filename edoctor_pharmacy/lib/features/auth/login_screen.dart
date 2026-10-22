@@ -24,7 +24,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _requires2fa = false;
   String? _twoFactorToken;
   String? _maskedEmail;
-  String? _debug2faCode;
   final _twoFactorCodeCtrl = TextEditingController();
   bool _verifying2fa = false;
 
@@ -91,7 +90,6 @@ class _LoginScreenState extends State<LoginScreen> {
         _requires2fa = true;
         _twoFactorToken = e.twoFactorToken;
         _maskedEmail = e.emailMasked;
-        _debug2faCode = e.debugCode;
         _twoFactorCodeCtrl.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -902,28 +900,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      if (_debug2faCode != null) ...[
-                        const SizedBox(height: 10),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDF4),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF86EFAC)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.vpn_key_rounded, size: 14, color: Color(0xFF166534)),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Code de test : $_debug2faCode',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 22),
                       TextField(
                         controller: _twoFactorCodeCtrl,

@@ -19,6 +19,17 @@ class PharmacyRegistrationController extends Controller
      */
     public function register(Request $request)
     {
+        $mergeData = [];
+        if ($request->has('pharmacist_email')) {
+            $mergeData['pharmacist_email'] = strtolower(trim((string) $request->pharmacist_email));
+        }
+        if ($request->has('official_email')) {
+            $mergeData['official_email'] = strtolower(trim((string) $request->official_email));
+        }
+        if (! empty($mergeData)) {
+            $request->merge($mergeData);
+        }
+
         $validated = $request->validate([
             // Étape 1 : Établissement
             'pharmacy_name' => ['required', 'string', 'max:255'],

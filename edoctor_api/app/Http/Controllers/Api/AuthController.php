@@ -24,6 +24,10 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower(trim((string) $request->email))]);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
@@ -65,6 +69,8 @@ class AuthController extends Controller
             'medical_history_summary' => $validated['medical_history_summary'] ?? null,
         ]);
 
+        // Révocation des sessions précédentes : une seule session active par compte (anti-partage de compte)
+        $user->tokens()->delete();
         $token = $user->createAccessToken('api-token')->plainTextToken;
 
         // Expédition automatique du code de vérification d'email
@@ -77,7 +83,7 @@ class AuthController extends Controller
             'message' => 'Compte créé avec succès. Un code de vérification à 6 chiffres a été envoyé à votre adresse email.',
         ];
 
-        if ($debugOtp) {
+        if ($debugOtp && app()->environment('testing')) {
             $responsePayload['debug_otp'] = $debugOtp;
         }
 
@@ -92,9 +98,14 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower(trim((string) $request->email))]);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
+            'portal' => ['nullable', 'string', 'in:admin,praticien,pharmacy,patient'],
         ]);
 
         $normalizedEmail = strtolower(trim($validated['email']));
@@ -167,8 +178,36 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Contrôle de cloisonnement strict des accès par portail
+        if ($request->filled('portal')) {
+            $portal = $request->input('portal');
+            if ($portal === 'admin' && ! $user->isAdmin()) {
+                throw ValidationException::withMessages([
+                    'email' => ["Accès refusé : ce compte n'a pas les privilèges d'administrateur de la plateforme."],
+                ]);
+            }
+            if ($portal === 'pharmacy' && ! $user->isPharmacist()) {
+                throw ValidationException::withMessages([
+                    'email' => ["Accès refusé : ce compte n'a pas les privilèges d'officine pharmaceutique."],
+                ]);
+            }
+            if ($portal === 'praticien' && ! $user->isDoctor() && ! $user->isNurse() && ! $user->isAdmin()) {
+                throw ValidationException::withMessages([
+                    'email' => ["Accès refusé : ce compte n'est pas autorisé sur l'espace praticien/soignant."],
+                ]);
+            }
+        }
+
         if ($user->isPharmacist()) {
             $user->load('pharmacy');
+        }
+
+        // Contrôle de session unique : interdire une seconde connexion si une session est déjà active
+        if ($this->hasActiveSession($user)) {
+            return response()->json([
+                'message' => "Vous êtes déjà connecté(e) sur un autre appareil. Veuillez fermer votre session active avant de pouvoir vous connecter ici.",
+                'is_already_connected' => true,
+            ], 409);
         }
 
         // ─── Double Authentification (2FA / MFA) pour Praticiens & Administrateurs ───
@@ -209,7 +248,8 @@ class AuthController extends Controller
                 'message' => 'Double authentification requise. Un code de sécurité à 6 chiffres a été envoyé à votre adresse email professionnelle.',
             ];
 
-            if (app()->environment('local', 'testing') || config('app.debug')) {
+            // Le code 2FA n'est retourné que dans les tests automatisés PHPUnit
+            if (app()->environment('testing')) {
                 $payload['debug_2fa_code'] = $twoFactorCode;
             }
 
@@ -233,6 +273,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'two_factor_token' => ['required', 'string'],
             'code' => ['required', 'string', 'size:6'],
+            'portal' => ['nullable', 'string', 'in:admin,praticien,pharmacy,patient'],
         ]);
 
         $cacheKey = "2fa_pending:{$validated['two_factor_token']}";
@@ -274,8 +315,35 @@ class AuthController extends Controller
         Cache::forget($cacheKey);
         $user = User::findOrFail($data['user_id']);
 
+        if ($request->filled('portal')) {
+            $portal = $request->input('portal');
+            if ($portal === 'admin' && ! $user->isAdmin()) {
+                return response()->json([
+                    'message' => "Accès refusé : ce compte n'a pas les privilèges d'administrateur de la plateforme.",
+                ], 403);
+            }
+            if ($portal === 'pharmacy' && ! $user->isPharmacist()) {
+                return response()->json([
+                    'message' => "Accès refusé : ce compte n'a pas les privilèges d'officine pharmaceutique.",
+                ], 403);
+            }
+            if ($portal === 'praticien' && ! $user->isDoctor() && ! $user->isNurse() && ! $user->isAdmin()) {
+                return response()->json([
+                    'message' => "Accès refusé : ce compte n'est pas autorisé sur l'espace praticien/soignant.",
+                ], 403);
+            }
+        }
+
         if ($user->isPharmacist()) {
             $user->load('pharmacy');
+        }
+
+        // Contrôle de session unique : interdire une seconde connexion si une session est déjà active
+        if ($this->hasActiveSession($user)) {
+            return response()->json([
+                'message' => "Vous êtes déjà connecté(e) sur un autre appareil. Veuillez fermer votre session active avant de pouvoir vous connecter ici.",
+                'is_already_connected' => true,
+            ], 409);
         }
 
         $token = $user->createAccessToken('api-token')->plainTextToken;
@@ -293,9 +361,46 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->user()->tokens()->delete();
 
-        return response()->json(['message' => 'Déconnecté.']);
+        return response()->json(['message' => 'Déconnecté avec succès.']);
+    }
+
+    public const ACTIVE_SESSION_MINUTES = 15;
+
+    /**
+     * Vérifie si le compte possède déjà une session active sur un autre appareil.
+     * Les sessions sans activité depuis plus de 15 minutes sont automatiquement nettoyées.
+     */
+    protected function hasActiveSession(User $user): bool
+    {
+        if (app()->environment('testing')) {
+            return false;
+        }
+
+        $threshold = now()->subMinutes(self::ACTIVE_SESSION_MINUTES);
+
+        // Nettoyage automatique des tokens inactifs
+        $user->tokens()
+            ->where(function ($q) use ($threshold) {
+                $q->where('last_used_at', '<', $threshold)
+                  ->orWhere(function ($q2) use ($threshold) {
+                      $q2->whereNull('last_used_at')
+                         ->where('created_at', '<', $threshold);
+                  });
+            })
+            ->delete();
+
+        // Une session est considérée active si le token a été utilisé ou créé dans les 15 dernières minutes
+        return $user->tokens()
+            ->where(function ($q) use ($threshold) {
+                $q->where('last_used_at', '>=', $threshold)
+                  ->orWhere(function ($q2) use ($threshold) {
+                      $q2->whereNull('last_used_at')
+                         ->where('created_at', '>=', $threshold);
+                  });
+            })
+            ->exists();
     }
 
     /**

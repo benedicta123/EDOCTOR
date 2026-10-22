@@ -45,6 +45,10 @@ class HospitalStaffController extends Controller
         $user = $request->user();
         abort_if(! $user->isAdmin() || ! $user->hospital_id, 403, "Accès réservé aux administrateurs d'hôpital.");
 
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower(trim((string) $request->email))]);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
@@ -79,6 +83,10 @@ class HospitalStaffController extends Controller
     {
         $user = $request->user();
         abort_if(! $user->isAdmin() || ! $user->hospital_id, 403, "Accès réservé aux administrateurs d'hôpital.");
+
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower(trim((string) $request->email))]);
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],

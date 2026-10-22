@@ -138,7 +138,7 @@ class ApiService {
       final r = await http.post(
         Uri.parse('$baseUrl${ApiConstants.login}'),
         headers: _headers(null, json: true),
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({'email': email, 'password': password, 'portal': 'praticien'}),
       );
       final data = jsonDecode(r.body) as Map<String, dynamic>;
       if (r.statusCode == 200) {
@@ -147,7 +147,7 @@ class ApiService {
             twoFactorToken: data['two_factor_token'] as String,
             emailMasked: (data['email_masked'] as String?) ?? 'votre adresse email',
             role: (data['role'] as String?) ?? 'doctor',
-            debugCode: data['debug_2fa_code']?.toString(),
+            debugCode: null,
             message: (data['message'] as String?) ?? 'Double authentification requise.',
           );
         }
@@ -182,6 +182,7 @@ class ApiService {
         body: jsonEncode({
           'two_factor_token': twoFactorToken,
           'code': code.trim(),
+          'portal': 'praticien',
         }),
       );
       final data = jsonDecode(r.body) as Map<String, dynamic>;

@@ -58,6 +58,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function setEmailAttribute($value): void
+    {
+        $this->attributes['email'] = strtolower(trim((string) $value));
+    }
+
     public function isPatient(): bool { return $this->role === 'patient'; }
     public function isDoctor(): bool { return $this->role === 'doctor'; }
     public function isPharmacist(): bool { return $this->role === 'pharmacist'; }

@@ -87,8 +87,8 @@ class PasswordResetController extends Controller
             'message' => 'Si cette adresse email est associée à un compte eDoctor, un code de sécurité à 6 chiffres vient d\'y être envoyé.',
         ];
 
-        // En environnement local ou de test, on expose l'OTP dans la réponse pour faciliter les démonstrations immédiates
-        if (app()->environment('local', 'testing') || config('app.debug')) {
+        // Strictement réservé à l'environnement de test automatisé PHPUnit
+        if (app()->environment('testing')) {
             $responsePayload['debug_otp'] = $otp;
         }
 

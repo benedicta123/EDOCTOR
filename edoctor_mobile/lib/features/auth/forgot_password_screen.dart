@@ -311,29 +311,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           keyboardType: TextInputType.number,
           prefixIcon: Icons.pin_rounded,
         ),
-        if (_debugOtp != null) ...[
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.amber.shade300),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline, size: 16, color: Colors.orange),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Code de test généré : $_debugOtp',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.brown),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
         if (_otpWarningMessage != null) ...[
           const SizedBox(height: 14),
           Container(

@@ -43,7 +43,7 @@ class EmailVerificationController extends Controller
 
         Log::info("Code de vérification email pour {$user->email} : {$otp}");
 
-        return (app()->environment('local', 'testing') || config('app.debug')) ? $otp : null;
+        return app()->environment('testing') ? $otp : null;
     }
 
     /**
