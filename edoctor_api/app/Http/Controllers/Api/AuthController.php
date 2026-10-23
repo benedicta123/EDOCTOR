@@ -202,14 +202,6 @@ class AuthController extends Controller
             $user->load('pharmacy');
         }
 
-        // Contrôle de session unique : interdire une seconde connexion si une session est déjà active
-        if ($this->hasActiveSession($user)) {
-            return response()->json([
-                'message' => "Une session est déjà active pour ce compte sur un autre appareil. Pour des raisons de sécurité, une seule session simultanée est autorisée. Veuillez vous déconnecter de votre autre session ou patienter quelques instants.",
-                'is_already_connected' => true,
-            ], 409);
-        }
-
         // ─── Double Authentification (2FA / MFA) pour Praticiens & Administrateurs ───
         $privilegedRoles = ['doctor', 'admin', 'pharmacist'];
         $twoFactorEnabled = config('auth.two_factor_enabled', true);
@@ -257,6 +249,8 @@ class AuthController extends Controller
             return response()->json($payload, 200);
         }
 
+        // Révocation des sessions précédentes pour garantir une session unique
+        $user->tokens()->delete();
         $token = $user->createAccessToken('api-token')->plainTextToken;
 
         return response()->json([
