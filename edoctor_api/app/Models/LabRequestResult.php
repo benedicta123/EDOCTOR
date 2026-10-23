@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Crypt;
 
 class LabRequestResult extends Model
 {
@@ -20,9 +22,21 @@ class LabRequestResult extends Model
         'uploaded_by',
     ];
 
-    protected $casts = [
-        'patient_notes' => 'encrypted',
-    ];
+    protected $casts = [];
+
+    protected function patientNotes(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if ($value === null || $value === '') return $value;
+                try { return Crypt::decryptString($value); } catch (\Throwable) { return $value; }
+            },
+            set: function ($value) {
+                if ($value === null || $value === '') return $value;
+                try { return Crypt::encryptString($value); } catch (\Throwable) { return $value; }
+            }
+        );
+    }
 
     public function labRequest(): BelongsTo
     {
