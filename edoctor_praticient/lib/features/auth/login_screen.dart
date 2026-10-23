@@ -69,7 +69,8 @@ class _LoginScreenState extends State<LoginScreen>
         password: _password.text,
       );
       if (!mounted) return;
-      showMsg(context, 'Bienvenue ${doctorDisplay(user.name)}');
+      final greeting = user.isDoctor ? doctorDisplay(user.name) : user.name;
+      showMsg(context, 'Bienvenue $greeting');
       final Widget next = user.isDoctor
           ? const DoctorDashboard()
           : (user.isNurse
@@ -117,9 +118,10 @@ class _LoginScreenState extends State<LoginScreen>
         code: code,
       );
       if (!mounted) return;
+      final greeting = user.isDoctor ? doctorDisplay(user.name) : user.name;
       showMsg(
         context,
-        'Authentification réussie. Bienvenue ${doctorDisplay(user.name)}',
+        'Authentification réussie. Bienvenue $greeting',
       );
       final Widget next = user.isDoctor
           ? const DoctorDashboard()

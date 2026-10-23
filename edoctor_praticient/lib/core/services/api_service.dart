@@ -152,9 +152,9 @@ class ApiService {
           );
         }
         final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
-        if (user.role != 'doctor' && !user.isHospitalAdmin) {
+        if (user.role != 'doctor' && !user.isHospitalAdmin && !user.isNurse) {
           throw Exception(
-            "Ce portail est réservé aux médecins et administrateurs d'hôpital (rôle détecté : ${user.role}).",
+            "Ce portail est réservé aux médecins, infirmiers et administrateurs d'hôpital (rôle détecté : ${user.role}).",
           );
         }
         await StorageService.saveSession(
@@ -188,9 +188,9 @@ class ApiService {
       final data = jsonDecode(r.body) as Map<String, dynamic>;
       if (r.statusCode == 200) {
         final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
-        if (user.role != 'doctor' && !user.isHospitalAdmin) {
+        if (user.role != 'doctor' && !user.isHospitalAdmin && !user.isNurse) {
           throw Exception(
-            "Ce portail est réservé aux médecins et administrateurs d'hôpital (rôle détecté : ${user.role}).",
+            "Ce portail est réservé aux médecins, infirmiers et administrateurs d'hôpital (rôle détecté : ${user.role}).",
           );
         }
         await StorageService.saveSession(
