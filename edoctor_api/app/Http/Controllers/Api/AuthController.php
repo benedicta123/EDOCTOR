@@ -205,7 +205,7 @@ class AuthController extends Controller
         // Contrôle de session unique : interdire une seconde connexion si une session est déjà active
         if ($this->hasActiveSession($user)) {
             return response()->json([
-                'message' => "Vous êtes déjà connecté(e) sur un autre appareil. Veuillez fermer votre session active avant de pouvoir vous connecter ici.",
+                'message' => "Une session est déjà active pour ce compte sur un autre appareil. Pour des raisons de sécurité, une seule session simultanée est autorisée. Veuillez vous déconnecter de votre autre session ou patienter quelques instants.",
                 'is_already_connected' => true,
             ], 409);
         }
@@ -218,18 +218,19 @@ class AuthController extends Controller
             $twoFactorCode = sprintf('%06d', random_int(100000, 999999));
             $twoFactorToken = Str::random(64);
 
+            // Stockage éphémère ultra-sécurisé en cache mémoire (15 minutes de validité, jamais en BDD)
             Cache::put("2fa_pending:{$twoFactorToken}", [
                 'user_id' => $user->id,
                 'code_hash' => Hash::make($twoFactorCode),
                 'attempts' => 0,
-            ], now()->addMinutes(5));
+            ], 900);
 
             try {
                 \App\Services\BrevoMailService::send(
                     $user->email,
                     $user->name,
                     'Code de sécurité 2FA eDoctor',
-                    "Bonjour {$user->name},\n\nVotre code d'authentification à deux facteurs (2FA) eDoctor pour valider votre connexion est : {$twoFactorCode}\n\nCe code expire dans 5 minutes.\n\nL'équipe Sécurité eDoctor."
+                    "Bonjour {$user->name},\n\nVotre code d'authentification à deux facteurs (2FA) eDoctor pour valider votre connexion est : {$twoFactorCode}\n\nCe code est confidentiel et expire dans 15 minutes.\n\nL'équipe Sécurité eDoctor."
                 );
             } catch (\Throwable $e) {
                 Log::warning("Impossible d'envoyer le code 2FA à {$user->email} : " . $e->getMessage());
@@ -276,44 +277,44 @@ class AuthController extends Controller
             'portal' => ['nullable', 'string', 'in:admin,praticien,pharmacy,patient'],
         ]);
 
-        $cacheKey = "2fa_pending:{$validated['two_factor_token']}";
+        $tokenStr = $validated['two_factor_token'];
+        $cacheKey = "2fa_pending:{$tokenStr}";
         $data = Cache::get($cacheKey);
 
-        if (! $data) {
+        if (! $data || empty($data['user_id']) || empty($data['code_hash'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Session 2FA expirée ou invalide. Veuillez vous reconnecter.',
+                'message' => 'Code de sécurité expiré ou session invalide. Veuillez vous reconnecter.',
+            ], 422);
+        }
+
+        $user = User::find($data['user_id']);
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur introuvable. Veuillez vous reconnecter.',
             ], 422);
         }
 
         if (! Hash::check($validated['code'], $data['code_hash'])) {
-            $attempts = ($data['attempts'] ?? 0) + 1;
-            $data['attempts'] = $attempts;
-            Cache::put($cacheKey, $data, now()->addMinutes(5));
-
-            $remaining = max(0, 5 - $attempts);
-            if ($attempts >= 3 && $remaining > 0) {
-                $msg = "Code 2FA incorrect. Attention : il ne vous reste que {$remaining} tentative" . ($remaining > 1 ? 's' : '') . " avant annulation.";
-            } elseif ($remaining === 0) {
+            $data['attempts'] = ($data['attempts'] ?? 0) + 1;
+            if ($data['attempts'] >= 5) {
                 Cache::forget($cacheKey);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Nombre maximal de tentatives 2FA dépassé. Session annulée.',
-                ], 429);
-            } else {
-                $msg = 'Code de sécurité 2FA incorrect.';
+                    'message' => 'Trop de tentatives infructueuses. Ce code a été révoqué par sécurité. Veuillez vous reconnecter.',
+                ], 422);
             }
+            Cache::put($cacheKey, $data, 900);
 
             return response()->json([
                 'success' => false,
-                'message' => $msg,
-                'attempts_left' => $remaining,
-                'warning' => $attempts >= 3,
+                'message' => 'Code de sécurité 2FA incorrect. Veuillez vérifier le code reçu par email.',
             ], 422);
         }
 
+        // Nettoyage immédiat du token 2FA éphémère consommé
         Cache::forget($cacheKey);
-        $user = User::findOrFail($data['user_id']);
 
         if ($request->filled('portal')) {
             $portal = $request->input('portal');
@@ -338,14 +339,8 @@ class AuthController extends Controller
             $user->load('pharmacy');
         }
 
-        // Contrôle de session unique : interdire une seconde connexion si une session est déjà active
-        if ($this->hasActiveSession($user)) {
-            return response()->json([
-                'message' => "Vous êtes déjà connecté(e) sur un autre appareil. Veuillez fermer votre session active avant de pouvoir vous connecter ici.",
-                'is_already_connected' => true,
-            ], 409);
-        }
-
+        // L'utilisateur ayant prouvé son identité (mot de passe + 2FA email), on clôture les sessions précédentes
+        $user->tokens()->delete();
         $token = $user->createAccessToken('api-token')->plainTextToken;
 
         return response()->json([
@@ -366,11 +361,11 @@ class AuthController extends Controller
         return response()->json(['message' => 'Déconnecté avec succès.']);
     }
 
-    public const ACTIVE_SESSION_MINUTES = 15;
+    public const ACTIVE_SESSION_MINUTES = 2;
 
     /**
      * Vérifie si le compte possède déjà une session active sur un autre appareil.
-     * Les sessions sans activité depuis plus de 15 minutes sont automatiquement nettoyées.
+     * Les sessions sans activité depuis plus de 2 minutes sont automatiquement nettoyées.
      */
     protected function hasActiveSession(User $user): bool
     {

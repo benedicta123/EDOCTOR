@@ -152,7 +152,11 @@ class ApiService {
     final response = await http.post(
       uri,
       headers: _headers(null, json: true),
-      body: jsonEncode({'email': email, 'password': password, 'portal': 'admin'}),
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        'portal': 'admin',
+      }),
     );
 
     final data = jsonDecode(response.body);

@@ -37,11 +37,16 @@ class User extends Authenticatable
         'address',
         'medical_history_summary',
         'consultation_fee',
+        'two_factor_code',
+        'two_factor_token',
+        'two_factor_expires_at',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_code',
+        'two_factor_token',
     ];
 
     protected function casts(): array
@@ -55,6 +60,7 @@ class User extends Authenticatable
             'suspended_at' => 'datetime',
             'consultation_fee' => 'decimal:2',
             'medical_history_summary' => 'encrypted',
+            'two_factor_expires_at' => 'datetime',
         ];
     }
 
