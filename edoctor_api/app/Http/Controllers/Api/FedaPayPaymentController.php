@@ -147,10 +147,10 @@ class FedaPayPaymentController extends Controller
                 Log::warning('[FedaPay Verify] getTransaction exception : ' . $e->getMessage());
             }
 
-            // En mode simulation sans clés API configurées : auto-approbation autorisée UNIQUEMENT en dev/test local
-            if (!$fedapay->isConfigured()) {
-                abort_if(
-                    ! app()->environment('local', 'testing'),
+            // En mode simulation : auto-approbation autorisée pour les tests
+            if ($fedapay->isSimulationAllowed() || !$fedapay->isConfigured()) {
+                abort_unless(
+                    $fedapay->isSimulationAllowed() || app()->environment('local', 'testing'),
                     403,
                     'La validation de paiement en mode non configuré est interdite en environnement de production.'
                 );

@@ -48,6 +48,7 @@ return [
         'environment' => env('FEDAPAY_ENV', 'sandbox'),
         'webhook_secret' => env('FEDAPAY_WEBHOOK_SECRET', ''),
         'callback_url' => env('FEDAPAY_CALLBACK_URL', null),
+        'allow_simulation' => env('ALLOW_PAYMENT_SIMULATION', true),
     ],
 
     'brevo' => [

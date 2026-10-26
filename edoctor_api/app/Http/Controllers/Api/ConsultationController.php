@@ -267,17 +267,12 @@ class ConsultationController extends Controller
     {
         Gate::authorize('view', $consultation);
 
-        // Verrouillage de sécurité critique : le paiement simulé est strictement banni en production
-        abort_if(
-            ! app()->environment('local', 'testing'),
+        // Verrouillage de sécurité : le paiement simulé direct est banni en production réelle
+        // Il est autorisé uniquement en local/test ou si ALLOW_PAYMENT_SIMULATION est actif
+        abort_unless(
+            $fedapay->isSimulationAllowed() || app()->environment('local', 'testing'),
             403,
-            'Le règlement simulé direct est formellement interdit en environnement de production. Veuillez utiliser la passerelle de paiement sécurisée (FedaPay).'
-        );
-
-        abort_if(
-            $fedapay->isConfigured(),
-            403,
-            'Le paiement doit être effectué via FedaPay (Mobile Money).'
+            'Le règlement simulé direct est désactivé en environnement de production réelle. Veuillez utiliser la passerelle de paiement sécurisée (FedaPay).'
         );
 
         $validated = $request->validate([

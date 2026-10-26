@@ -31,6 +31,19 @@ class FedaPayService
     }
 
     /**
+     * Vérifie si le mode simulation de paiement est autorisé pour les tests.
+     * En environnement Live réel (production avec vrais flux bancaires), la simulation est strictement bloquée.
+     */
+    public function isSimulationAllowed(): bool
+    {
+        if ($this->environment === 'live') {
+            return false;
+        }
+
+        return (bool) config('services.fedapay.allow_simulation', env('ALLOW_PAYMENT_SIMULATION', true));
+    }
+
+    /**
      * Crée une transaction sur FedaPay et génère son URL de checkout.
      *
      * @param float $amount Montant en FCFA (XOF)
@@ -48,9 +61,9 @@ class FedaPayService
         array $metadata = [],
         ?string $callbackUrl = null
     ): array {
-        // Mode Simulation si la clé API n'a pas encore été renseignée
-        if (!$this->isConfigured()) {
-            Log::warning('[FedaPayService] Clé API FedaPay non configurée. Génération d\'un paiement simulé.');
+        // Mode Simulation si activé pour les tests ou si les clés FedaPay ne sont pas encore configurées
+        if ($this->isSimulationAllowed() || !$this->isConfigured()) {
+            Log::info('[FedaPayService] Mode simulation de paiement actif pour test.');
             $mockTxnId = rand(100000, 999999);
             return [
                 'simulated' => true,
