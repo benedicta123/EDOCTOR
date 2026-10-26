@@ -52,7 +52,7 @@ class ConsultationController extends Controller
             ->latest()
             ->get();
 
-        return response()->json($consultations);
+        return response()->json($consultations, 200, [], JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE);
     }
 
     public function store(Request $request)
@@ -101,7 +101,12 @@ class ConsultationController extends Controller
 
         // Le médecin n'est PAS notifié ici : il le sera uniquement après confirmation
         // du paiement (voir Consultation::markAsPaid()).
-        return response()->json($consultation->load(['doctor.hospital', 'patient']), 201);
+        return response()->json(
+            $consultation->load(['doctor.hospital', 'patient']),
+            201,
+            [],
+            JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE
+        );
     }
 
     public function start(Request $request, Consultation $consultation)
@@ -300,7 +305,7 @@ class ConsultationController extends Controller
             'message' => 'Paiement de la téléconsultation validé avec succès.',
             'consultation' => $consultation->fresh(['doctor.hospital', 'patient', 'payment']),
             'payment' => $payment,
-        ]);
+        ], 200, [], JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE);
     }
 
     /**

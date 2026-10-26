@@ -7,8 +7,10 @@ if [ ! -f .env ]; then
   cp .env.example .env
 fi
 
-echo "==> key:generate"
-php artisan key:generate --force
+if [ -z "$APP_KEY" ] && ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
+  echo "==> key:generate (première initialisation)"
+  php artisan key:generate --force
+fi
 
 echo "==> migrate"
 php artisan migrate --force

@@ -90,9 +90,18 @@ class _ConsultationPaymentScreenState extends State<ConsultationPaymentScreen> {
       }
 
       // 1. Consultation : existante, en cours de session ou nouvelle demande
-      final consultation = _activeConsultation ??
-          widget.existingConsultation ??
-          await ApiService.requestConsultation(_doctor.id);
+      ConsultationModel consultation;
+      if (_activeConsultation != null) {
+        consultation = _activeConsultation!;
+      } else if (widget.existingConsultation != null) {
+        consultation = widget.existingConsultation!;
+      } else {
+        try {
+          consultation = await ApiService.requestConsultation(_doctor.id);
+        } catch (e) {
+          throw Exception('Échec demande consultation : $e');
+        }
+      }
       _activeConsultation = consultation;
 
       // 2. Initialisation de la transaction FedaPay

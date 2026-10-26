@@ -92,13 +92,13 @@ class FedaPayPaymentController extends Controller
                 'token' => $paymentResult['token'],
                 'amount' => $pricing['total_amount'],
                 'simulated' => $paymentResult['simulated'] ?? false,
-            ]);
+            ], 200, [], JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             Log::error('[FedaPay Controller] Erreur initiation paiement : ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], 500);
+            ], 500, [], JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -182,7 +182,7 @@ class FedaPayPaymentController extends Controller
                     'status' => 'paye',
                     'is_approved' => true,
                     'message' => 'Paiement Mobile Money validé avec succès !',
-                ]);
+                ], 200, [], JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE);
             }
 
             return response()->json([
@@ -190,7 +190,7 @@ class FedaPayPaymentController extends Controller
                 'status' => $txn['status'] ?? 'pending',
                 'is_approved' => false,
                 'message' => 'Paiement en attente de finalisation.',
-            ]);
+            ], 200, [], JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             Log::error('[FedaPay Verify] Erreur vérification : ' . $e->getMessage());
             return response()->json([
@@ -198,7 +198,7 @@ class FedaPayPaymentController extends Controller
                 'status' => $consultation->payment_status,
                 'is_approved' => false,
                 'message' => $e->getMessage(),
-            ], 500);
+            ], 500, [], JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE);
         }
     }
 
