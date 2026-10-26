@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
+use App\Models\Traits\HasSafeUtf8Attributes;
 
 class LabRequestResult extends Model
 {
-    use HasFactory;
+    use HasFactory, HasSafeUtf8Attributes;
 
     protected $fillable = [
         'lab_request_id',
@@ -27,14 +28,8 @@ class LabRequestResult extends Model
     protected function patientNotes(): Attribute
     {
         return Attribute::make(
-            get: function ($value) {
-                if ($value === null || $value === '') return $value;
-                try { return Crypt::decryptString($value); } catch (\Throwable) { return $value; }
-            },
-            set: function ($value) {
-                if ($value === null || $value === '') return $value;
-                try { return Crypt::encryptString($value); } catch (\Throwable) { return $value; }
-            }
+            get: fn ($value) => self::safeDecrypt($value),
+            set: fn ($value) => self::safeEncrypt($value)
         );
     }
 

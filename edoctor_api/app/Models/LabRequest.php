@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Crypt;
+use App\Models\Traits\HasSafeUtf8Attributes;
 
 class LabRequest extends Model
 {
-    use HasFactory;
+    use HasFactory, HasSafeUtf8Attributes;
 
     protected $fillable = [
         'reference_code',
@@ -36,28 +37,16 @@ class LabRequest extends Model
     protected function clinicalNotes(): Attribute
     {
         return Attribute::make(
-            get: function ($value) {
-                if ($value === null || $value === '') return $value;
-                try { return Crypt::decryptString($value); } catch (\Throwable) { return $value; }
-            },
-            set: function ($value) {
-                if ($value === null || $value === '') return $value;
-                try { return Crypt::encryptString($value); } catch (\Throwable) { return $value; }
-            }
+            get: fn ($value) => self::safeDecrypt($value),
+            set: fn ($value) => self::safeEncrypt($value)
         );
     }
 
     protected function doctorReviewNotes(): Attribute
     {
         return Attribute::make(
-            get: function ($value) {
-                if ($value === null || $value === '') return $value;
-                try { return Crypt::decryptString($value); } catch (\Throwable) { return $value; }
-            },
-            set: function ($value) {
-                if ($value === null || $value === '') return $value;
-                try { return Crypt::encryptString($value); } catch (\Throwable) { return $value; }
-            }
+            get: fn ($value) => self::safeDecrypt($value),
+            set: fn ($value) => self::safeEncrypt($value)
         );
     }
 

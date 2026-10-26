@@ -126,27 +126,8 @@ class Consultation extends Model
     protected function diagnosis(): Attribute
     {
         return Attribute::make(
-            get: function ($value) {
-                if ($value === null || $value === '') {
-                    return $value;
-                }
-                try {
-                    $decrypted = Crypt::decryptString($value);
-                    return mb_convert_encoding($decrypted, 'UTF-8', 'UTF-8');
-                } catch (\Throwable) {
-                    return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
-                }
-            },
-            set: function ($value) {
-                if ($value === null || $value === '') {
-                    return $value;
-                }
-                try {
-                    return Crypt::encryptString($value);
-                } catch (\Throwable) {
-                    return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
-                }
-            }
+            get: fn ($value) => self::safeDecrypt($value),
+            set: fn ($value) => self::safeEncrypt($value)
         );
     }
 

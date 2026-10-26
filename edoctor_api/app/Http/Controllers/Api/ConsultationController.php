@@ -101,8 +101,12 @@ class ConsultationController extends Controller
 
         // Le médecin n'est PAS notifié ici : il le sera uniquement après confirmation
         // du paiement (voir Consultation::markAsPaid()).
+        json_decode('[]');
+        $payload = $consultation->load(['doctor.hospital', 'patient'])->toArray();
+        json_decode('[]');
+
         return response()->json(
-            $consultation->load(['doctor.hospital', 'patient']),
+            $payload,
             201,
             [],
             JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE
