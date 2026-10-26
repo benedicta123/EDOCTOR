@@ -77,6 +77,7 @@ class _StaffScreenState extends State<StaffScreen>
     final phone = TextEditingController();
     final specialty = TextEditingController();
     final license = TextEditingController();
+    bool obscurePassword = true;
 
     showDialog(
       context: context,
@@ -111,47 +112,77 @@ class _StaffScreenState extends State<StaffScreen>
             ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                  controller: name,
-                  decoration:
-                      const InputDecoration(labelText: 'Nom complet')),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'E-mail')),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: password,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                      labelText: 'Mot de passe (8 caractères minimum)')),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: phone,
-                  keyboardType: TextInputType.phone,
-                  decoration:
-                      const InputDecoration(labelText: 'Téléphone')),
-              if (isDoctor) ...[
-                const SizedBox(height: 12),
-                TextField(
-                    controller: specialty,
-                    decoration: const InputDecoration(
+        content: StatefulBuilder(
+          builder: (context, setDialogState) {
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: name,
+                    decoration:
+                        const InputDecoration(labelText: 'Nom complet'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(labelText: 'E-mail'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: password,
+                    obscureText: obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Mot de passe (8 caractères minimum)',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
+                        tooltip: obscurePassword
+                            ? 'Afficher le mot de passe'
+                            : 'Masquer le mot de passe',
+                        onPressed: () {
+                          setDialogState(() {
+                            obscurePassword = !obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration:
+                        const InputDecoration(labelText: 'Téléphone'),
+                  ),
+                  if (isDoctor) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: specialty,
+                      decoration: const InputDecoration(
                         labelText: 'Spécialité *',
-                        hintText: 'ex. Cardiologie')),
-              ],
-              const SizedBox(height: 12),
-              TextField(
-                  controller: license,
-                  decoration: const InputDecoration(
-                      labelText: 'N° licence / ordre *')),
-              const SizedBox(height: 8),
-            ],
-          ),
+                        hintText: 'ex. Cardiologie',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: license,
+                    decoration: const InputDecoration(
+                      labelText: 'N° licence / ordre *',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
         ),
         actions: [
           TextButton(
