@@ -9,15 +9,12 @@ return [
     |
     | La visioconférence eDoctor repose sur JaaS. Le domaine, l'App ID et la
     | clé privée vivent UNIQUEMENT côté serveur : le JWT est signé ici,
-    | jamais dans Flutter. Valeurs réelles dans le fichier `.env` :
+    | jamais dans Flutter. Valeurs réelles dans le fichier `.env` ou Dokploy :
     |
-    |   JAAS_APP_ID=votre-app-id-jaas
-    |   JAAS_KEY_ID=votre-key-id (colonne "ID" de la clé API JaaS)
-    |   JAAS_PRIVATE_KEY_PATH=/chemin/absolu/ou/relatif/vers/edoctor-private.pem
-    |
-    | Placer le fichier .pem téléchargé depuis la console JaaS
-    | (https://jaas.8x8.vc) dans storage/app/jaas/ (dossier ignoré par git)
-    | et pointer JAAS_PRIVATE_KEY_PATH dessus.
+    |   JAAS_APP_ID=vpaas-magic-cookie-xxxx
+    |   JAAS_KEY_ID=vpaas-magic-cookie-xxxx/xxxxxx
+    |   JAAS_PRIVATE_KEY=-----BEGIN PRIVATE KEY... (ou base64 pour Dokploy)
+    |   JAAS_PRIVATE_KEY_PATH=/chemin/vers/edoctor_privatekey.pk
     |
     */
 
@@ -25,16 +22,19 @@ return [
 
     'key_id' => env('JAAS_KEY_ID'),
 
+    // Clé privée brute ou encodée en base64 pour injection facile dans Dokploy
+    'private_key' => env('JAAS_PRIVATE_KEY'),
+
     'private_key_path' => env(
         'JAAS_PRIVATE_KEY_PATH',
-        storage_path('app/jaas/edoctor-private.pem')
+        storage_path('app/jaas/edoctor_privatekey.pk')
     ),
 
     // Domaine JaaS (compte déjà créé).
     'domain' => env('JAAS_DOMAIN', '8x8.vc'),
 
-    // Durée de validité du JWT en secondes : 50 minutes (3000 s) correspondant à une consultation complète.
-    'token_ttl' => (int) env('JAAS_TOKEN_TTL', 3000),
+    // Durée de validité du JWT en secondes (7200s = 2 heures max).
+    'token_ttl' => (int) env('JAAS_TOKEN_TTL', 7200),
 
     // Chemin openssl.cnf (Windows surtout). Vide = détection automatique.
     'openssl_cnf' => env('JAAS_OPENSSL_CNF'),

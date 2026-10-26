@@ -39,32 +39,80 @@ class JaasService
     }
 
     /**
+     * Résout la clé privée JaaS depuis plusieurs sources possibles :
+     * 1. Variable d'environnement JAAS_PRIVATE_KEY (brute ou encodée en base64, idéal Dokploy)
+     * 2. JAAS_PRIVATE_KEY_PATH si elle contient directement la clé PEM
+     * 3. Fichier physique pointé par JAAS_PRIVATE_KEY_PATH
+     * 4. Emplacements standards dans storage/app/jaas/
+     */
+    public function resolvePrivateKey(): ?string
+    {
+        // 1. Variable d'environnement JAAS_PRIVATE_KEY
+        $raw = (string) (config('jaas.private_key') ?: env('JAAS_PRIVATE_KEY', ''));
+        if ($raw !== '') {
+            $trimmed = trim($raw);
+            // Support base64 (très utile pour Dokploy car évite les problèmes de retours à la ligne)
+            if (str_starts_with($trimmed, 'LS0t') || (base64_decode($trimmed, true) !== false && str_contains(base64_decode($trimmed, true), 'PRIVATE KEY'))) {
+                return base64_decode($trimmed);
+            }
+            if (str_contains($trimmed, '\n')) {
+                $trimmed = str_replace('\n', "\n", $trimmed);
+            }
+            return $trimmed;
+        }
+
+        // 2. Si l'utilisateur a collé le contenu PEM dans JAAS_PRIVATE_KEY_PATH
+        $path = (string) config('jaas.private_key_path');
+        if ($path !== '' && str_contains($path, 'PRIVATE KEY')) {
+            return str_replace('\n', "\n", $path);
+        }
+
+        // 3. Fichier physique spécifié
+        if ($path !== '' && is_file($path) && is_readable($path)) {
+            $content = @file_get_contents($path);
+            if ($content !== false && trim($content) !== '') {
+                return $content;
+            }
+        }
+
+        // 4. Emplacements par défaut
+        $candidates = [
+            storage_path('app/jaas/edoctor_privatekey.pk'),
+            storage_path('app/jaas/edoctor-private.pem'),
+            storage_path('app/jaas/private.pem'),
+        ];
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate) && is_readable($candidate)) {
+                $content = @file_get_contents($candidate);
+                if ($content !== false && trim($content) !== '') {
+                    return $content;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return array{server_url:string,domain:string,app_id:string,room_name:string,jwt:string,expires_at:string}
      */
     public function joinPayload(Consultation $consultation, User $user): array
     {
         $appId = (string) config('jaas.app_id');
         $keyId = (string) config('jaas.key_id');
-        $keyPath = (string) config('jaas.private_key_path');
         $domain = (string) config('jaas.domain', '8x8.vc');
         $ttl = (int) config('jaas.token_ttl', 7200);
 
         abort_if($appId === '' || $keyId === '', 503,
             'Visioconférence non configurée (JAAS_APP_ID / JAAS_KEY_ID manquants).');
-        // NOTE : les ID de clé JaaS sont courts (ex. {APP_ID}/3a0565) — aucun
-        // contrôle de format ici. Si 8x8 rejette le JWT (« Authentication
-        // failed »), c'est que JAAS_KEY_ID et/ou la clé privée ne correspondent
-        // pas à la même clé API de la console.
-        abort_if(! is_file($keyPath) || ! is_readable($keyPath), 503,
-            'Visioconférence non configurée (clé privée JaaS introuvable).');
 
         // À appeler AVANT toute opération OpenSSL du processus : la
         // bibliothèque fige sa configuration au premier usage.
         self::ensureOpensslEnvironment();
 
-        $privateKey = @file_get_contents($keyPath);
-        abort_if($privateKey === false, 503,
-            'Visioconférence non configurée (clé privée JaaS illisible).');
+        $privateKey = $this->resolvePrivateKey();
+        abort_if($privateKey === null || trim($privateKey) === '', 503,
+            'Visioconférence non configurée (clé privée JaaS introuvable). Veuillez définir la variable JAAS_PRIVATE_KEY sur Dokploy.');
 
         $key = @openssl_pkey_get_private($privateKey);
         abort_if($key === false, 503,

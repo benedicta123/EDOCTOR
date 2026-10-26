@@ -18,6 +18,18 @@ php artisan migrate --force
 echo "==> storage:link"
 php artisan storage:link || true
 
+# Configuration automatique du fichier de clé JaaS si JAAS_PRIVATE_KEY est présent
+if [ -n "$JAAS_PRIVATE_KEY" ]; then
+  echo "==> configuration clé privée JaaS..."
+  mkdir -p storage/app/jaas
+  if echo "$JAAS_PRIVATE_KEY" | grep -q "^LS0t"; then
+    echo "$JAAS_PRIVATE_KEY" | base64 -d > storage/app/jaas/edoctor_privatekey.pk
+  else
+    printf "%b\n" "$JAAS_PRIVATE_KEY" > storage/app/jaas/edoctor_privatekey.pk
+  fi
+  chmod 600 storage/app/jaas/edoctor_privatekey.pk
+fi
+
 echo "==> cache"
 php artisan config:cache
 php artisan route:cache
