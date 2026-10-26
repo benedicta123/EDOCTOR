@@ -41,7 +41,7 @@ class _DoctorConsultationsScreenState extends State<DoctorConsultationsScreen> {
     super.initState();
     _load();
     IncomingCallWatcher.instance.start();
-    _autoRefresh = Timer.periodic(const Duration(seconds: 15), (_) {
+    _autoRefresh = Timer.periodic(const Duration(seconds: 3), (_) {
       if (ModalRoute.of(context)?.isCurrent != true) return;
       _silentRefresh();
     });

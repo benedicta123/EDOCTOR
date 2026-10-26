@@ -47,7 +47,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
     _heartbeat = Timer.periodic(const Duration(seconds: 45), (_) {
       ApiService.heartbeat();
     });
-    _consultationPolling = Timer.periodic(const Duration(seconds: 15), (_) {
+    _consultationPolling = Timer.periodic(const Duration(seconds: 3), (_) {
       if (ModalRoute.of(context)?.isCurrent != true) return;
       _refreshNotificationCount();
       _silentRefresh();

@@ -20,7 +20,7 @@ class IncomingCallWatcher {
 
   void start() {
     if (_timer != null) return;
-    _timer = Timer.periodic(const Duration(milliseconds: 2500), (_) => _tick());
+    _timer = Timer.periodic(const Duration(milliseconds: 2000), (_) => _tick());
   }
 
   void stop() {

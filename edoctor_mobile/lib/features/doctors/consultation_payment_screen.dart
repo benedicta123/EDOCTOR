@@ -35,6 +35,7 @@ class _ConsultationPaymentScreenState extends State<ConsultationPaymentScreen> {
   final TextEditingController _phoneController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  ConsultationModel? _activeConsultation;
 
   @override
   void initState() {
@@ -88,9 +89,11 @@ class _ConsultationPaymentScreenState extends State<ConsultationPaymentScreen> {
         );
       }
 
-      // 1. Consultation : existante ou nouvelle demande
-      final consultation = widget.existingConsultation ??
+      // 1. Consultation : existante, en cours de session ou nouvelle demande
+      final consultation = _activeConsultation ??
+          widget.existingConsultation ??
           await ApiService.requestConsultation(_doctor.id);
+      _activeConsultation = consultation;
 
       // 2. Initialisation de la transaction FedaPay
       Map<String, dynamic>? fedapayRes;

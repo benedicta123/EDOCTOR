@@ -190,14 +190,15 @@ class Consultation extends Model
     }
 
     /**
-     * Une demande en attente n'est visible par le médecin (et ne déclenche la sonnerie)
-     * qu'une fois le paiement du patient confirmé.
+     * Une demande n'est visible par le médecin (et ne déclenche la sonnerie)
+     * qu'une fois le paiement du patient confirmé (ou si elle est en cours/terminée).
+     * Les demandes abandonnées ou annulées sans avoir été payées ne polluent jamais l'espace du praticien.
      */
     public function scopeVisibleToDoctor($query)
     {
         return $query->where(function ($q) {
             $q->where('payment_status', 'paye')
-                ->orWhere('status', '!=', 'en_attente');
+                ->orWhereIn('status', ['en_cours', 'terminee']);
         });
     }
 
@@ -306,6 +307,7 @@ class Consultation extends Model
 
         $expired = static::where('status', 'en_attente')
             ->where('payment_status', 'paye')
+            ->whereNull('scheduled_at')
             ->where('created_at', '<=', $cutoff)
             ->with(['doctor.hospital', 'patient'])
             ->get();
