@@ -120,14 +120,24 @@ class JaasService
 
         $now = time();
         $room = $this->roomName($consultation);
-        $isDoctor = $user->id === $consultation->doctor_id;
+        $isDoctor = (bool) ($user->id === $consultation->doctor_id);
 
-        $header = ['alg' => 'RS256', 'typ' => 'JWT', 'kid' => $keyId];
+        // Normalisation stricte du Key ID pour 8x8 JaaS :
+        // Le kid DOIT toujours être sous la forme "{appId}/{keyIdSuffix}"
+        $cleanAppId = trim($appId, " \"'");
+        $cleanKeyId = trim($keyId, " \"'");
+        $kid = str_contains($cleanKeyId, '/')
+            ? $cleanKeyId
+            : (rtrim($cleanAppId, '/') . '/' . ltrim($cleanKeyId, '/'));
+
+        $header = ['alg' => 'RS256', 'typ' => 'JWT', 'kid' => $kid];
         $payload = [
             'aud' => 'jitsi',
             'iss' => 'chat',
-            'sub' => $appId,
-            'room' => $room,
+            'sub' => $cleanAppId,
+            // Wildcard '*' indispensable pour 8x8 JaaS : autorise la salle demandée
+            // que le client la préfixe par appId ou non, éliminant l'erreur "not allowed to join this call"
+            'room' => '*',
             'nbf' => $now - 10,
             'exp' => $now + $ttl,
             'context' => [
