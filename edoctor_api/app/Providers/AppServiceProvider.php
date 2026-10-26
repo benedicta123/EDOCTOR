@@ -12,6 +12,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use App\Services\SafeResponseFactory;
+use Illuminate\Contracts\Routing\ResponseFactory as ResponseFactoryContract;
+use Illuminate\Contracts\View\Factory as ViewFactoryContract;
 use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,7 +24,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Enregistrement d'un ResponseFactory sécurisé contre les erreurs UTF-8
+        $this->app->singleton(ResponseFactoryContract::class, function ($app) {
+            return new SafeResponseFactory(
+                $app[ViewFactoryContract::class],
+                $app['redirect']
+            );
+        });
     }
 
     /**

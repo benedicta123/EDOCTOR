@@ -11,11 +11,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Models\Traits\HasSafeUtf8Attributes;
 use App\Services\NotificationService;
 
 class Consultation extends Model
 {
-    use HasFactory;
+    use HasFactory, HasSafeUtf8Attributes;
 
     protected $fillable = [
         'reference_code', 'patient_id', 'doctor_id', 'status', 'scheduled_at', 'started_at', 'ended_at',

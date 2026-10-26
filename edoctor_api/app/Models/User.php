@@ -12,11 +12,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
+use App\Models\Traits\HasSafeUtf8Attributes;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasSafeUtf8Attributes;
 
     // Au-delà de ce délai sans heartbeat, l'utilisateur est considéré hors ligne.
     public const ONLINE_THRESHOLD_MINUTES = 2;
