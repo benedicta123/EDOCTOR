@@ -70,9 +70,10 @@ class User extends Authenticatable
                     return $value;
                 }
                 try {
-                    return Crypt::decryptString($value);
+                    $decrypted = Crypt::decryptString($value);
+                    return mb_convert_encoding($decrypted, 'UTF-8', 'UTF-8');
                 } catch (\Throwable) {
-                    return $value;
+                    return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                 }
             },
             set: function ($value) {
@@ -82,7 +83,7 @@ class User extends Authenticatable
                 try {
                     return Crypt::encryptString($value);
                 } catch (\Throwable) {
-                    return $value;
+                    return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                 }
             }
         );

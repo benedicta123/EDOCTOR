@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Services\NotificationService;
 
 class Consultation extends Model
@@ -70,31 +71,43 @@ class Consultation extends Model
      */
     public static function extractHospitalCode(string $name): string
     {
-        $words = preg_split('/[\s,\-\']+/u', trim($name));
+        $asciiName = Str::ascii($name);
+        $words = preg_split('/[\s,\-\']+/u', trim($asciiName));
         $stopWords = ['de', 'du', 'la', 'le', 'les', 'des', 'et', 'd', 'l', 'au', 'aux'];
         $filtered = [];
 
         foreach ($words as $w) {
-            $clean = preg_replace('/[^\p{L}\p{N}]/u', '', $w);
-            if (mb_strlen($clean) > 0 && !in_array(mb_strtolower($clean), $stopWords)) {
+            $clean = preg_replace('/[^a-zA-Z0-9]/', '', $w);
+            if (strlen($clean) > 0 && !in_array(strtolower($clean), $stopWords)) {
                 $filtered[] = $clean;
             }
         }
 
         $initials = '';
         foreach ($filtered as $w) {
-            $initials .= mb_substr($w, 0, 1);
-            if (mb_strlen($initials) >= 4) {
+            $initials .= substr($w, 0, 1);
+            if (strlen($initials) >= 4) {
                 break;
             }
         }
 
-        if (mb_strlen($initials) >= 2) {
-            return strtoupper(substr(iconv('UTF-8', 'ASCII//TRANSLIT', $initials) ?: $initials, 0, 4));
+        if (strlen($initials) >= 2) {
+            return strtoupper(substr($initials, 0, 4));
         }
 
-        $cleanAll = preg_replace('/[^a-zA-Z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $name) ?: $name);
+        $cleanAll = preg_replace('/[^a-zA-Z0-9]/', '', $asciiName);
         return strtoupper(substr($cleanAll, 0, 3)) ?: 'EDO';
+    }
+
+    /**
+     * Nettoyage automatique des caractères non-UTF8 pour éviter les erreurs de sérialisation JSON.
+     */
+    protected function referenceCode(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($v) => $v ? mb_convert_encoding($v, 'UTF-8', 'UTF-8') : null,
+            set: fn ($v) => $v ? mb_convert_encoding($v, 'UTF-8', 'UTF-8') : null,
+        );
     }
 
     protected $casts = [
@@ -117,9 +130,10 @@ class Consultation extends Model
                     return $value;
                 }
                 try {
-                    return Crypt::decryptString($value);
+                    $decrypted = Crypt::decryptString($value);
+                    return mb_convert_encoding($decrypted, 'UTF-8', 'UTF-8');
                 } catch (\Throwable) {
-                    return $value;
+                    return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                 }
             },
             set: function ($value) {
@@ -129,7 +143,7 @@ class Consultation extends Model
                 try {
                     return Crypt::encryptString($value);
                 } catch (\Throwable) {
-                    return $value;
+                    return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
                 }
             }
         );
