@@ -122,8 +122,9 @@ class AppNotification {
       AppNotification(
         id: (json['id'] as num?)?.toInt() ?? 0,
         type: json['type'] as String? ?? 'info',
-        message: json['message'] as String? ??
-            json['data_message'] as String? ??
+        message: (json['content'] ??
+                json['message'] ??
+                json['data_message']) as String? ??
             '',
         isRead: json['read_at'] != null ||
             json['is_read'] == true ||

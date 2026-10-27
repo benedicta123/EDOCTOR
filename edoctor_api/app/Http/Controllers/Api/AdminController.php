@@ -207,7 +207,7 @@ class AdminController extends Controller
             NotificationService::send(
                 $admin,
                 'hospital_verified',
-                "Félicitations ! L'homologation de {$hospital->name} a été validée par la Régulation eDoctor."
+                "Votre hôpital est désormais certifié et homologué par eDoctor. Vous pouvez dès à présent démarrer vos activités médicales et accueillir vos patients en toute conformité."
             );
         }
 

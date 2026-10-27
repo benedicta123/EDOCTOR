@@ -61,6 +61,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Icons.notifications_rounded;
   }
 
+  String _titleFor(String type) {
+    switch (type) {
+      case 'hospital_verified':
+        return 'Hôpital vérifié';
+      case 'hospital_rejected':
+        return 'Demande d\'homologation refusée';
+      case 'consultation_requested':
+        return 'Nouvelle demande de consultation';
+      case 'consultation_started':
+        return 'Consultation démarrée';
+      case 'consultation_declined':
+        return 'Consultation déclinée';
+      case 'consultation_cancelled':
+        return 'Consultation annulée';
+      case 'consultation_ended':
+        return 'Consultation terminée';
+      case 'prescription_created':
+        return 'Nouvelle ordonnance';
+      case 'nurse_visit_requested':
+        return 'Demande de soins infirmiers';
+      case 'nurse_visit_accepted':
+        return 'Soins infirmiers acceptés';
+      case 'nurse_visit_completed':
+        return 'Soins infirmiers terminés';
+      case 'order_ready':
+        return 'Commande prête';
+      case 'order_delivered':
+        return 'Commande livrée';
+      default:
+        final raw = type.replaceAll('_', ' ').trim();
+        if (raw.isEmpty) return 'Notification';
+        return raw[0].toUpperCase() + raw.substring(1);
+    }
+  }
+
+  String _messageFor(AppNotification notification) {
+    if (notification.message.trim().isNotEmpty) {
+      return notification.message;
+    }
+    if (notification.type == 'hospital_verified') {
+      return 'Votre hôpital est désormais certifié et homologué par eDoctor. Vous pouvez dès à présent démarrer vos activités médicales et accueillir vos patients en toute conformité.';
+    }
+    return 'Consultez les détails de cette notification dans votre espace professionnel.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final unread = _notifications.where((n) => !n.isRead).length;
@@ -124,7 +169,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                         ),
                         title: Text(
-                          notification.type.replaceAll('_', ' '),
+                          _titleFor(notification.type),
                           style: TextStyle(
                             fontWeight: unreadItem
                                 ? FontWeight.w700
@@ -138,7 +183,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            notification.message,
+                            _messageFor(notification),
                             style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 12.5,

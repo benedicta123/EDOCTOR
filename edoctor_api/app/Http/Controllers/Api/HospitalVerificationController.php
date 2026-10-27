@@ -43,7 +43,7 @@ class HospitalVerificationController extends Controller
             NotificationService::send(
                 $admin,
                 'hospital_verified',
-                "Félicitations ! L'établissement {$hospital->name} a été officiellement vérifié et activé sur eDoctor."
+                "Votre hôpital est désormais certifié et homologué par eDoctor. Vous pouvez dès à présent démarrer vos activités médicales et accueillir vos patients en toute conformité."
             );
         }
 
