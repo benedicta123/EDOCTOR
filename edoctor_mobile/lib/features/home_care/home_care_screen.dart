@@ -583,7 +583,7 @@ class _HomeCareScreenState extends State<HomeCareScreen> {
                         (it) => Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2),
                           child: Text(
-                            '• ${it.name} - ${it.dosage} (${it.duration})',
+                            '• ${it.medicationName}${it.dosageInstructions.isNotEmpty ? " - ${it.dosageInstructions}" : ""}',
                             style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                           ),
                         ),

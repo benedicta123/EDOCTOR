@@ -508,7 +508,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                       MaterialPageRoute(
                         builder: (_) => HomeCareScreen(initialPrescription: ord),
                       ),
-                    ).then((_) => _loadData());
+                    ).then((_) => _load());
                   },
                   tooltip: 'Soins à domicile',
                   icon: Icon(
@@ -594,7 +594,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
     try {
       await ApiService.requestNurseVisit(ord.id);
       if (!mounted) return;
-      _loadData();
+      _load();
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
