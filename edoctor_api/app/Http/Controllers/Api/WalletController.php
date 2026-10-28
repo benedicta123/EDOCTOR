@@ -31,7 +31,7 @@ class WalletController extends Controller
         }
 
         // 2. Administrateur Hospitalier -> Portefeuille de l'Hôpital
-        if ($user->isHospitalAdmin() && $user->hospital_id) {
+        if ($user->hospital_id && ($user->isHospitalAdmin() || $user->isAdmin())) {
             $hospital = Hospital::find($user->hospital_id);
             return $hospital ? $hospital->getOrCreateWallet() : $user->getOrCreateWallet();
         }

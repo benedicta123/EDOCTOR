@@ -99,7 +99,15 @@ class _PraticienWalletScreenState extends State<PraticienWalletScreen> {
   }
 
   Future<void> _promptPayoutRequest() async {
-    if (_wallet == null) return;
+    if (_wallet == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chargement des informations du portefeuille... Veuillez réessayer dans un instant.'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
     if (_wallet!.balance < 2000) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -319,12 +327,10 @@ class _PraticienWalletScreenState extends State<PraticienWalletScreen> {
   }
 
   Future<void> _promptUpdatePayoutAccount() async {
-    if (_wallet == null) return;
-
-    final accountController = TextEditingController(text: _wallet!.payoutAccount ?? '');
-    final nameController = TextEditingController(text: _wallet!.payoutAccountName ?? (_user?.name ?? ''));
+    final accountController = TextEditingController(text: _wallet?.payoutAccount ?? '');
+    final nameController = TextEditingController(text: _wallet?.payoutAccountName ?? (_user?.name ?? ''));
     final messenger = ScaffoldMessenger.of(context);
-    String selectedMethod = _wallet!.payoutChannel ?? 't-money';
+    String selectedMethod = _wallet?.payoutChannel ?? 't-money';
     bool submitting = false;
     String? errorMessage;
 
