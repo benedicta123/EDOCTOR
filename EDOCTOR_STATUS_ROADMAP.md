@@ -172,3 +172,5 @@
    - Intégration de Flutter Map / Google Maps pour visualiser les pharmacies de garde et suivre le coursier en temps réel.
 8. **Dossier Médical Partagé Interopérable (HL7 / FHIR) :**
    - Synchronisation avec les systèmes d'information hospitaliers (SIH).
+9. **Réseau & Flotte de Coursiers eDoctor Connectés (V2 Dispatch Automatique) :**
+   - Application/module dédié pour les livreurs partenaires (motos/vélos), alertes instantanées de nouvelles courses géolocalisées à proximité d'une pharmacie, acceptation en 1 clic sans appel téléphonique, et encaissement direct des frais de livraison vers Mobile Money (T-Money, Flooz).

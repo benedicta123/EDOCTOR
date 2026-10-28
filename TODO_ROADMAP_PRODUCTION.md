@@ -71,6 +71,17 @@
   - [x] Rendre fonctionnel le téléversement de fichier CSV/Excel pour charger ou mettre à jour le catalogue de médicaments et les prix d'une pharmacie en un clic.
   - [x] Permettre l'export de l'inventaire actuel pour la comptabilité de l'officine.
 
+- [ ] **[V2 - Évolution Prévue] Réseau & Flotte de Coursiers / Livreurs eDoctor Connectés**
+  - [ ] **Application mobile ou module dédié Coursier (`edoctor_courier`) :**
+    - [ ] Inscription et vérification des livreurs indépendants à moto/vélo (pièce d'identité, permis, moyen de transport).
+    - [ ] Portefeuille coursier dédié avec encaissement direct de la part livraison (~75 % des frais de transport) vers T-Money / Moov Flooz.
+  - [ ] **Dispatch & Attribution Automatique des Courses :**
+    - [ ] Dès qu'une pharmacie marque une commande prête pour livraison, notification push/SMS/WhatsApp instantanée envoyée aux coursiers disponibles géolocalisés à proximité.
+    - [ ] Prise en charge de la course en 1 clic par le premier coursier disponible (supprimant le besoin d'appel téléphonique manuel par la pharmacie).
+  - [ ] **Suivi GPS & Remise Sécurisée :**
+    - [ ] Tracking GPS en temps réel sur la carte pour le patient et la pharmacie.
+    - [ ] Validation de livraison par scan direct du QR Code / code OTP 4 chiffres du patient sur le smartphone du coursier pour déblocage immédiat des fonds.
+
 ---
 
 ## 💳 3. Passerelles de Paiement, Portefeuilles & Monétisation (T-Money, Flooz, CB)
