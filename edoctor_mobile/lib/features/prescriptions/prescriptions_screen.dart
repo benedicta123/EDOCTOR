@@ -331,67 +331,88 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
+                color: ord.hasNurseVisit ? const Color(0xFFEFF6FF) : const Color(0xFFF0FDF4),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFBBF7D0)),
+                border: Border.all(color: ord.hasNurseVisit ? const Color(0xFFBFDBFE) : const Color(0xFFBBF7D0)),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
+                      color: ord.hasNurseVisit ? const Color(0xFFDBEAFE) : const Color(0xFFDCFCE7),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
-                      Icons.medical_services_rounded,
-                      color: Color(0xFF16A34A),
+                    child: Icon(
+                      ord.hasNurseVisit ? Icons.check_circle_outline_rounded : Icons.medical_services_rounded,
+                      color: ord.hasNurseVisit ? const Color(0xFF2563EB) : const Color(0xFF16A34A),
                       size: 20,
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Soins infirmiers recommandés',
+                          ord.hasNurseVisit ? 'Soins à domicile demandés' : 'Soins infirmiers recommandés',
                           style: TextStyle(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF166534),
+                            color: ord.hasNurseVisit ? const Color(0xFF1E40AF) : const Color(0xFF166534),
                           ),
                         ),
                         Text(
-                          'Un(e) infirmier(e) peut intervenir à domicile.',
+                          ord.hasNurseVisit
+                              ? (ord.nurseVisitStatus == 'en_attente'
+                                  ? 'En attente d\'affectation par l\'hôpital.'
+                                  : 'Infirmier en cours de prise en charge.')
+                              : 'Un(e) infirmier(e) peut intervenir à domicile.',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF15803D),
+                            color: ord.hasNurseVisit ? const Color(0xFF1D4ED8) : const Color(0xFF15803D),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF16A34A),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      shape: RoundedRectangleBorder(
+                  if (!ord.hasNurseVisit)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF16A34A),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () => _requestNurseVisit(ord),
+                      child: const Text(
+                        'Demander',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDBEAFE),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                    onPressed: () => _requestNurseVisit(ord),
-                    child: const Text(
-                      'Demander',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
+                      child: const Text(
+                        'Transmise',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E40AF),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -484,13 +505,21 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                 IconButton.filledTonal(
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const HomeCareScreen()),
-                    );
+                      MaterialPageRoute(
+                        builder: (_) => HomeCareScreen(initialPrescription: ord),
+                      ),
+                    ).then((_) => _loadData());
                   },
-                  tooltip: 'Demander un soin infirmier',
-                  icon: const Icon(Icons.home_repair_service_rounded, color: AppColors.primary, size: 20),
+                  tooltip: 'Soins à domicile',
+                  icon: Icon(
+                    ord.hasNurseVisit ? Icons.done_all_rounded : Icons.home_repair_service_rounded,
+                    color: ord.hasNurseVisit ? AppColors.textSecondary : AppColors.primary,
+                    size: 20,
+                  ),
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primaryContainer,
+                    backgroundColor: ord.hasNurseVisit
+                        ? Colors.grey.shade200
+                        : AppColors.primaryContainer,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
@@ -565,6 +594,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
     try {
       await ApiService.requestNurseVisit(ord.id);
       if (!mounted) return;
+      _loadData();
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(

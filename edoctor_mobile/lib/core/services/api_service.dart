@@ -600,6 +600,14 @@ class ApiService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
+  /// Récupérer les visites de soins infirmiers du patient connecté
+  /// GET /api/my-nurse-visits
+  static Future<List<Map<String, dynamic>>> getMyNurseVisits() async {
+    final response = await _consultationRequest('/my-nurse-visits');
+    final list = jsonDecode(response.body) as List;
+    return list.map((e) => e as Map<String, dynamic>).toList();
+  }
+
   // ─── Notifications ───────────────────────────────────────────────────────
 
   /// Récupérer les notifications du patient connecté.

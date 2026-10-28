@@ -25,6 +25,7 @@ class PrescriptionController extends Controller
                 'patient:id,name,date_of_birth,phone',
                 'consultation:id,reference_code,diagnosis,created_at',
                 'order',
+                'nurseVisit',
             ])
             ->latest()
             ->get();
@@ -44,6 +45,7 @@ class PrescriptionController extends Controller
                 'patient:id,name,date_of_birth,phone',
                 'consultation:id,reference_code,diagnosis,created_at',
                 'order',
+                'nurseVisit',
             ])
         );
     }

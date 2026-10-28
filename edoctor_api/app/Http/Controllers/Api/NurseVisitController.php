@@ -32,7 +32,7 @@ class NurseVisitController extends Controller
             'status' => 'en_attente',
         ]);
 
-        $admins = User::where('hospital_id', $hospitalId)->where('role', 'admin')->get();
+        $admins = User::where('hospital_id', $hospitalId)->whereIn('role', ['admin', 'hospital_admin'])->get();
         foreach ($admins as $admin) {
             NotificationService::send(
                 $admin,
@@ -141,19 +141,34 @@ class NurseVisitController extends Controller
     public function myVisits(Request $request)
     {
         $user = $request->user();
-        abort_unless($user->isNurse(), 403, 'Accès réservé aux infirmiers.');
 
-        $visits = NurseVisit::where('nurse_id', $user->id)
-            ->with([
-                'patient:id,name,phone,email,address,date_of_birth',
-                'prescription.doctor:id,name,phone',
-                'prescription.items.medication',
-                'hospital:id,name,phone,address',
-            ])
-            ->latest()
-            ->get();
+        if ($user->isNurse()) {
+            $visits = NurseVisit::where('nurse_id', $user->id)
+                ->with([
+                    'patient:id,name,phone,email,address,date_of_birth',
+                    'prescription.doctor:id,name,phone',
+                    'prescription.items.medication',
+                    'hospital:id,name,phone,address',
+                ])
+                ->latest()
+                ->get();
+            return response()->json($visits);
+        }
 
-        return response()->json($visits);
+        if ($user->isPatient()) {
+            $visits = NurseVisit::where('patient_id', $user->id)
+                ->with([
+                    'nurse:id,name,phone',
+                    'prescription.doctor:id,name,phone',
+                    'prescription.items.medication',
+                    'hospital:id,name,phone,address',
+                ])
+                ->latest()
+                ->get();
+            return response()->json($visits);
+        }
+
+        abort(403, 'Accès non autorisé.');
     }
 
     public function complete(Request $request, NurseVisit $nurseVisit)

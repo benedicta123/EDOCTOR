@@ -41,6 +41,7 @@ class PatientPrescription {
   final String? createdAt;
   final List<PrescriptionItemModel> items;
   final Map<String, dynamic>? order;
+  final Map<String, dynamic>? nurseVisit;
 
   const PatientPrescription({
     required this.id,
@@ -58,10 +59,13 @@ class PatientPrescription {
     this.createdAt,
     this.items = const [],
     this.order,
+    this.nurseVisit,
   });
 
   bool get isActive => status == 'validee';
   bool get hasOrder => order != null;
+  bool get hasNurseVisit => nurseVisit != null;
+  String? get nurseVisitStatus => nurseVisit?['status'] as String?;
 
   String get consultationDisplayCode {
     if (consultationReferenceCode != null && consultationReferenceCode!.trim().isNotEmpty) {
@@ -117,6 +121,7 @@ class PatientPrescription {
       createdAt: json['created_at'] as String?,
       items: items,
       order: json['order'] as Map<String, dynamic>?,
+      nurseVisit: (json['nurse_visit'] ?? json['nurseVisit']) as Map<String, dynamic>?,
     );
   }
 }
