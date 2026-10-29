@@ -193,18 +193,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ref = res['reference_id'] as String;
       }
     } catch (e) {
-      if (e.toString().contains('existe déjà')) {
-        if (!mounted) return;
-        setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
-            backgroundColor: AppColors.outOfStock,
-          ),
-        );
-        return;
-      }
-      // Si le backend est temporairement indisponible ou offline, on conserve le ref généré
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      final errorMsg = e.toString().replaceFirst('Exception: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: AppColors.outOfStock,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      return;
     }
 
     await StorageService.savePendingApplication(

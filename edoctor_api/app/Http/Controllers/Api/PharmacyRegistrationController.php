@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Pharmacy;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -44,7 +45,7 @@ class PharmacyRegistrationController extends Controller
             'license_number' => ['required', 'string', 'max:100'],
             'mobile_phone' => ['required', 'string', 'max:30'],
             'pharmacist_email' => ['nullable', 'string', 'email', 'max:255'],
-            'password' => ['required', Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()],
+            'password' => ['required', 'string', 'min:8'],
 
             // Étape 3 : Documents / Fichiers optionnels
             'documents' => ['nullable', 'array'],
@@ -93,6 +94,16 @@ class PharmacyRegistrationController extends Controller
                 'pharmacy' => $pharmacy,
             ];
         });
+
+        // Alerter immédiatement les super-administrateurs de la nouvelle demande d'agrément
+        $superAdmins = User::where('role', 'admin')->whereNull('hospital_id')->get();
+        foreach ($superAdmins as $superAdmin) {
+            NotificationService::send(
+                $superAdmin,
+                'pharmacy_registered',
+                "Nouvelle demande d'agrément de pharmacie : {$validated['pharmacy_name']} (Réf: {$referenceId})"
+            );
+        }
 
         return response()->json([
             'message' => "Votre dossier d'agrément a été enregistré avec succès et est en attente d'audit par la Conformité eDoctor.",
