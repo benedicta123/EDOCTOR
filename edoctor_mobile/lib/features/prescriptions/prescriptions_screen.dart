@@ -1458,6 +1458,9 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
   void _showOrderSuccessDialog(Map<String, dynamic> orderRes, Map<String, dynamic>? quote) {
     final orderId = orderRes['id'];
     final total = quote?['total_amount'] ?? orderRes['total_amount'];
+    final pickupCode = orderRes['pickup_code']?.toString();
+    final isDelivery = orderRes['delivery'] != null;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1502,6 +1505,44 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                 child: Text(
                   'Montant réglé : $total FCFA',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
+                ),
+              ),
+            ],
+            if (pickupCode != null && pickupCode.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      isDelivery ? 'Code de confirmation de livraison' : 'Code secret de retrait au comptoir',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      pickupCode,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 6,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isDelivery
+                          ? 'Communiquez ce code au coursier pour valider la livraison.'
+                          : 'Présentez ce code au pharmacien pour retirer vos médicaments.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                  ],
                 ),
               ),
             ],

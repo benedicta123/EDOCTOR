@@ -414,6 +414,59 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ],
           ),
 
+          // Encart Code Secret de Retrait / Livraison (Visible directement sur la carte)
+          if (order['pickupCode'] != null &&
+              order['pickupCode'].toString().isNotEmpty &&
+              order['status'] != 'collectee' &&
+              order['status'] != 'livree') ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryContainer.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.pin_rounded, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          order['isDelivery'] == true
+                              ? 'Code de livraison coursier'
+                              : 'Code secret de retrait au comptoir',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                        ),
+                        Text(
+                          order['pickupCode'].toString(),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 4,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           const SizedBox(height: 14),
 
           // Bouton d'action
