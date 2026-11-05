@@ -123,52 +123,124 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Info Patient & Coordonnées
+                // Info Patient & Coordonnées complètes
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceDim,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: AppColors.primaryContainer,
-                        child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              order.patientName,
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: AppColors.primaryContainer,
+                            child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  order.patientName,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textPrimary),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  order.isDelivery ? 'Mode : Livraison à domicile' : 'Mode : Retrait en officine (Comptoir)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: order.isDelivery ? Colors.blue.shade700 : AppColors.inStock,
+                                  ),
+                                ),
+                              ],
                             ),
-                            if (order.patientPhone != null)
-                              Text(
-                                '📞 ${order.patientPhone!}',
-                                style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Divider(height: 1),
+                      const SizedBox(height: 10),
+
+                      // Téléphone
+                      Row(
+                        children: [
+                          const Icon(Icons.phone_outlined, size: 16, color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Téléphone : ',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                          ),
+                          Expanded(
+                            child: SelectableText(
+                              (order.patientPhone != null && order.patientPhone!.isNotEmpty)
+                                  ? order.patientPhone!
+                                  : 'Non renseigné',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: (order.patientPhone != null && order.patientPhone!.isNotEmpty)
+                                    ? AppColors.textPrimary
+                                    : AppColors.textMuted,
                               ),
-                            if (order.isDelivery && order.deliveryAddress != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                '📍 Adresse : ${order.deliveryAddress!}',
-                                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.primary),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Adresse
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.location_on_outlined, size: 16, color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
+                          Text(
+                            order.isDelivery ? 'Adresse livraison : ' : 'Adresse patient : ',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                          ),
+                          Expanded(
+                            child: SelectableText(
+                              (order.displayAddress != null && order.displayAddress!.isNotEmpty)
+                                  ? order.displayAddress!
+                                  : 'Non renseignée',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: (order.displayAddress != null && order.displayAddress!.isNotEmpty)
+                                    ? AppColors.textPrimary
+                                    : AppColors.textMuted,
                               ),
-                            ],
-                            if (order.courierName != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                '🛵 Coursier : ${order.courierName!}',
-                                style: TextStyle(fontSize: 12, color: Colors.blue.shade800, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (order.courierName != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.two_wheeler_rounded, size: 16, color: Colors.blue.shade700),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Coursier assigné : ',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.blue.shade800),
+                            ),
+                            Expanded(
+                              child: Text(
+                                order.courierName!,
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.blue.shade900),
                               ),
-                            ],
+                            ),
                           ],
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -261,49 +333,75 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             ),
           ),
         ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.pop(ctx),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             child: const Text('Fermer'),
           ),
           if (order.isPending)
             ElevatedButton.icon(
-              icon: const Icon(Icons.check_rounded, size: 18),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
               onPressed: () async {
                 Navigator.pop(ctx);
                 await _actionMarkReady(order);
               },
-              label: const Text('Marquer Prête'),
+              label: const Text('Marquer comme prête', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           if (order.isReady && !order.isDelivery)
             ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.inStock),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.inStock,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
               icon: const Icon(Icons.pin_rounded, size: 18),
               onPressed: () {
                 Navigator.pop(ctx);
                 _promptPickupCode(order);
               },
-              label: const Text('Valider la remise au comptoir'),
+              label: const Text('Valider la remise au comptoir', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           if (order.isDelivery && order.isReady && !order.isEnRoute && order.deliveryId != null)
             ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade700,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
               icon: const Icon(Icons.two_wheeler_rounded, size: 18),
               onPressed: () {
                 Navigator.pop(ctx);
                 _promptAssignCourier(order);
               },
-              label: const Text('Confier au coursier'),
+              label: const Text('Confier au coursier', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           if (order.isDelivery && order.isEnRoute && order.deliveryId != null)
             ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.inStock),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.inStock,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
               icon: const Icon(Icons.done_all_rounded, size: 18),
               onPressed: () {
                 Navigator.pop(ctx);
                 _promptDeliveryValidation(order);
               },
-              label: const Text('Confirmer la livraison'),
+              label: const Text('Confirmer la livraison', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
         ],
       ),
@@ -812,12 +910,23 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                                                 ],
                                               ),
                                               const SizedBox(height: 4),
-                                              Text(
-                                                '${Formatters.dateTime(order.createdAt)} • Votre part : ${Formatters.currency(order.itemsAmount)}',
-                                                style: const TextStyle(
-                                                  fontSize: 12.5,
-                                                  color: AppColors.textSecondary,
-                                                ),
+                                              Wrap(
+                                                spacing: 8,
+                                                crossAxisAlignment: WrapCrossAlignment.center,
+                                                children: [
+                                                  if (order.patientPhone != null && order.patientPhone!.isNotEmpty)
+                                                    Text(
+                                                      '📞 ${order.patientPhone!}',
+                                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                                                    ),
+                                                  Text(
+                                                    '${Formatters.dateTime(order.createdAt)} • Votre part : ${Formatters.currency(order.itemsAmount)}',
+                                                    style: const TextStyle(
+                                                      fontSize: 12.5,
+                                                      color: AppColors.textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
@@ -826,6 +935,37 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                                           status: order.status,
                                           label: order.statusLabel,
                                         ),
+                                        if (order.isPending) ...[
+                                          const SizedBox(width: 10),
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors.primary,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                              minimumSize: Size.zero,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                            ),
+                                            icon: const Icon(Icons.check_circle_outline_rounded, size: 15),
+                                            onPressed: () => _actionMarkReady(order),
+                                            label: const Text('Prête', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                                          ),
+                                        ] else if (order.isReady && !order.isDelivery) ...[
+                                          const SizedBox(width: 10),
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors.inStock,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                              minimumSize: Size.zero,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                            ),
+                                            icon: const Icon(Icons.pin_rounded, size: 15),
+                                            onPressed: () => _promptPickupCode(order),
+                                            label: const Text('Remise', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                                          ),
+                                        ],
                                         const SizedBox(width: 12),
                                         const Icon(
                                           Icons.chevron_right_rounded,

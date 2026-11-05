@@ -22,7 +22,13 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        $query = Order::with(['items.medication', 'pharmacy:id,name', 'payment', 'delivery']);
+        $query = Order::with([
+            'items.medication',
+            'pharmacy:id,name,phone,address',
+            'payment',
+            'delivery',
+            'patient:id,name,phone,email,address',
+        ]);
 
         if ($user->isPharmacist()) {
             $query->whereHas('pharmacy', fn ($q) => $q->where('owner_id', $user->id));
@@ -39,7 +45,14 @@ class OrderController extends Controller
     {
         Gate::authorize('view', $order);
 
-        $order->load(['items.medication', 'pharmacy', 'prescription.items.medication', 'payment', 'delivery']);
+        $order->load([
+            'items.medication',
+            'pharmacy',
+            'prescription.items.medication',
+            'payment',
+            'delivery',
+            'patient:id,name,phone,email,address',
+        ]);
 
         // Sécurité anti-fraude : Seul le patient propriétaire a accès au code secret de retrait
         if ($request->user()->id !== $order->patient_id && !$request->user()->isAdmin()) {
@@ -271,7 +284,7 @@ class OrderController extends Controller
             return $order;
         });
 
-        $order->load(['pharmacy.owner', 'items.medication', 'payment', 'delivery']);
+        $order->load(['pharmacy.owner', 'items.medication', 'payment', 'delivery', 'patient:id,name,phone,email,address']);
 
         if ($order->pharmacy && $order->pharmacy->owner) {
             NotificationService::send(
@@ -294,7 +307,13 @@ class OrderController extends Controller
             'pickup_code' => $pickupCode,
         ]);
 
-        $order->load('patient');
+        $order->load([
+            'patient:id,name,phone,email,address',
+            'items.medication',
+            'pharmacy',
+            'payment',
+            'delivery',
+        ]);
         if ($order->patient) {
             NotificationService::send(
                 $order->patient,
@@ -349,7 +368,13 @@ class OrderController extends Controller
             }
         });
 
-        $order->load('patient');
+        $order->load([
+            'patient:id,name,phone,email,address',
+            'items.medication',
+            'pharmacy',
+            'payment',
+            'delivery',
+        ]);
         if ($order->patient) {
             NotificationService::send(
                 $order->patient,

@@ -32,6 +32,8 @@ class OrderModel {
   final int patientId;
   final String patientName;
   final String? patientPhone;
+  final String? patientEmail;
+  final String? patientAddress;
   final int pharmacyId;
   final int? prescriptionId;
   final String status;
@@ -51,6 +53,8 @@ class OrderModel {
     required this.patientId,
     required this.patientName,
     this.patientPhone,
+    this.patientEmail,
+    this.patientAddress,
     required this.pharmacyId,
     this.prescriptionId,
     required this.status,
@@ -66,15 +70,41 @@ class OrderModel {
     this.items = const [],
   });
 
-  bool get isPending => status == 'en_attente' || status == 'en_preparation';
+  /// Commande à préparer : confirmée suite au paiement client ou en cours de préparation
+  bool get isPending =>
+      status == 'confirmee' ||
+      status == 'en_attente' ||
+      status == 'en_preparation';
+
   bool get isReady => status == 'prete';
-  bool get isCompleted => status == 'recuperee' || status == 'livree';
+
+  bool get isCompleted =>
+      status == 'recuperee' ||
+      status == 'collectee' ||
+      status == 'livree';
+
   bool get isCancelled => status == 'annulee';
   bool get isDelivery => hasDelivery || deliveryId != null;
   bool get isEnRoute => status == 'en_livraison' || deliveryStatus == 'en_route';
 
+  /// Adresse à afficher : adresse de livraison si renseignée, sinon adresse résidentielle du patient
+  String? get displayAddress {
+    if (isDelivery) {
+      if (deliveryAddress != null && deliveryAddress!.trim().isNotEmpty) {
+        return deliveryAddress!.trim();
+      }
+      return patientAddress?.trim();
+    }
+    if (patientAddress != null && patientAddress!.trim().isNotEmpty) {
+      return patientAddress!.trim();
+    }
+    return deliveryAddress?.trim();
+  }
+
   String get statusLabel {
     switch (status) {
+      case 'confirmee':
+        return 'Confirmée (À préparer)';
       case 'en_attente':
         return 'En attente';
       case 'en_preparation':
@@ -85,6 +115,7 @@ class OrderModel {
         return 'En cours de livraison';
       case 'livree':
         return 'Livrée à domicile';
+      case 'collectee':
       case 'recuperee':
         return 'Récupérée au comptoir';
       case 'annulee':
@@ -102,14 +133,19 @@ class OrderModel {
     final itemsAmt = double.tryParse(json['items_amount']?.toString() ?? '0') ?? total;
     final delFee = double.tryParse(json['delivery_fee']?.toString() ?? '0') ?? 0.0;
 
+    final pName = (p['name'] as String?)?.trim();
+    final patientId = json['patient_id'] as int? ?? (p['id'] as int? ?? 0);
+
     return OrderModel(
       id: json['id'] as int? ?? 0,
-      patientId: json['patient_id'] as int? ?? (p['id'] as int? ?? 0),
-      patientName: (p['name'] as String?) ?? 'Patient #${json['patient_id'] ?? ''}',
-      patientPhone: p['phone'] as String?,
+      patientId: patientId,
+      patientName: (pName != null && pName.isNotEmpty) ? pName : 'Patient #$patientId',
+      patientPhone: (p['phone'] as String?)?.trim(),
+      patientEmail: (p['email'] as String?)?.trim(),
+      patientAddress: (p['address'] as String?)?.trim(),
       pharmacyId: json['pharmacy_id'] as int? ?? 0,
       prescriptionId: json['prescription_id'] as int?,
-      status: json['status'] as String? ?? 'en_attente',
+      status: json['status'] as String? ?? 'confirmee',
       totalAmount: total,
       itemsAmount: itemsAmt > 0 ? itemsAmt : total,
       deliveryFee: delFee,

@@ -87,6 +87,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             'statusBg': statusBg,
             'isDelivery': isDelivery,
             'deliveryAddress': deliveryAddress,
+            'pickupCode': o['pickup_code']?.toString(),
             'itemsAmount': itemsAmount,
             'edoctorFee': edoctorFee,
             'deliveryFee': deliveryFee,
@@ -521,6 +522,56 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   ],
                 ),
               ),
+              if (order['pickupCode'] != null &&
+                  order['pickupCode'].toString().isNotEmpty &&
+                  order['status'] != 'collectee' &&
+                  order['status'] != 'livree') ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.pin_rounded, size: 18, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            order['isDelivery'] == true
+                                ? 'Code secret de livraison'
+                                : 'Code secret de retrait au comptoir',
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        order['pickupCode'].toString(),
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 10,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        order['isDelivery'] == true
+                            ? 'Communiquez ce code au coursier pour valider la livraison.'
+                            : 'Donnez ce code au pharmacien au comptoir pour retirer votre commande.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               // Décomposition financière eDoctor
               Container(

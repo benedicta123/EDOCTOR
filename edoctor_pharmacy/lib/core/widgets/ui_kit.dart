@@ -86,6 +86,7 @@ class OrderStatusBadge extends StatelessWidget {
     Color fg;
 
     switch (status) {
+      case 'confirmee':
       case 'en_attente':
       case 'en_preparation':
         bg = AppColors.orderPendingLight;
@@ -96,15 +97,19 @@ class OrderStatusBadge extends StatelessWidget {
         bg = AppColors.orderReadyLight;
         fg = AppColors.orderReady;
         break;
+      case 'collectee':
       case 'recuperee':
       case 'livree':
         bg = AppColors.orderCompletedLight;
         fg = AppColors.orderCompleted;
         break;
       case 'annulee':
-      default:
         bg = AppColors.orderCancelledLight;
         fg = AppColors.orderCancelled;
+        break;
+      default:
+        bg = AppColors.surfaceDim;
+        fg = AppColors.textSecondary;
         break;
     }
 
