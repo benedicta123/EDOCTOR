@@ -21,10 +21,10 @@ class MobileVideoMeetingService implements VideoMeetingService {
   }) async {
     // Pour 8x8 JaaS avec jitsi_meet_flutter_sdk :
     // - serverURL doit être "https://8x8.vc" (sans le suffixe AppID)
-    // - room doit être préfixé par "/<AppID>/<RoomName>"
+    // - room doit être sous la forme "<AppID>/<RoomName>" (SANS slash initial)
     final String serverUrl = 'https://${config.domain}';
     final String roomPath = config.appId.isNotEmpty
-        ? '/${config.appId}/${config.roomName}'
+        ? '${config.appId}/${config.roomName}'
         : config.roomName;
 
     final options = JitsiMeetConferenceOptions(
@@ -39,12 +39,17 @@ class MobileVideoMeetingService implements VideoMeetingService {
         'startWithAudioMuted': startAudioMuted,
         'startWithVideoMuted': startVideoMuted,
         'prejoinPageEnabled': false,
+        'enableLobby': false,
+        'disableLobbyPassword': true,
       },
       featureFlags: {
         'welcomepage.enabled': false,
         'invite.enabled': false,
         'call-integration.enabled': false,
         'pip.enabled': true,
+        'lobby.enabled': false,
+        'prejoinpage.enabled': false,
+        'unsaferoomwarning.enabled': false,
       },
     );
 

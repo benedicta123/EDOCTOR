@@ -889,21 +889,23 @@ class _StatusBanner extends StatelessWidget {
               ),
             ),
             if (onJoinVideo != null)
-              TextButton.icon(
+              ElevatedButton.icon(
                 onPressed: onJoinVideo,
-                style: TextButton.styleFrom(
+                style: ElevatedButton.styleFrom(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
                 icon: const Icon(Icons.videocam_rounded,
-                    color: Colors.white, size: 16),
-                label: const Text('Vidéo',
+                    color: Colors.white, size: 18),
+                label: const Text('Rejoindre la vidéo',
                     style: TextStyle(
                         color: Colors.white,
-                        fontSize: 12,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w700)),
               ),
           ],

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
@@ -147,6 +148,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         _phase = _CallPhase.ready;
         _status = 'Salle sécurisée prête.';
       });
+      // Démarrage automatique fluide de la connexion vidéo
+      unawaited(_join());
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -154,6 +157,17 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         _error = e.toString().replaceFirst('Exception: ', '');
       });
     }
+  }
+
+  /// Solution de secours garantie : ouvre la réunion JaaS officielle dans le navigateur
+  Future<void> _openInBrowser() async {
+    final config = _config;
+    if (config == null) return;
+    final roomTarget = config.appId.isNotEmpty
+        ? '${config.appId}/${config.roomName}'
+        : config.roomName;
+    final url = 'https://${config.domain}/$roomTarget#jwt=${config.jwt}';
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
   Future<void> _join() async {
@@ -376,14 +390,31 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     switch (_phase) {
       case _CallPhase.loading:
       case _CallPhase.joining:
-        return const Center(
+        return Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(color: Colors.white),
-              SizedBox(height: 14),
-              Text('Ouverture de la salle sécurisée…',
-                  style: TextStyle(color: Colors.white70)),
+              const CircularProgressIndicator(color: Colors.white),
+              const SizedBox(height: 16),
+              const Text('Connexion à la salle sécurisée…',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              const Text('Veuillez patienter quelques instants.',
+                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+              if (_config != null) ...[
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white38),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                  label: const Text('Ouvrir dans le navigateur', style: TextStyle(fontSize: 13)),
+                  onPressed: _openInBrowser,
+                ),
+              ],
             ],
           ),
         );

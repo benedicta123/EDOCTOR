@@ -145,11 +145,13 @@ class JaasService
                     'id' => (string) $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'moderator' => $isDoctor,
+                    // Les deux participants vérifiés par le serveur accèdent directement à la salle sans blocage en salle d'attente (lobby)
+                    'moderator' => true,
                 ],
                 'features' => [
                     'recording' => false,
                     'livestreaming' => false,
+                    'screen-sharing' => true,
                 ],
             ],
         ];
