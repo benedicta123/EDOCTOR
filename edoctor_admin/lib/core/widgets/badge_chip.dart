@@ -133,6 +133,7 @@ class BadgeChip extends StatelessWidget {
           icon: Icons.healing_outlined,
         );
       case 'admin':
+      case 'superadmin':
         return const BadgeChip(
           label: 'Administrateur',
           textColor: Color(0xFFB45309),
@@ -140,12 +141,28 @@ class BadgeChip extends StatelessWidget {
           borderColor: Color(0xFFFDE68A),
           icon: Icons.shield_outlined,
         );
-      default:
+      case 'hospital_admin':
+        return const BadgeChip(
+          label: 'Admin Hôpital',
+          textColor: Color(0xFFB45309),
+          backgroundColor: Color(0xFFFEF3C7),
+          borderColor: Color(0xFFFDE68A),
+          icon: Icons.local_hospital_outlined,
+        );
+      case 'patient':
         return const BadgeChip(
           label: 'Patient',
           textColor: Color(0xFF475569),
           backgroundColor: Color(0xFFF8FAFC),
           borderColor: Color(0xFFE2E8F0),
+          icon: Icons.person_outline_rounded,
+        );
+      default:
+        return BadgeChip(
+          label: role,
+          textColor: AppColors.textSecondary,
+          backgroundColor: AppColors.surfaceDim,
+          borderColor: AppColors.border,
           icon: Icons.person_outline_rounded,
         );
     }

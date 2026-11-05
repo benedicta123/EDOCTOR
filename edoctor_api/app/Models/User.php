@@ -80,9 +80,9 @@ class User extends Authenticatable
     public function isDoctor(): bool { return $this->role === 'doctor'; }
     public function isPharmacist(): bool { return $this->role === 'pharmacist'; }
     public function isNurse(): bool { return $this->role === 'nurse'; }
-    public function isAdmin(): bool { return $this->role === 'admin' || $this->role === 'hospital_admin'; }
-    public function isSuperAdmin(): bool { return $this->role === 'admin' && $this->hospital_id === null; }
-    public function isHospitalAdmin(): bool { return ($this->role === 'admin' || $this->role === 'hospital_admin') && $this->hospital_id !== null; }
+    public function isAdmin(): bool { return in_array($this->role, ['admin', 'superadmin', 'hospital_admin']); }
+    public function isSuperAdmin(): bool { return in_array($this->role, ['admin', 'superadmin']) && $this->hospital_id === null; }
+    public function isHospitalAdmin(): bool { return in_array($this->role, ['admin', 'hospital_admin']) && $this->hospital_id !== null; }
 
     public function hospital(): BelongsTo
     {

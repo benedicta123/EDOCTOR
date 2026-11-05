@@ -203,7 +203,7 @@ class AuthController extends Controller
         }
 
         // ─── Double Authentification (2FA / MFA) pour Praticiens & Administrateurs ───
-        $privilegedRoles = ['doctor', 'admin', 'pharmacist'];
+        $privilegedRoles = ['doctor', 'admin', 'superadmin', 'pharmacist'];
         $twoFactorEnabled = config('auth.two_factor_enabled', true);
 
         if ($twoFactorEnabled && in_array($user->role, $privilegedRoles)) {

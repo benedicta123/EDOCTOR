@@ -33,17 +33,19 @@ class UserModel {
     this.createdAt,
   });
 
-  bool get isSuperAdmin => role == 'admin' && hospitalId == null;
+  bool get isSuperAdmin => (role == 'admin' || role == 'superadmin') && hospitalId == null;
   bool get isDoctor => role == 'doctor';
   bool get isPharmacist => role == 'pharmacist';
   bool get isNurse => role == 'nurse';
   bool get isPatient => role == 'patient';
-  bool get isHospitalAdmin => role == 'admin' && hospitalId != null;
+  bool get isHospitalAdmin => (role == 'admin' || role == 'hospital_admin') && hospitalId != null;
 
   String get roleLabel {
     switch (role) {
       case 'admin':
         return hospitalId == null ? 'Super-Admin' : 'Admin Hôpital';
+      case 'superadmin':
+        return 'Super-Admin';
       case 'doctor':
         return 'Médecin';
       case 'pharmacist':
