@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AdminController extends Controller
@@ -674,5 +675,111 @@ class AdminController extends Controller
             'message' => "Statut de la réclamation {$claim->reference_id} mis à jour.",
             'claim' => $claim->fresh(['user', 'resolver']),
         ]);
+    }
+
+    /**
+     * GET /api/admin/hospitals/{hospital}/document
+     * Retourne la pièce justificative réelle soumise par l'établissement hospitalier.
+     */
+    public function hospitalDocument(Request $request, Hospital $hospital)
+    {
+        $this->ensureSuperAdmin($request);
+
+        return $this->serveStoredDocument(
+            $hospital->license_document_path,
+            'agrement_' . Str::slug($hospital->name)
+        );
+    }
+
+    /**
+     * GET /api/admin/pharmacies/{pharmacy}/documents/{docKey}
+     * Retourne la pièce justificative réelle soumise par la pharmacie (par clé ou index).
+     */
+    public function pharmacyDocument(Request $request, Pharmacy $pharmacy, string $docKey)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $docs = $pharmacy->documents;
+        if (! is_array($docs) || empty($docs)) {
+            return response()->json([
+                'message' => "Aucune pièce justificative n'a été soumise par cette officine.",
+            ], 404);
+        }
+
+        $entry = null;
+        if (array_key_exists($docKey, $docs)) {
+            $entry = $docs[$docKey];
+        } elseif (is_numeric($docKey) && isset($docs[(int) $docKey])) {
+            $entry = $docs[(int) $docKey];
+        } else {
+            // Recherche alternative si la clé est stockée à l'intérieur d'un élément
+            foreach ($docs as $item) {
+                if (is_array($item) && ($item['key'] ?? null) === $docKey) {
+                    $entry = $item;
+                    break;
+                }
+            }
+        }
+
+        if (! $entry) {
+            return response()->json([
+                'message' => "La pièce demandée ({$docKey}) n'a pas été jointe au dossier.",
+            ], 404);
+        }
+
+        $path = is_array($entry) ? ($entry['path'] ?? null) : (is_string($entry) ? $entry : null);
+        $name = is_array($entry) ? ($entry['name'] ?? null) : (is_string($entry) ? basename($entry) : null);
+
+        return $this->serveStoredDocument($path, $name);
+    }
+
+    /**
+     * Diffuse de manière sécurisée un fichier justificatif stocké sur disque public ou local.
+     */
+    protected function serveStoredDocument(?string $path, ?string $fallbackName = null)
+    {
+        if (empty($path) || str_contains($path, '..')) {
+            return response()->json([
+                'message' => "Aucun fichier physique n'est associé à cette pièce justificative.",
+            ], 404);
+        }
+
+        $cleanPath = ltrim($path, '/');
+        if (str_starts_with($cleanPath, 'http://') || str_starts_with($cleanPath, 'https://')) {
+            $parsed = parse_url($cleanPath, PHP_URL_PATH);
+            if ($parsed) {
+                $cleanPath = ltrim($parsed, '/');
+            }
+        }
+        if (str_starts_with($cleanPath, 'storage/')) {
+            $cleanPath = substr($cleanPath, strlen('storage/'));
+        }
+
+        foreach (['public', 'local'] as $disk) {
+            if (Storage::disk($disk)->exists($cleanPath)) {
+                $fullPath = Storage::disk($disk)->path($cleanPath);
+                $mimeType = Storage::disk($disk)->mimeType($cleanPath) ?: 'application/octet-stream';
+
+                $ext = pathinfo($cleanPath, PATHINFO_EXTENSION);
+                $fileName = $fallbackName ?: basename($cleanPath);
+                if ($ext && ! str_ends_with(strtolower($fileName), '.' . strtolower($ext))) {
+                    $fileName .= '.' . $ext;
+                }
+
+                return response()->file($fullPath, [
+                    'Content-Type' => $mimeType,
+                    'Content-Disposition' => 'inline; filename="' . addslashes($fileName) . '"',
+                    'X-Content-Type-Options' => 'nosniff',
+                    'Cache-Control' => 'private, max-age=300',
+                    'Access-Control-Allow-Origin' => '*',
+                    'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers' => 'Authorization, Content-Type, Accept, X-Requested-With',
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => "Le fichier justificatif ({$cleanPath}) est introuvable sur le serveur.",
+        ], 404);
     }
 }

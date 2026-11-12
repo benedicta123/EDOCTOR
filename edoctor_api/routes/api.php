@@ -184,6 +184,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my-hospital/consultations', [HospitalDashboardController::class, 'consultations']);
     Route::get('/my-hospital/statistics', [HospitalDashboardController::class, 'statistics']);
     Route::put('/my-hospital', [HospitalDashboardController::class, 'updateHospital']);
+    Route::post('/my-hospital/license-document', [HospitalDashboardController::class, 'uploadLicenseDocument']);
 
     // Vérification administrative Hôpital (Back-Office eDoctor)
     Route::get('/admin/hospitals/pending', [HospitalVerificationController::class, 'index']);
@@ -199,6 +200,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Module de validation et conformité des Hôpitaux
         Route::get('/hospitals', [AdminController::class, 'hospitals']);
+        Route::get('/hospitals/{hospital}/document', [AdminController::class, 'hospitalDocument']);
         Route::post('/hospitals/{hospital}/verify', [AdminController::class, 'verifyHospital']);
         Route::post('/hospitals/{hospital}/reject', [AdminController::class, 'rejectHospital']);
         Route::post('/hospitals/{hospital}/suspend', [AdminController::class, 'suspendHospital']);
@@ -206,6 +208,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Module de validation et conformité des Pharmacies
         Route::get('/pharmacies', [AdminController::class, 'pharmacies']);
+        Route::get('/pharmacies/{pharmacy}/documents/{docKey}', [AdminController::class, 'pharmacyDocument']);
         Route::post('/pharmacies/{pharmacy}/verify', [AdminController::class, 'verifyPharmacy']);
         Route::post('/pharmacies/{pharmacy}/reject', [AdminController::class, 'rejectPharmacy']);
         Route::post('/pharmacies/{pharmacy}/suspend', [AdminController::class, 'suspendPharmacy']);

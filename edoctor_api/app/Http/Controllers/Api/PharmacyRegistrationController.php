@@ -9,6 +9,7 @@ use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
@@ -47,8 +48,12 @@ class PharmacyRegistrationController extends Controller
             'pharmacist_email' => ['nullable', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8'],
 
-            // Étape 3 : Documents / Fichiers optionnels
+            // Étape 3 : Documents / Pièces justificatives (fichiers réels + noms éventuels)
             'documents' => ['nullable', 'array'],
+            'decree_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
+            'order_certificate_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
+            'rccm_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
+            'id_card_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
         ]);
 
         $accountEmail = $validated['pharmacist_email'] ?? $validated['official_email'];
@@ -60,10 +65,36 @@ class PharmacyRegistrationController extends Controller
             ], 422);
         }
 
+        // Sauvegarde réelle des fichiers justificatifs téléversés
+        $storedDocuments = [];
+        $docSlots = [
+            'decree' => ['field' => 'decree_file', 'label' => "Arrêté Ministériel d'Ouverture et d'Exploitation"],
+            'order_certificate' => ['field' => 'order_certificate_file', 'label' => "Attestation d'Inscription à l'Ordre des Pharmaciens"],
+            'rccm' => ['field' => 'rccm_file', 'label' => "Extrait du Registre du Commerce (RCCM)"],
+            'id_card' => ['field' => 'id_card_file', 'label' => "Pièce d'Identité Officielle du Pharmacien Titulaire"],
+        ];
+
+        foreach ($docSlots as $key => $meta) {
+            if ($request->hasFile($meta['field'])) {
+                $file = $request->file($meta['field']);
+                $storedPath = $file->store('pharmacy_documents', 'public');
+                $storedDocuments[$key] = [
+                    'key' => $key,
+                    'label' => $meta['label'],
+                    'path' => $storedPath,
+                    'name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                ];
+            }
+        }
+
+        $finalDocuments = ! empty($storedDocuments) ? $storedDocuments : ($validated['documents'] ?? null);
+
         // Génération d'une référence unique : KYP-2026-TG + 3 chiffres/lettres aléatoires
         $referenceId = 'KYP-2026-TG' . strtoupper(Str::random(4));
 
-        $result = DB::transaction(function () use ($validated, $accountEmail, $referenceId) {
+        $result = DB::transaction(function () use ($validated, $accountEmail, $referenceId, $finalDocuments) {
             $user = User::create([
                 'name' => $validated['pharmacist_name'],
                 'email' => $accountEmail,
@@ -84,7 +115,7 @@ class PharmacyRegistrationController extends Controller
                 'official_email' => $validated['official_email'],
                 'address' => $fullAddress,
                 'phone' => $validated['pharmacy_phone'],
-                'documents' => $validated['documents'] ?? null,
+                'documents' => $finalDocuments,
                 'latitude' => null,
                 'longitude' => null,
             ]);

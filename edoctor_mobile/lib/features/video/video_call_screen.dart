@@ -226,7 +226,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             }
           },
           onReadyToClose: () {
-            if (mounted) Navigator.of(context).maybePop();
+            if (!mounted) return;
+            if (_phase == _CallPhase.inCall || _phase == _CallPhase.ended) {
+              Navigator.of(context).maybePop();
+            } else {
+              // Si l'écran natif se ferme avant la connexion (ex. erreur réseau/reconnexion),
+              // rester sur l'écran pour permettre de réessayer ou d'ouvrir dans le navigateur.
+              setState(() {
+                _phase = _CallPhase.ready;
+                _status =
+                    'Connexion interrompue — réessayez ou ouvrez dans le navigateur.';
+              });
+            }
           },
         ),
       );
@@ -468,6 +479,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         size: 18),
                     label: const Text('Réessayer'),
                   ),
+                  if (_config != null) ...[
+                    const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white38),
+                      ),
+                      onPressed: _openInBrowser,
+                      icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                      label: const Text('Navigateur'),
+                    ),
+                  ],
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: () =>
@@ -533,6 +556,28 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     style: const TextStyle(
                         color: Colors.orangeAccent,
                         fontSize: 12)),
+              ],
+              if (_config != null) ...[
+                const SizedBox(height: 18),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white38),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                  label: const Text(
+                    'Ouvrir dans le navigateur',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  onPressed: _openInBrowser,
+                ),
               ],
             ],
           ),

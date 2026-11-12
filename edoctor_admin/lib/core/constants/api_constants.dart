@@ -17,6 +17,7 @@ class ApiConstants {
 
   // Module Hôpitaux Partenaires & Accréditation
   static const String adminHospitals = '/admin/hospitals';
+  static String adminHospitalDocument(int id) => '/admin/hospitals/$id/document';
   static String adminHospitalVerify(int id) => '/admin/hospitals/$id/verify';
   static String adminHospitalReject(int id) => '/admin/hospitals/$id/reject';
   static String adminHospitalSuspend(int id) => '/admin/hospitals/$id/suspend';
@@ -24,6 +25,7 @@ class ApiConstants {
 
   // Module Pharmacies Partenaires & Agrément KYP
   static const String adminPharmacies = '/admin/pharmacies';
+  static String adminPharmacyDocument(int id, String docKey) => '/admin/pharmacies/$id/documents/$docKey';
   static String adminPharmacyVerify(int id) => '/admin/pharmacies/$id/verify';
   static String adminPharmacyReject(int id) => '/admin/pharmacies/$id/reject';
   static String adminPharmacySuspend(int id) => '/admin/pharmacies/$id/suspend';

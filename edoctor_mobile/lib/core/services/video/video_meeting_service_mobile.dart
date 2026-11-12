@@ -22,18 +22,25 @@ class MobileVideoMeetingService implements VideoMeetingService {
     // Pour 8x8 JaaS avec jitsi_meet_flutter_sdk :
     // - serverURL doit être "https://8x8.vc" (sans le suffixe AppID)
     // - room doit être sous la forme "<AppID>/<RoomName>" (SANS slash initial)
-    final String serverUrl = 'https://${config.domain}';
-    final String roomPath = config.appId.isNotEmpty
-        ? '${config.appId}/${config.roomName}'
-        : config.roomName;
+    final String cleanDomain = config.domain.trim().isNotEmpty
+        ? config.domain.trim()
+        : '8x8.vc';
+    final String cleanAppId = config.appId.trim();
+    final String cleanRoom = config.roomName.trim();
+    final String serverUrl = 'https://$cleanDomain';
+    final String roomPath = cleanAppId.isNotEmpty
+        ? '$cleanAppId/$cleanRoom'
+        : cleanRoom;
 
     final options = JitsiMeetConferenceOptions(
       serverURL: serverUrl,
       room: roomPath,
-      token: config.jwt,
+      token: config.jwt.trim(),
       userInfo: JitsiMeetUserInfo(
-        displayName: displayName,
-        email: email,
+        displayName: displayName.trim().isNotEmpty
+            ? displayName.trim()
+            : 'Patient eDoctor',
+        email: email.trim().isNotEmpty ? email.trim() : null,
       ),
       configOverrides: {
         'startWithAudioMuted': startAudioMuted,
@@ -47,7 +54,8 @@ class MobileVideoMeetingService implements VideoMeetingService {
         'invite.enabled': false,
         'call-integration.enabled': false,
         'pip.enabled': true,
-        'lobby.enabled': false,
+        'lobby-mode.enabled': false,
+        'security-options.enabled': false,
         'prejoinpage.enabled': false,
         'unsaferoomwarning.enabled': false,
       },

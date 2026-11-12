@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/api_constants.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/badge_chip.dart';
@@ -199,63 +200,56 @@ class PharmacyDetailModal extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Column(
-                  children: [
-                    _buildDocumentItem(
-                      title: 'Licence d\'Exploitation d\'Officine de Pharmacie',
-                      subtitle: 'Document justificatif • Réf : ${pharmacy.licenseNumber ?? "LIC-OFF-2026"}',
-                      isUploaded: true,
-                      onOpen: () {
-                        OfficialDocumentViewerModal.show(
-                          context: context,
-                          type: DocumentType.pharmacyLicense,
-                          entityName: pharmacy.name,
-                          licenseNumber: pharmacy.licenseNumber,
-                          orderNumber: pharmacy.orderNumber,
-                          taxNumber: pharmacy.taxNumber,
-                          address: pharmacy.address,
-                          contactName: pharmacy.owner?.name,
-                          phone: pharmacy.phone ?? pharmacy.owner?.phone,
-                          officialEmail: pharmacy.officialEmail ?? pharmacy.owner?.email,
-                          dateIssued: pharmacy.createdAt,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDocumentItem(
-                      title: 'Diplôme d\'État de Docteur en Pharmacie du Titulaire',
-                      subtitle: 'Qualification universitaire et inscription de l\'impétrant titulaire',
-                      isUploaded: true,
-                      onOpen: () {
-                        OfficialDocumentViewerModal.show(
-                          context: context,
-                          type: DocumentType.pharmacistDiploma,
-                          entityName: pharmacy.name,
-                          orderNumber: pharmacy.orderNumber,
-                          contactName: pharmacy.owner?.name,
-                          address: pharmacy.address,
-                          dateIssued: pharmacy.createdAt,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDocumentItem(
-                      title: 'Attestation d\'Inscription au Tableau de l\'Ordre National des Pharmaciens',
-                      subtitle: 'Attestation ordinale en cours de validité • Réf : ${pharmacy.orderNumber ?? "ONP-2026"}',
-                      isUploaded: true,
-                      onOpen: () {
-                        OfficialDocumentViewerModal.show(
-                          context: context,
-                          type: DocumentType.pharmacyOrderCertificate,
-                          entityName: pharmacy.name,
-                          orderNumber: pharmacy.orderNumber,
-                          licenseNumber: pharmacy.licenseNumber,
-                          contactName: pharmacy.owner?.name,
-                          address: pharmacy.address,
-                          dateIssued: pharmacy.createdAt,
-                        );
-                      },
-                    ),
-                  ],
+                  children: pharmacy.documentEntries.map((doc) {
+                    DocumentType docType = DocumentType.pharmacyLicense;
+                    if (doc.key == 'order_certificate' || doc.key == '1') {
+                      docType = DocumentType.pharmacyOrderCertificate;
+                    } else if (doc.key == 'rccm' || doc.key == '2') {
+                      docType = DocumentType.pharmacyRccm;
+                    } else if (doc.key == 'id_card' || doc.key == '3') {
+                      docType = DocumentType.pharmacyIdCard;
+                    }
+
+                    final subtitleText = doc.hasFile
+                        ? 'Fichier soumis : ${doc.name ?? doc.path!.split('/').last}'
+                        : (doc.name != null && doc.name!.isNotEmpty)
+                            ? 'Nom enregistré sans fichier binaire : ${doc.name}'
+                            : 'Aucune pièce soumise pour ce justificatif';
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _buildDocumentItem(
+                        title: doc.label,
+                        subtitle: subtitleText,
+                        isUploaded: doc.hasFile,
+                        isImage: doc.isImage,
+                        onOpen: () {
+                          OfficialDocumentViewerModal.show(
+                            context: context,
+                            type: docType,
+                            customTitle: doc.label,
+                            entityName: pharmacy.name,
+                            documentApiEndpoint: doc.hasFile
+                                ? ApiConstants.adminPharmacyDocument(pharmacy.id, doc.key)
+                                : null,
+                            documentPath: doc.path,
+                            documentFileName: doc.name,
+                            documentMimeType: doc.mimeType,
+                            licenseNumber: pharmacy.licenseNumber,
+                            orderNumber: pharmacy.orderNumber,
+                            taxNumber: pharmacy.taxNumber,
+                            address: pharmacy.address,
+                            contactName: pharmacy.owner?.name,
+                            phone: pharmacy.phone ?? pharmacy.owner?.phone,
+                            officialEmail: pharmacy.officialEmail ?? pharmacy.owner?.email,
+                            dateIssued: pharmacy.createdAt,
+                            onApprove: pharmacy.isPending ? () => onVerify(pharmacy) : null,
+                            onReject: pharmacy.isPending ? (reason) => onReject(pharmacy, reason) : null,
+                          );
+                        },
+                      ),
+                    );
+                  }).toList(),
                 ),
               ],
             ),
@@ -385,24 +379,34 @@ class PharmacyDetailModal extends StatelessWidget {
     required String title,
     required String subtitle,
     required bool isUploaded,
+    bool isImage = false,
     required VoidCallback onOpen,
   }) {
+    final iconColor = !isUploaded
+        ? const Color(0xFFD97706)
+        : (isImage ? AppColors.primary : const Color(0xFFDC2626));
+    final iconData = !isUploaded
+        ? Icons.warning_amber_rounded
+        : (isImage ? Icons.image_rounded : Icons.picture_as_pdf_rounded);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surfaceDim,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: isUploaded ? AppColors.border : const Color(0xFFFCD34D),
+        ),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+              color: iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFDC2626), size: 22),
+            child: Icon(iconData, color: iconColor, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -418,9 +422,9 @@ class PharmacyDetailModal extends StatelessWidget {
           const SizedBox(width: 12),
           ElevatedButton.icon(
             icon: const Icon(Icons.menu_book_rounded, size: 14),
-            label: const Text('Ouvrir & Lire', style: TextStyle(fontSize: 12)),
+            label: Text(isUploaded ? 'Ouvrir & Lire' : 'Détails', style: const TextStyle(fontSize: 12)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: isUploaded ? AppColors.primary : const Color(0xFF64748B),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -220,31 +221,46 @@ class ApiService {
     required String passwordConfirmation,
     String? adminPhone,
     double? consultationFee,
+    PlatformFile? licenseDocument,
   }) async {
     try {
-      final r = await http.post(
+      final req = http.MultipartRequest(
+        'POST',
         Uri.parse('$baseUrl${ApiConstants.hospitalRegister}'),
-        headers: _headers(null, json: true),
-        body: jsonEncode({
-          'hospital_name': hospitalName,
-          'address': address,
-          'latitude': latitude,
-          'longitude': longitude,
-          'license_number': licenseNumber,
-          'official_email': officialEmail,
-          'hospital_phone': hospitalPhone,
-          if (taxNumber != null && taxNumber.isNotEmpty)
-            'tax_number': taxNumber,
-          'admin_name': adminName,
-          'admin_email': adminEmail,
-          'password': password,
-          'password_confirmation': passwordConfirmation,
-          if (adminPhone != null && adminPhone.isNotEmpty)
-            'admin_phone': adminPhone,
-          if (consultationFee != null && consultationFee > 0)
-            'consultation_fee': consultationFee,
-        }),
       );
+      req.headers['Accept'] = 'application/json';
+      req.fields.addAll({
+        'hospital_name': hospitalName,
+        'address': address,
+        'latitude': latitude.toString(),
+        'longitude': longitude.toString(),
+        'license_number': licenseNumber,
+        'official_email': officialEmail,
+        'hospital_phone': hospitalPhone,
+        if (taxNumber != null && taxNumber.isNotEmpty) 'tax_number': taxNumber,
+        'admin_name': adminName,
+        'admin_email': adminEmail,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+        if (adminPhone != null && adminPhone.isNotEmpty)
+          'admin_phone': adminPhone,
+        if (consultationFee != null && consultationFee > 0)
+          'consultation_fee': consultationFee.toString(),
+      });
+
+      if (licenseDocument != null) {
+        final bytes = await licenseDocument.readAsBytes();
+        req.files.add(
+          http.MultipartFile.fromBytes(
+            'license_document',
+            bytes,
+            filename: licenseDocument.name,
+          ),
+        );
+      }
+
+      final streamed = await req.send();
+      final r = await http.Response.fromStream(streamed);
       final data = jsonDecode(r.body) as Map<String, dynamic>;
       if (r.statusCode == 201) {
         if (data['token'] != null && data['admin'] != null) {
@@ -259,6 +275,40 @@ class ApiService {
         return data;
       }
       throw Exception(_msg(r, "Erreur lors de l'inscription de l'hôpital"));
+    } on Exception catch (e) {
+      throw _net(e);
+    }
+  }
+
+  static Future<String> uploadHospitalLicenseDocument(
+    PlatformFile file,
+  ) async {
+    try {
+      final token = await StorageService.getToken();
+      final req = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl${ApiConstants.myHospitalLicenseDocument}'),
+      );
+      req.headers.addAll(_headers(token));
+
+      final bytes = await file.readAsBytes();
+      req.files.add(
+        http.MultipartFile.fromBytes(
+          'license_document',
+          bytes,
+          filename: file.name,
+        ),
+      );
+
+      final streamed = await req.send();
+      final r = await http.Response.fromStream(streamed);
+      if (r.statusCode == 200 || r.statusCode == 201) {
+        final data = jsonDecode(r.body) as Map<String, dynamic>;
+        return data['license_document_path']?.toString() ?? '';
+      }
+      throw Exception(
+        _msg(r, "Impossible de téléverser la pièce d'agrément"),
+      );
     } on Exception catch (e) {
       throw _net(e);
     }

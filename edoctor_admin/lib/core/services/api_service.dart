@@ -590,4 +590,66 @@ class ApiService {
     );
     return AdminPayoutRequestModel.fromJson(data['payout_request'] as Map<String, dynamic>);
   }
+
+  // ----------------------------------------------------
+  // CHARGEMENT DES PIÈCES JUSTIFICATIVES (IMAGES / PDF)
+  // ----------------------------------------------------
+
+  static Future<DocumentPayload> fetchDocumentBytes(String endpoint) async {
+    final token = await _getRequiredToken();
+    final uri = endpoint.startsWith('http')
+        ? Uri.parse(endpoint)
+        : Uri.parse('$baseUrl$endpoint');
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': '*/*',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 401) {
+      _handleUnauthenticated();
+      throw Exception('Session expirée.');
+    }
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final contentType = (response.headers['content-type'] ?? 'application/octet-stream').toLowerCase();
+      String? fileName;
+      final disposition = response.headers['content-disposition'];
+      if (disposition != null) {
+        final match = RegExp(r'filename="?([^";]+)"?').firstMatch(disposition);
+        if (match != null) {
+          fileName = match.group(1);
+        }
+      }
+      return DocumentPayload(
+        bytes: response.bodyBytes,
+        contentType: contentType,
+        fileName: fileName,
+      );
+    }
+
+    String errorMsg = 'Pièce justificative introuvable ou inaccessible.';
+    try {
+      final data = jsonDecode(response.body);
+      if (data is Map && data['message'] != null) {
+        errorMsg = data['message'].toString();
+      }
+    } catch (_) {}
+    throw Exception(errorMsg);
+  }
+}
+
+class DocumentPayload {
+  final Uint8List bytes;
+  final String contentType;
+  final String? fileName;
+
+  const DocumentPayload({
+    required this.bytes,
+    required this.contentType,
+    this.fileName,
+  });
 }

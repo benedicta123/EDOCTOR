@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
@@ -35,6 +36,40 @@ class _HospitalRegisterStep1ScreenState
   bool _locating = false;
   String? _locationMessage;
   bool _updatingAddress = false;
+  PlatformFile? _licenseDocument;
+
+  Future<void> _pickLicenseDocument() async {
+    try {
+      final picked = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (picked != null) {
+        final sizeBytes = picked.lengthSync() ?? await picked.length();
+        if (sizeBytes != null && sizeBytes > 10 * 1024 * 1024) {
+          if (mounted) {
+            showMsg(
+              context,
+              'Le fichier dépasse la limite autorisée de 10 Mo.',
+              error: true,
+            );
+          }
+          return;
+        }
+        if (mounted) {
+          setState(() => _licenseDocument = picked);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showMsg(
+          context,
+          'Impossible de sélectionner le fichier : $e',
+          error: true,
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -77,6 +112,14 @@ class _HospitalRegisterStep1ScreenState
       );
       return;
     }
+    if (_licenseDocument == null) {
+      showMsg(
+        context,
+        'Veuillez joindre la pièce justificative d\'agrément (Document PDF officiel uniquement).',
+        error: true,
+      );
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => HospitalRegisterStep2Screen(
@@ -88,6 +131,7 @@ class _HospitalRegisterStep1ScreenState
           officialEmail: _email.text.trim(),
           hospitalPhone: _phone.text.trim(),
           consultationFee: double.tryParse(_consultationFee.text.trim()) ?? 3000.0,
+          licenseDocument: _licenseDocument,
         ),
       ),
     );
@@ -476,6 +520,14 @@ class _HospitalRegisterStep1ScreenState
                             validator: (v) =>
                                 v == null || v.isEmpty ? 'Requis' : null,
                           ),
+                          const SizedBox(height: 12),
+                          _LicenseUploadCard(
+                            file: _licenseDocument,
+                            onPick: _pickLicenseDocument,
+                            onClear: _licenseDocument == null
+                                ? null
+                                : () => setState(() => _licenseDocument = null),
+                          ),
                           const SizedBox(height: 16),
 
                           // Section : Contacts officiels
@@ -795,6 +847,104 @@ class _ResponsivePair extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _LicenseUploadCard extends StatelessWidget {
+  const _LicenseUploadCard({
+    required this.file,
+    required this.onPick,
+    this.onClear,
+  });
+
+  final PlatformFile? file;
+  final VoidCallback onPick;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasFile = file != null;
+    final byteLen = file?.lengthSync();
+    final sizeLabel = hasFile
+        ? (byteLen != null
+            ? '${(byteLen / 1024).toStringAsFixed(0)} Ko'
+            : 'Fichier prêt pour l\'envoi')
+        : 'Document PDF officiel uniquement • 10 Mo max';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: hasFile ? AppColors.successLight : AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasFile
+              ? AppColors.success.withValues(alpha: 0.45)
+              : AppColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: hasFile
+                  ? AppColors.success.withValues(alpha: 0.14)
+                  : AppColors.primaryContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              hasFile ? Icons.task_alt_rounded : Icons.upload_file_rounded,
+              size: 20,
+              color: hasFile ? AppColors.success : AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasFile
+                      ? file!.name
+                      : 'Pièce justificative d\'agrément (obligatoire)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  sizeLabel,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          if (onClear != null)
+            IconButton(
+              onPressed: onClear,
+              tooltip: 'Retirer le fichier',
+              icon: const Icon(Icons.close_rounded, size: 18),
+              color: AppColors.textMuted,
+            ),
+          OutlinedButton.icon(
+            onPressed: onPick,
+            icon: Icon(
+              hasFile ? Icons.swap_horiz_rounded : Icons.attach_file_rounded,
+              size: 16,
+            ),
+            label: Text(hasFile ? 'Changer' : 'Joindre'),
+          ),
+        ],
+      ),
     );
   }
 }

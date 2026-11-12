@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -532,7 +533,7 @@ class ApiService {
     }
   }
 
-  /// Transmet le formulaire d'inscription complet à la base de données eDoctor.
+  /// Transmet le formulaire d'inscription complet et les vrais fichiers justificatifs à l'API eDoctor.
   static Future<Map<String, dynamic>> registerPharmacy({
     required String pharmacyName,
     required String city,
@@ -545,27 +546,58 @@ class ApiService {
     required String mobilePhone,
     required String password,
     String? pharmacistEmail,
-    List<String>? documentNames,
+    PlatformFile? decreeFile,
+    PlatformFile? orderCertificateFile,
+    PlatformFile? rccmFile,
+    PlatformFile? idCardFile,
   }) async {
-    final r = await http.post(
+    final request = http.MultipartRequest(
+      'POST',
       Uri.parse('$baseUrl/pharmacies/register'),
-      headers: _headers(null, json: true),
-      body: jsonEncode({
-        'pharmacy_name': pharmacyName,
-        'city': city,
-        'address': address,
-        'pharmacy_phone': pharmacyPhone,
-        'official_email': officialEmail,
-        'pharmacist_name': pharmacistName,
-        'order_number': orderNumber,
-        'license_number': licenseNumber,
-        'mobile_phone': mobilePhone,
-        'pharmacist_email': pharmacistEmail ?? officialEmail,
-        'password': password,
-        'documents': documentNames,
-      }),
     );
+    request.headers['Accept'] = 'application/json';
+    request.fields.addAll({
+      'pharmacy_name': pharmacyName,
+      'city': city,
+      'address': address,
+      'pharmacy_phone': pharmacyPhone,
+      'official_email': officialEmail,
+      'pharmacist_name': pharmacistName,
+      'order_number': orderNumber,
+      'license_number': licenseNumber,
+      'mobile_phone': mobilePhone,
+      'pharmacist_email': pharmacistEmail ?? officialEmail,
+      'password': password,
+    });
 
+    Future<void> attachFile(String fieldName, PlatformFile? file) async {
+      if (file == null) return;
+      if (file.bytes != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            fieldName,
+            file.bytes!,
+            filename: file.name,
+          ),
+        );
+      } else if (!kIsWeb && file.path != null && file.path!.isNotEmpty) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            fieldName,
+            file.path!,
+            filename: file.name,
+          ),
+        );
+      }
+    }
+
+    await attachFile('decree_file', decreeFile);
+    await attachFile('order_certificate_file', orderCertificateFile);
+    await attachFile('rccm_file', rccmFile);
+    await attachFile('id_card_file', idCardFile);
+
+    final streamed = await request.send();
+    final r = await http.Response.fromStream(streamed);
     final data = jsonDecode(r.body) as Map<String, dynamic>;
 
     if (r.statusCode == 201) {

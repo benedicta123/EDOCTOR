@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/api_constants.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/badge_chip.dart';
@@ -196,69 +197,112 @@ class HospitalDetailModal extends StatelessWidget {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceDim,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDC2626).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
+                Builder(
+                  builder: (context) {
+                    final docPath = hospital.licenseDocumentPath;
+                    final hasDoc = docPath != null && docPath.trim().isNotEmpty;
+                    final fileName = hasDoc ? docPath.split('/').last : null;
+                    final isImage = hasDoc &&
+                        (fileName!.toLowerCase().endsWith('.jpg') ||
+                            fileName.toLowerCase().endsWith('.jpeg') ||
+                            fileName.toLowerCase().endsWith('.png') ||
+                            fileName.toLowerCase().endsWith('.webp'));
+                    final adminContact = (hospital.admins != null && hospital.admins!.isNotEmpty && hospital.admins!.first is Map)
+                        ? (hospital.admins!.first as Map)['name']?.toString()
+                        : null;
+
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceDim,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: hasDoc ? AppColors.border : const Color(0xFFFCD34D),
                         ),
-                        child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFFDC2626), size: 32),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              hospital.licenseDocumentPath != null
-                                  ? hospital.licenseDocumentPath!.split('/').last
-                                  : 'Autorisation d\'Ouverture & Agrément Sanitaire',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: (hasDoc
+                                      ? (isImage ? AppColors.primary : const Color(0xFFDC2626))
+                                      : const Color(0xFFF59E0B))
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Pièce transmise par l\'établissement • Réf : ${hospital.licenseNumber ?? "AGR-2026"} • Format PDF',
-                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            child: Icon(
+                              !hasDoc
+                                  ? Icons.warning_amber_rounded
+                                  : isImage
+                                      ? Icons.image_rounded
+                                      : Icons.picture_as_pdf_rounded,
+                              color: !hasDoc
+                                  ? const Color(0xFFD97706)
+                                  : isImage
+                                      ? AppColors.primary
+                                      : const Color(0xFFDC2626),
+                              size: 32,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  hasDoc
+                                      ? fileName!
+                                      : 'Aucune pièce justificative téléversée',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  hasDoc
+                                      ? 'Pièce soumise par l\'établissement • Réf : ${hospital.licenseNumber ?? "Non communiquée"} • Format ${isImage ? "Image" : "Document PDF"}'
+                                      : 'Cet établissement n\'a pas encore joint son agrément sanitaire lors de l\'inscription.',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.menu_book_rounded, size: 16),
+                            label: Text(hasDoc ? 'Examiner la pièce' : 'Détails'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: hasDoc ? AppColors.primary : const Color(0xFF64748B),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                            onPressed: () {
+                              OfficialDocumentViewerModal.show(
+                                context: context,
+                                type: DocumentType.hospitalLicense,
+                                entityName: hospital.name,
+                                documentApiEndpoint: hasDoc ? ApiConstants.adminHospitalDocument(hospital.id) : null,
+                                documentPath: docPath,
+                                documentFileName: fileName,
+                                licenseNumber: hospital.licenseNumber,
+                                taxNumber: hospital.taxNumber,
+                                address: hospital.address,
+                                contactName: adminContact,
+                                officialEmail: hospital.officialEmail,
+                                phone: hospital.phone,
+                                dateIssued: hospital.createdAt,
+                                onApprove: () => onVerify(hospital),
+                                onReject: (reason) => onReject(hospital, reason),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.menu_book_rounded, size: 16),
-                        label: const Text('Examiner la pièce'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        ),
-                        onPressed: () {
-                          OfficialDocumentViewerModal.show(
-                            context: context,
-                            type: DocumentType.hospitalLicense,
-                            entityName: hospital.name,
-                            licenseNumber: hospital.licenseNumber,
-                            taxNumber: hospital.taxNumber,
-                            address: hospital.address,
-                            officialEmail: hospital.officialEmail,
-                            phone: hospital.phone,
-                            dateIssued: hospital.createdAt,
-                            onApprove: () => onVerify(hospital),
-                            onReject: (reason) => onReject(hospital, reason),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ],
             ),

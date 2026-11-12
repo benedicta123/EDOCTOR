@@ -8,6 +8,7 @@ class HospitalModel {
   final String? phone;
   final String? officialEmail;
   final String? licenseNumber;
+  final String? licenseDocumentPath;
   final String? latitude;
   final String? longitude;
   final String? verifiedAt;
@@ -23,6 +24,7 @@ class HospitalModel {
     this.phone,
     this.officialEmail,
     this.licenseNumber,
+    this.licenseDocumentPath,
     this.latitude,
     this.longitude,
     this.verifiedAt,
@@ -62,6 +64,7 @@ class HospitalModel {
       phone: json['phone'] as String? ?? json['hospital_phone'] as String?,
       officialEmail: json['official_email'] as String?,
       licenseNumber: json['license_number'] as String?,
+      licenseDocumentPath: json['license_document_path'] as String?,
       latitude: json['latitude']?.toString(),
       longitude: json['longitude']?.toString(),
       verifiedAt: json['verified_at'] as String?,

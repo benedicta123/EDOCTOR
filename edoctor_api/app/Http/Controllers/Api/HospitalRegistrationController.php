@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rules\Password;
 use App\Services\GeocodingService;
@@ -41,7 +43,9 @@ class HospitalRegistrationController extends Controller
             'tax_number' => ['nullable', 'string', 'max:255'],
             'official_email' => ['required', 'string', 'email', 'max:255', 'unique:hospitals,official_email'],
             'hospital_phone' => ['required', 'string', 'max:30'],
-            'license_document' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'license_document' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            'license_document_base64' => ['nullable', 'string'],
+            'license_document_name' => ['nullable', 'string', 'max:255'],
             'consultation_fee' => ['nullable', 'numeric', 'min:500'],
 
             // Données du compte Super-Administrateur
@@ -59,6 +63,20 @@ class HospitalRegistrationController extends Controller
         $documentPath = null;
         if ($request->hasFile('license_document')) {
             $documentPath = $request->file('license_document')->store('hospital_documents', 'public');
+        } elseif (! empty($validated['license_document_base64'])) {
+            $rawBase64 = $validated['license_document_base64'];
+            $mime = 'application/pdf';
+            if (preg_match('/^data:(.*?);base64,(.*)$/', $rawBase64, $matches)) {
+                $mime = strtolower($matches[1]);
+                $decoded = base64_decode($matches[2], true);
+            } else {
+                $decoded = base64_decode($rawBase64, true);
+            }
+            if ($decoded !== false && strlen($decoded) > 0) {
+                $filename = 'hospital_documents/' . Str::uuid() . '.pdf';
+                Storage::disk('public')->put($filename, $decoded);
+                $documentPath = $filename;
+            }
         }
 
         // Auto-validation acceptée uniquement en environnement local ou de test

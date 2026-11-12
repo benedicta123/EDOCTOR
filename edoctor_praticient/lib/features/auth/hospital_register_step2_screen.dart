@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -17,6 +18,7 @@ class HospitalRegisterStep2Screen extends StatefulWidget {
     required this.officialEmail,
     required this.hospitalPhone,
     required this.consultationFee,
+    this.licenseDocument,
   });
 
   final String hospitalName;
@@ -27,6 +29,7 @@ class HospitalRegisterStep2Screen extends StatefulWidget {
   final String officialEmail;
   final String hospitalPhone;
   final double consultationFee;
+  final PlatformFile? licenseDocument;
 
   @override
   State<HospitalRegisterStep2Screen> createState() =>
@@ -85,6 +88,7 @@ class _HospitalRegisterStep2ScreenState
         password: _password.text,
         passwordConfirmation: _password2.text,
         consultationFee: widget.consultationFee,
+        licenseDocument: widget.licenseDocument,
       );
       if (!mounted) return;
       showMsg(context, 'Hôpital inscrit avec succès. Bienvenue !');

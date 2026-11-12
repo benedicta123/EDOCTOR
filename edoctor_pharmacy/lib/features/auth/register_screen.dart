@@ -85,35 +85,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           }
         });
       }
-    } catch (_) {
-      // En cas de restriction de permission sur le navigateur web,
-      // on simule l'enregistrement du document pour ne pas bloquer l'utilisateur
-      setState(() {
-        final mockFile = PlatformFile(
-          name: docIndex == 1
-              ? 'Arrete_Ministeriel_Officine.pdf'
-              : docIndex == 2
-                  ? 'Attestation_Ordre_Pharmaciens_2026.pdf'
-                  : docIndex == 3
-                      ? 'Extrait_RCCM_Officine.pdf'
-                      : 'CNI_Pharmacien_Titulaire.pdf',
-          size: 1420500,
-        );
-        switch (docIndex) {
-          case 1:
-            _fileDecree = mockFile;
-            break;
-          case 2:
-            _fileOrderCertificate = mockFile;
-            break;
-          case 3:
-            _fileRccm = mockFile;
-            break;
-          case 4:
-            _fileIdCard = mockFile;
-            break;
-        }
-      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Impossible de sélectionner le fichier : $e'),
+          backgroundColor: AppColors.outOfStock,
+        ),
+      );
     }
   }
 
@@ -168,13 +147,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String ref = 'KYP-2026-TG${(100 + (DateTime.now().millisecondsSinceEpoch % 900))}';
 
     try {
-      final docNames = [
-        if (_fileDecree != null) _fileDecree!.name,
-        if (_fileOrderCertificate != null) _fileOrderCertificate!.name,
-        if (_fileRccm != null) _fileRccm!.name,
-        if (_fileIdCard != null) _fileIdCard!.name,
-      ];
-
       final res = await ApiService.registerPharmacy(
         pharmacyName: _pharmacyNameController.text.trim(),
         city: _cityController.text.trim(),
@@ -186,7 +158,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         licenseNumber: _decreeNumberController.text.trim(),
         mobilePhone: _mobileController.text.trim(),
         password: _passwordController.text,
-        documentNames: docNames,
+        decreeFile: _fileDecree,
+        orderCertificateFile: _fileOrderCertificate,
+        rccmFile: _fileRccm,
+        idCardFile: _fileIdCard,
       );
 
       if (res['reference_id'] != null) {

@@ -8,6 +8,7 @@ use App\Models\Hospital;
 use App\Models\NurseVisit;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class HospitalDashboardController extends Controller
@@ -73,6 +74,34 @@ class HospitalDashboardController extends Controller
         ]);
         $admin->hospital->update($validated);
         return response()->json($admin->hospital->fresh());
+    }
+
+    /**
+     * POST /api/my-hospital/license-document
+     * Permet à l'administrateur d'un établissement de soumettre ou mettre à jour sa pièce justificative officielle.
+     */
+    public function uploadLicenseDocument(Request $request)
+    {
+        $admin = $this->admin($request);
+        $request->validate([
+            'license_document' => ['required', 'file', 'mimes:pdf', 'max:10240'],
+        ]);
+
+        $hospital = $admin->hospital;
+        $oldPath = $hospital->license_document_path;
+
+        $newPath = $request->file('license_document')->store('hospital_documents', 'public');
+        $hospital->update(['license_document_path' => $newPath]);
+
+        if ($oldPath && $oldPath !== $newPath && Storage::disk('public')->exists($oldPath)) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        return response()->json([
+            'message' => 'Pièce justificative enregistrée avec succès.',
+            'license_document_path' => $newPath,
+            'hospital' => $hospital->fresh(),
+        ]);
     }
 
     private function admin(Request $request): User

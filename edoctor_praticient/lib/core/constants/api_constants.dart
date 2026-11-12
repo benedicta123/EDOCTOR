@@ -48,6 +48,8 @@ class ApiConstants {
   static const String hospitalConsultations = '/my-hospital/consultations';
   static const String hospitalStatistics = '/my-hospital/statistics';
   static const String myHospital = '/my-hospital';
+  static const String myHospitalLicenseDocument =
+      '/my-hospital/license-document';
   static const String myHospitalStaff = '/my-hospital/staff';
   static const String myHospitalDoctors = '/my-hospital/doctors';
   static const String myHospitalNurses = '/my-hospital/nurses';

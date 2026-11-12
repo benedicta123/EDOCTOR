@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -22,6 +23,7 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
   UserModel? _user;
   HospitalModel? _hospital;
   bool _loading = true;
+  bool _uploadingDocument = false;
 
   @override
   void initState() {
@@ -50,6 +52,44 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
           error: true,
         );
       }
+    }
+  }
+
+  Future<void> _uploadLicenseDocument() async {
+    try {
+      final picked = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (picked == null) return;
+      final sizeBytes = picked.lengthSync() ?? await picked.length();
+      if (sizeBytes != null && sizeBytes > 10 * 1024 * 1024) {
+        if (mounted) {
+          showMsg(
+            context,
+            'Le fichier dépasse la limite autorisée de 10 Mo.',
+            error: true,
+          );
+        }
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() => _uploadingDocument = true);
+      await ApiService.uploadHospitalLicenseDocument(picked);
+      if (!mounted) return;
+      showMsg(context, "Pièce d'agrément transmise avec succès.");
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        showMsg(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          error: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingDocument = false);
     }
   }
 
@@ -182,6 +222,12 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
                               Icons.event_available_outlined,
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 14),
+                        _HospitalLicenseDocumentBox(
+                          documentPath: hospital.licenseDocumentPath,
+                          uploading: _uploadingDocument,
+                          onUpload: _uploadLicenseDocument,
                         ),
                         if (hospital.status == 'en_attente') ...[
                           const SizedBox(height: 16),
@@ -421,6 +467,113 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
           ),
           const SizedBox(height: 18),
           ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _HospitalLicenseDocumentBox extends StatelessWidget {
+  const _HospitalLicenseDocumentBox({
+    required this.documentPath,
+    required this.uploading,
+    required this.onUpload,
+  });
+
+  final String? documentPath;
+  final bool uploading;
+  final VoidCallback onUpload;
+
+  @override
+  Widget build(BuildContext context) {
+    final raw = documentPath?.trim() ?? '';
+    final hasDoc = raw.isNotEmpty;
+    final fileName = hasDoc ? raw.split('/').last : null;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: hasDoc ? AppColors.successLight : AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasDoc
+              ? AppColors.success.withValues(alpha: 0.35)
+              : AppColors.border,
+        ),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        alignment: WrapAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: hasDoc
+                      ? AppColors.success.withValues(alpha: 0.14)
+                      : AppColors.warningLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  hasDoc
+                      ? Icons.description_outlined
+                      : Icons.upload_file_rounded,
+                  size: 18,
+                  color: hasDoc ? AppColors.success : AppColors.warning,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasDoc
+                        ? 'Justificatif transmis : $fileName'
+                        : 'Aucune pièce justificative transmise',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Format accepté : Document PDF uniquement (max 10 Mo)',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          OutlinedButton.icon(
+            onPressed: uploading ? null : onUpload,
+            icon: uploading
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    hasDoc
+                        ? Icons.sync_rounded
+                        : Icons.cloud_upload_outlined,
+                    size: 16,
+                  ),
+            label: Text(
+              uploading
+                  ? 'Envoi...'
+                  : hasDoc
+                  ? 'Mettre à jour la pièce'
+                  : 'Téléverser l\'agrément',
+            ),
+          ),
         ],
       ),
     );
