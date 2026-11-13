@@ -388,49 +388,71 @@ class _FinancePayoutsScreenState extends State<FinancePayoutsScreen> with Single
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // KPI Cards de la Trésorerie Globale
+                  // KPI Cards de la Trésorerie Globale (5 indicateurs majeurs)
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final cols = constraints.maxWidth >= 1100 ? 4 : (constraints.maxWidth >= 650 ? 2 : 1);
-                      return GridView.count(
-                        crossAxisCount: cols,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: cols == 4 ? 1.7 : 2.2,
+                      final int cols = constraints.maxWidth >= 1350
+                          ? 5
+                          : (constraints.maxWidth >= 950
+                              ? 3
+                              : (constraints.maxWidth >= 600 ? 2 : 1));
+                      final double cardWidth = (constraints.maxWidth - ((cols - 1) * 16)) / cols;
+
+                      Widget wrapCard(Widget card) => SizedBox(width: cardWidth, child: card);
+
+                      return Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
                         children: [
-                          KpiCard(
-                            title: 'Solde Disponible Partenaires',
-                            value: Formatters.formatCurrency(_summary?.totalAvailableBalance ?? 0.0),
-                            subtitle: 'Fonds retirables par les prestataires',
-                            icon: Icons.account_balance_wallet_rounded,
-                            iconColor: AppColors.verified,
-                            iconBgColor: AppColors.verifiedBg,
+                          wrapCard(
+                            KpiCard(
+                              title: 'Revenus nets eDoctor',
+                              value: Formatters.formatCurrency(_summary?.totalEdoctorRevenue ?? 0.0),
+                              subtitle: 'Commissions & frais de service perçus',
+                              icon: Icons.savings_rounded,
+                              iconColor: const Color(0xFF059669),
+                              iconBgColor: const Color(0xFFECFDF5),
+                            ),
                           ),
-                          KpiCard(
-                            title: 'Escrow / Séquestre Global',
-                            value: Formatters.formatCurrency(_summary?.totalEscrowPendingBalance ?? 0.0),
-                            subtitle: 'En attente de clôture ou livraison',
-                            icon: Icons.hourglass_top_rounded,
-                            iconColor: AppColors.pending,
-                            iconBgColor: AppColors.pendingBg,
+                          wrapCard(
+                            KpiCard(
+                              title: 'Solde Disponible Partenaires',
+                              value: Formatters.formatCurrency(_summary?.totalAvailableBalance ?? 0.0),
+                              subtitle: 'Fonds retirables par les prestataires',
+                              icon: Icons.account_balance_wallet_rounded,
+                              iconColor: AppColors.verified,
+                              iconBgColor: AppColors.verifiedBg,
+                            ),
                           ),
-                          KpiCard(
-                            title: 'Total Liquidités Réseau',
-                            value: Formatters.formatCurrency(_summary?.totalEcosystemBalance ?? 0.0),
-                            subtitle: 'Disponible + séquestre consolidé',
-                            icon: Icons.pie_chart_rounded,
-                            iconColor: AppColors.primary,
-                            iconBgColor: AppColors.primaryContainer,
+                          wrapCard(
+                            KpiCard(
+                              title: 'Escrow / Séquestre Global',
+                              value: Formatters.formatCurrency(_summary?.totalEscrowPendingBalance ?? 0.0),
+                              subtitle: 'En attente de clôture ou livraison',
+                              icon: Icons.hourglass_top_rounded,
+                              iconColor: AppColors.pending,
+                              iconBgColor: AppColors.pendingBg,
+                            ),
                           ),
-                          KpiCard(
-                            title: 'Portefeuilles Partenaires',
-                            value: '${_summary?.walletsCount ?? _wallets.length}',
-                            subtitle: '$pendingPayouts demande(s) de retrait en attente',
-                            icon: Icons.hub_rounded,
-                            iconColor: pendingPayouts > 0 ? AppColors.pending : AppColors.secondary,
-                            iconBgColor: pendingPayouts > 0 ? AppColors.pendingBg : AppColors.secondaryContainer,
+                          wrapCard(
+                            KpiCard(
+                              title: 'Total Liquidités Réseau',
+                              value: Formatters.formatCurrency(_summary?.totalEcosystemBalance ?? 0.0),
+                              subtitle: 'Disponible + séquestre consolidé',
+                              icon: Icons.pie_chart_rounded,
+                              iconColor: AppColors.primary,
+                              iconBgColor: AppColors.primaryContainer,
+                            ),
+                          ),
+                          wrapCard(
+                            KpiCard(
+                              title: 'Portefeuilles Partenaires',
+                              value: '${_summary?.walletsCount ?? _wallets.length}',
+                              subtitle: '$pendingPayouts demande(s) de retrait en attente',
+                              icon: Icons.hub_rounded,
+                              iconColor: pendingPayouts > 0 ? AppColors.pending : AppColors.secondary,
+                              iconBgColor: pendingPayouts > 0 ? AppColors.pendingBg : AppColors.secondaryContainer,
+                            ),
                           ),
                         ],
                       );

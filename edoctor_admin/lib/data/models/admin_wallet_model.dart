@@ -3,12 +3,14 @@ class AdminWalletSummaryModel {
   final double totalEscrowPendingBalance;
   final double totalEcosystemBalance;
   final int walletsCount;
+  final double totalEdoctorRevenue;
 
   const AdminWalletSummaryModel({
     required this.totalAvailableBalance,
     required this.totalEscrowPendingBalance,
     required this.totalEcosystemBalance,
     required this.walletsCount,
+    this.totalEdoctorRevenue = 0.0,
   });
 
   factory AdminWalletSummaryModel.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class AdminWalletSummaryModel {
       totalEscrowPendingBalance: double.tryParse(json['total_escrow_pending_balance']?.toString() ?? '0') ?? 0.0,
       totalEcosystemBalance: double.tryParse(json['total_ecosystem_balance']?.toString() ?? '0') ?? 0.0,
       walletsCount: json['wallets_count'] as int? ?? 0,
+      totalEdoctorRevenue: double.tryParse(json['total_edoctor_revenue']?.toString() ?? '0') ?? 0.0,
     );
   }
 }

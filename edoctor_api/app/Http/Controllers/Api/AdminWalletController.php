@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Consultation;
+use App\Models\Order;
+use App\Models\Payment;
 use App\Models\PayoutRequest;
 use App\Models\Wallet;
 use Exception;
@@ -40,6 +43,15 @@ class AdminWalletController extends Controller
         $totalAvailable = Wallet::sum('balance');
         $totalPending = Wallet::sum('pending_balance');
 
+        // Calcul des revenus nets plateforme eDoctor (commissions consultations, recherche officines, livraisons)
+        $paymentsEdoctorFee = (float) Payment::where('status', 'completed')->sum('edoctor_fee');
+        $consultationsEdoctorFee = (float) Consultation::whereIn('status', ['terminee', 'en_cours'])->where('payment_status', 'paye')->sum('edoctor_fee');
+        if ($consultationsEdoctorFee <= 0) {
+            $consultationsEdoctorFee = (float) Consultation::where('status', 'terminee')->sum('edoctor_fee');
+        }
+        $ordersEdoctorFee = (float) Order::whereIn('status', ['terminee', 'recuperee', 'en_livraison', 'prete'])->sum('edoctor_fee');
+        $totalEdoctorRevenue = max($paymentsEdoctorFee, ($consultationsEdoctorFee + $ordersEdoctorFee));
+
         return response()->json([
             'success' => true,
             'summary' => [
@@ -47,6 +59,7 @@ class AdminWalletController extends Controller
                 'total_escrow_pending_balance' => (float) $totalPending,
                 'total_ecosystem_balance' => (float) ($totalAvailable + $totalPending),
                 'wallets_count' => $wallets->count(),
+                'total_edoctor_revenue' => (float) $totalEdoctorRevenue,
             ],
             'wallets' => $wallets,
         ]);
