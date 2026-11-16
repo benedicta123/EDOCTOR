@@ -30,7 +30,7 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
   int _totalUsers = 0;
   int _from = 0;
   int _to = 0;
-  final int _perPage = 15;
+  int _perPage = 10;
 
   @override
   void initState() {
@@ -283,7 +283,7 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
                           ),
                         ),
             ),
-            if (!_loading && _totalUsers > 0) ...[
+            if (!_loading && _users.isNotEmpty) ...[
               const SizedBox(height: 16),
               _buildPaginationFooter(),
             ],
@@ -303,12 +303,61 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 650;
-          final counter = Text(
-            'Affichage de $_from à $_to sur $_totalUsers utilisateur${_totalUsers > 1 ? 's' : ''}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+          final isCompact = constraints.maxWidth < 750;
+
+          // Infos et sélecteur par page
+          final leftSection = Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 16,
+            runSpacing: 8,
+            children: [
+              Text(
+                'Affichage de $_from à $_to sur $_totalUsers utilisateur${_totalUsers > 1 ? 's' : ''}',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Par page :', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _perPage,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        icon: const Icon(Icons.arrow_drop_down_rounded, size: 18),
+                        items: const [
+                          DropdownMenuItem(value: 5, child: Text('5')),
+                          DropdownMenuItem(value: 10, child: Text('10')),
+                          DropdownMenuItem(value: 15, child: Text('15')),
+                          DropdownMenuItem(value: 25, child: Text('25')),
+                          DropdownMenuItem(value: 50, child: Text('50')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null && val != _perPage) {
+                            setState(() {
+                              _perPage = val;
+                              _currentPage = 1;
+                            });
+                            _load();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           );
 
+          // Contrôles de navigation (Précédent / Numéros / Suivant)
           final controls = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -344,7 +393,7 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(child: counter),
+                Center(child: leftSection),
                 const SizedBox(height: 10),
                 Center(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: controls)),
               ],
@@ -354,7 +403,7 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              counter,
+              leftSection,
               controls,
             ],
           );
@@ -365,13 +414,13 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
 
   List<Widget> _buildPageNumberButtons() {
     final List<Widget> widgets = [];
-    if (_lastPage <= 1) return widgets;
+    final maxPages = _lastPage < 1 ? 1 : _lastPage;
 
     final Set<int> pagesToShow = {};
     pagesToShow.add(1);
-    pagesToShow.add(_lastPage);
+    pagesToShow.add(maxPages);
     for (int i = _currentPage - 1; i <= _currentPage + 1; i++) {
-      if (i >= 1 && i <= _lastPage) {
+      if (i >= 1 && i <= maxPages) {
         pagesToShow.add(i);
       }
     }

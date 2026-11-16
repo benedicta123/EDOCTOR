@@ -20,6 +20,14 @@ class PaginatedResult<T> {
   bool get hasPreviousPage => currentPage > 1;
   bool get hasNextPage => currentPage < lastPage;
 
+  static int _toInt(dynamic value, int fallback) {
+    if (value == null) return fallback;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
   factory PaginatedResult.fromJson(
     Map<String, dynamic> json,
     T Function(Map<String, dynamic>) itemParser,
@@ -31,12 +39,12 @@ class PaginatedResult<T> {
 
     return PaginatedResult<T>(
       data: items,
-      currentPage: json['current_page'] as int? ?? 1,
-      lastPage: json['last_page'] as int? ?? 1,
-      total: json['total'] as int? ?? items.length,
-      from: json['from'] as int? ?? (items.isNotEmpty ? 1 : 0),
-      to: json['to'] as int? ?? items.length,
-      perPage: json['per_page'] as int? ?? (items.isNotEmpty ? items.length : 15),
+      currentPage: _toInt(json['current_page'], 1),
+      lastPage: _toInt(json['last_page'], 1),
+      total: _toInt(json['total'], items.length),
+      from: _toInt(json['from'], items.isNotEmpty ? 1 : 0),
+      to: _toInt(json['to'], items.length),
+      perPage: _toInt(json['per_page'], items.isNotEmpty ? items.length : 15),
     );
   }
 }
