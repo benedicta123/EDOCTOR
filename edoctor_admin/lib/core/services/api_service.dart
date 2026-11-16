@@ -12,6 +12,7 @@ import '../../data/models/overview_metrics_model.dart';
 import '../../data/models/pharmacy_model.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/admin_wallet_model.dart';
+import '../../data/models/paginated_result.dart';
 import 'storage_service.dart';
 
 /// Exception déclenchée quand le compte Super-Admin requiert la double authentification (2FA).
@@ -400,14 +401,18 @@ class ApiService {
   // GESTION DES UTILISATEURS & MODÉRATION
   // ----------------------------------------------------
 
-  static Future<List<UserModel>> getUsers({
+  static Future<PaginatedResult<UserModel>> getPaginatedUsers({
     String? role,
     String? status,
     String? search,
     int page = 1,
+    int perPage = 15,
   }) async {
     final token = await _getRequiredToken();
-    final queryParams = <String, String>{'page': page.toString()};
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'per_page': perPage.toString(),
+    };
     if (role != null && role != 'tous') queryParams['role'] = role;
     if (status != null && status != 'tous') queryParams['status'] = status;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
@@ -418,8 +423,48 @@ class ApiService {
       response,
       defaultErrorMessage: 'Erreur lors de la récupération des utilisateurs.',
     );
-    final list = (data['data'] as List<dynamic>?) ?? [];
-    return list.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+
+    if (data is Map<String, dynamic>) {
+      return PaginatedResult<UserModel>.fromJson(
+        data,
+        (json) => UserModel.fromJson(json),
+      );
+    } else if (data is List) {
+      final list = data.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+      return PaginatedResult<UserModel>(
+        data: list,
+        currentPage: 1,
+        lastPage: 1,
+        total: list.length,
+        from: list.isNotEmpty ? 1 : 0,
+        to: list.length,
+        perPage: list.length,
+      );
+    }
+    return const PaginatedResult<UserModel>(
+      data: [],
+      currentPage: 1,
+      lastPage: 1,
+      total: 0,
+      from: 0,
+      to: 0,
+      perPage: 15,
+    );
+  }
+
+  static Future<List<UserModel>> getUsers({
+    String? role,
+    String? status,
+    String? search,
+    int page = 1,
+  }) async {
+    final res = await getPaginatedUsers(
+      role: role,
+      status: status,
+      search: search,
+      page: page,
+    );
+    return res.data;
   }
 
   static Future<UserModel> suspendUser(int id, {required String reason}) async {

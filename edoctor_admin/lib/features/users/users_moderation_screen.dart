@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
@@ -20,42 +21,16 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
   String _roleFilter = 'tous';
   String _statusFilter = 'tous';
   String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
-  List<UserModel> get _filteredUsers {
-    return _users.where((u) {
-      // 1. Filtrage par rôle
-      if (_roleFilter != 'tous') {
-        final r = u.role.toLowerCase().trim();
-        final target = _roleFilter.toLowerCase().trim();
-        if (target == 'admin') {
-          if (!u.isSuperAdmin && !u.isHospitalAdmin && r != 'admin' && r != 'superadmin' && r != 'hospital_admin') {
-            return false;
-          }
-        } else if (r != target) {
-          return false;
-        }
-      }
-
-      // 2. Filtrage par statut
-      if (_statusFilter == 'actif' && u.isSuspended) return false;
-      if (_statusFilter == 'suspendu' && !u.isSuspended) return false;
-
-      // 3. Filtrage par recherche
-      if (_searchQuery.trim().isNotEmpty) {
-        final q = _searchQuery.toLowerCase().trim();
-        final name = u.name.toLowerCase();
-        final email = u.email.toLowerCase();
-        final phone = (u.phone ?? '').toLowerCase();
-        final hospital = (u.hospitalName ?? '').toLowerCase();
-        final pharmacy = (u.pharmacyName ?? '').toLowerCase();
-        if (!name.contains(q) && !email.contains(q) && !phone.contains(q) && !hospital.contains(q) && !pharmacy.contains(q)) {
-          return false;
-        }
-      }
-
-      return true;
-    }).toList();
-  }
+  // Pagination côté serveur
+  int _currentPage = 1;
+  int _lastPage = 1;
+  int _totalUsers = 0;
+  int _from = 0;
+  int _to = 0;
+  final int _perPage = 15;
 
   @override
   void initState() {
@@ -63,17 +38,31 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final list = await ApiService.getUsers(
+      final res = await ApiService.getPaginatedUsers(
         role: _roleFilter,
         status: _statusFilter,
-        search: _searchQuery,
+        search: _searchQuery.trim().isNotEmpty ? _searchQuery.trim() : null,
+        page: _currentPage,
+        perPage: _perPage,
       );
       if (mounted) {
         setState(() {
-          _users = list;
+          _users = res.data;
+          _currentPage = res.currentPage;
+          _lastPage = res.lastPage;
+          _totalUsers = res.total;
+          _from = res.from;
+          _to = res.to;
           _loading = false;
         });
       }
@@ -88,6 +77,12 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
         }
       }
     }
+  }
+
+  void _goToPage(int page) {
+    if (page < 1 || page > _lastPage || page == _currentPage || _loading) return;
+    setState(() => _currentPage = page);
+    _load();
   }
 
   Future<void> _suspend(UserModel u, String reason) async {
@@ -176,8 +171,11 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
                             DropdownMenuItem(value: 'admin', child: Text('Administrateurs')),
                           ],
                           onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _roleFilter = val);
+                            if (val != null && val != _roleFilter) {
+                              setState(() {
+                                _roleFilter = val;
+                                _currentPage = 1;
+                              });
                               _load();
                             }
                           },
@@ -204,9 +202,24 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
                   width: 320,
                   height: 40,
                   child: TextField(
+                    controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Rechercher nom, email, téléphone...',
                       prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              onPressed: () {
+                                _searchController.clear();
+                                _searchDebounce?.cancel();
+                                setState(() {
+                                  _searchQuery = '';
+                                  _currentPage = 1;
+                                });
+                                _load();
+                              },
+                            )
+                          : null,
                       contentPadding: EdgeInsets.zero,
                       filled: true,
                       fillColor: AppColors.surface,
@@ -214,7 +227,14 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
                     ),
                     onChanged: (val) {
-                      setState(() => _searchQuery = val);
+                      _searchDebounce?.cancel();
+                      _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+                        setState(() {
+                          _searchQuery = val;
+                          _currentPage = 1;
+                        });
+                        _load();
+                      });
                     },
                   ),
                 ),
@@ -226,7 +246,7 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                  : _filteredUsers.isEmpty
+                  : _users.isEmpty
                       ? const EmptyState(
                           icon: Icons.person_off_outlined,
                           title: 'Aucun utilisateur trouvé',
@@ -249,10 +269,10 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
                                   child: SizedBox(
                                     width: tableWidth,
                                     child: ListView.separated(
-                                      itemCount: _filteredUsers.length,
+                                      itemCount: _users.length,
                                       separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.border),
                                       itemBuilder: (context, index) {
-                                        final u = _filteredUsers[index];
+                                        final u = _users[index];
                                         return _buildUserRow(u);
                                       },
                                     ),
@@ -263,10 +283,142 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
                           ),
                         ),
             ),
+            if (!_loading && _totalUsers > 0) ...[
+              const SizedBox(height: 16),
+              _buildPaginationFooter(),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildPaginationFooter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 650;
+          final counter = Text(
+            'Affichage de $_from à $_to sur $_totalUsers utilisateur${_totalUsers > 1 ? 's' : ''}',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+          );
+
+          final controls = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.chevron_left_rounded, size: 16),
+                label: const Text('Précédent', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _currentPage > 1 ? AppColors.textPrimary : AppColors.textMuted,
+                  side: BorderSide(color: _currentPage > 1 ? AppColors.border : AppColors.border.withValues(alpha: 0.5)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: _currentPage > 1 && !_loading ? () => _goToPage(_currentPage - 1) : null,
+              ),
+              const SizedBox(width: 8),
+              ..._buildPageNumberButtons(),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.chevron_right_rounded, size: 16),
+                label: const Text('Suivant', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _currentPage < _lastPage ? AppColors.textPrimary : AppColors.textMuted,
+                  side: BorderSide(color: _currentPage < _lastPage ? AppColors.border : AppColors.border.withValues(alpha: 0.5)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: _currentPage < _lastPage && !_loading ? () => _goToPage(_currentPage + 1) : null,
+              ),
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(child: counter),
+                const SizedBox(height: 10),
+                Center(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: controls)),
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              counter,
+              controls,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  List<Widget> _buildPageNumberButtons() {
+    final List<Widget> widgets = [];
+    if (_lastPage <= 1) return widgets;
+
+    final Set<int> pagesToShow = {};
+    pagesToShow.add(1);
+    pagesToShow.add(_lastPage);
+    for (int i = _currentPage - 1; i <= _currentPage + 1; i++) {
+      if (i >= 1 && i <= _lastPage) {
+        pagesToShow.add(i);
+      }
+    }
+
+    final sortedPages = pagesToShow.toList()..sort();
+    int? prevPage;
+
+    for (final page in sortedPages) {
+      if (prevPage != null && page - prevPage > 1) {
+        widgets.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text('...', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          ),
+        );
+      }
+
+      final isCurrent = page == _currentPage;
+      widgets.add(
+        InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: isCurrent || _loading ? null : () => _goToPage(page),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isCurrent ? AppColors.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: isCurrent ? AppColors.primary : AppColors.border,
+              ),
+            ),
+            child: Text(
+              '$page',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                color: isCurrent ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+      );
+      prevPage = page;
+    }
+
+    return widgets;
   }
 
   Widget _buildFilterChip(String label, String value) {
@@ -275,8 +427,11 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) {
-        if (selected) {
-          setState(() => _statusFilter = value);
+        if (selected && _statusFilter != value) {
+          setState(() {
+            _statusFilter = value;
+            _currentPage = 1;
+          });
           _load();
         }
       },

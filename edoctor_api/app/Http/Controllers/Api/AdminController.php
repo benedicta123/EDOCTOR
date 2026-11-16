@@ -475,7 +475,8 @@ class AdminController extends Controller
             });
         }
 
-        $users = $query->latest()->paginate($request->input('per_page', 100));
+        $perPage = min(100, max(5, (int) $request->input('per_page', 15)));
+        $users = $query->latest()->paginate($perPage);
 
         return response()->json($users);
     }
