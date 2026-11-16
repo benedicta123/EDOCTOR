@@ -762,27 +762,42 @@ class AdminController extends Controller
         if (str_starts_with($cleanPath, 'storage/')) {
             $cleanPath = substr($cleanPath, strlen('storage/'));
         }
+        if (str_starts_with($cleanPath, 'public/')) {
+            $cleanPath = substr($cleanPath, strlen('public/'));
+        }
+
+        $baseName = basename($cleanPath);
+        $candidates = array_unique(array_filter([
+            $cleanPath,
+            'hospital_documents/' . $baseName,
+            'pharmacy_documents/' . $baseName,
+            'documents/' . $baseName,
+            'documents/homologations/' . $baseName,
+        ]));
 
         foreach (['public', 'local'] as $disk) {
-            if (Storage::disk($disk)->exists($cleanPath)) {
-                $fullPath = Storage::disk($disk)->path($cleanPath);
-                $mimeType = Storage::disk($disk)->mimeType($cleanPath) ?: 'application/octet-stream';
+            foreach ($candidates as $candidate) {
+                if (Storage::disk($disk)->exists($candidate)) {
+                    $fullPath = Storage::disk($disk)->path($candidate);
+                    $mimeType = Storage::disk($disk)->mimeType($candidate) ?: 'application/octet-stream';
 
-                $ext = pathinfo($cleanPath, PATHINFO_EXTENSION);
-                $fileName = $fallbackName ?: basename($cleanPath);
-                if ($ext && ! str_ends_with(strtolower($fileName), '.' . strtolower($ext))) {
-                    $fileName .= '.' . $ext;
+                    $ext = pathinfo($candidate, PATHINFO_EXTENSION);
+                    $fileName = $fallbackName ?: basename($candidate);
+                    if ($ext && ! str_ends_with(strtolower($fileName), '.' . strtolower($ext))) {
+                        $fileName .= '.' . $ext;
+                    }
+
+                    return response()->file($fullPath, [
+                        'Content-Type' => $mimeType,
+                        'Content-Disposition' => 'inline; filename="' . addslashes($fileName) . '"',
+                        'X-Content-Type-Options' => 'nosniff',
+                        'Cache-Control' => 'private, max-age=300',
+                        'Access-Control-Allow-Origin' => '*',
+                        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+                        'Access-Control-Allow-Headers' => 'Authorization, Content-Type, Accept, X-Requested-With',
+                        'Access-Control-Expose-Headers' => 'Content-Disposition, Content-Type, Content-Length',
+                    ]);
                 }
-
-                return response()->file($fullPath, [
-                    'Content-Type' => $mimeType,
-                    'Content-Disposition' => 'inline; filename="' . addslashes($fileName) . '"',
-                    'X-Content-Type-Options' => 'nosniff',
-                    'Cache-Control' => 'private, max-age=300',
-                    'Access-Control-Allow-Origin' => '*',
-                    'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                    'Access-Control-Allow-Headers' => 'Authorization, Content-Type, Accept, X-Requested-With',
-                ]);
             }
         }
 

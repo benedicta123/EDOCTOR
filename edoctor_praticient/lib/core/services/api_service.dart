@@ -249,14 +249,25 @@ class ApiService {
       });
 
       if (licenseDocument != null) {
-        final bytes = await licenseDocument.readAsBytes();
-        req.files.add(
-          http.MultipartFile.fromBytes(
-            'license_document',
-            bytes,
-            filename: licenseDocument.name,
-          ),
-        );
+        if (licenseDocument.bytes != null) {
+          req.files.add(
+            http.MultipartFile.fromBytes(
+              'license_document',
+              licenseDocument.bytes!,
+              filename: licenseDocument.name,
+            ),
+          );
+        } else if (!kIsWeb &&
+            licenseDocument.path != null &&
+            licenseDocument.path!.isNotEmpty) {
+          req.files.add(
+            await http.MultipartFile.fromPath(
+              'license_document',
+              licenseDocument.path!,
+              filename: licenseDocument.name,
+            ),
+          );
+        }
       }
 
       final streamed = await req.send();
@@ -291,14 +302,23 @@ class ApiService {
       );
       req.headers.addAll(_headers(token));
 
-      final bytes = await file.readAsBytes();
-      req.files.add(
-        http.MultipartFile.fromBytes(
-          'license_document',
-          bytes,
-          filename: file.name,
-        ),
-      );
+      if (file.bytes != null) {
+        req.files.add(
+          http.MultipartFile.fromBytes(
+            'license_document',
+            file.bytes!,
+            filename: file.name,
+          ),
+        );
+      } else if (!kIsWeb && file.path != null && file.path!.isNotEmpty) {
+        req.files.add(
+          await http.MultipartFile.fromPath(
+            'license_document',
+            file.path!,
+            filename: file.name,
+          ),
+        );
+      }
 
       final streamed = await req.send();
       final r = await http.Response.fromStream(streamed);
