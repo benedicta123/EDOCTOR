@@ -328,21 +328,60 @@ class ApiService {
   // MODULE PHARMACIES & LICENCE D'OFFICINE (KYP)
   // ----------------------------------------------------
 
-  static Future<List<PharmacyModel>> getPharmacies({String? status, String? search}) async {
+  static Future<PaginatedResult<PharmacyModel>> getPaginatedPharmacies({
+    String? status,
+    String? search,
+    int page = 1,
+    int perPage = 10,
+  }) async {
     final token = await _getRequiredToken();
-    final queryParams = <String, String>{};
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'per_page': perPage.toString(),
+    };
     if (status != null && status != 'tous') queryParams['status'] = status;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
     final uri = Uri.parse('$baseUrl${ApiConstants.adminPharmacies}').replace(
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      queryParameters: queryParams,
     );
     final response = await http.get(uri, headers: _headers(token));
-    final list = _processResponse(
+    final data = _processResponse(
       response,
       defaultErrorMessage: 'Erreur lors de la récupération des pharmacies.',
-    ) as List<dynamic>;
-    return list.map((e) => PharmacyModel.fromJson(e as Map<String, dynamic>)).toList();
+    );
+
+    if (data is Map<String, dynamic>) {
+      return PaginatedResult<PharmacyModel>.fromJson(
+        data,
+        (json) => PharmacyModel.fromJson(json),
+      );
+    } else if (data is List) {
+      final list = data.map((e) => PharmacyModel.fromJson(e as Map<String, dynamic>)).toList();
+      return PaginatedResult<PharmacyModel>(
+        data: list,
+        currentPage: 1,
+        lastPage: 1,
+        total: list.length,
+        from: list.isNotEmpty ? 1 : 0,
+        to: list.length,
+        perPage: list.length,
+      );
+    }
+    return const PaginatedResult<PharmacyModel>(
+      data: [],
+      currentPage: 1,
+      lastPage: 1,
+      total: 0,
+      from: 0,
+      to: 0,
+      perPage: 10,
+    );
+  }
+
+  static Future<List<PharmacyModel>> getPharmacies({String? status, String? search}) async {
+    final res = await getPaginatedPharmacies(status: status, search: search, perPage: 100);
+    return res.data;
   }
 
   static Future<PharmacyModel> verifyPharmacy(int id) async {

@@ -310,22 +310,24 @@ class AdminController extends Controller
         $query = Pharmacy::with(['owner:id,name,email,phone,license_number', 'stocks']);
 
         if ($request->filled('status') && $request->status !== 'tous') {
-            $query->where('status', $request->status);
+            $status = strtolower(trim($request->status));
+            $query->whereRaw('LOWER(status) = ?', [$status]);
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = strtolower(trim($request->search));
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%")
-                    ->orWhere('reference_id', 'like', "%{$search}%")
-                    ->orWhere('license_number', 'like', "%{$search}%")
-                    ->orWhere('order_number', 'like', "%{$search}%")
-                    ->orWhere('official_email', 'like', "%{$search}%");
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(address) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(reference_id) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(license_number) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(order_number) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(official_email) LIKE ?', ["%{$search}%"]);
             });
         }
 
-        $pharmacies = $query->latest()->get();
+        $perPage = min(100, max(5, (int) $request->input('per_page', 10)));
+        $pharmacies = $query->latest()->paginate($perPage);
 
         return response()->json($pharmacies);
     }

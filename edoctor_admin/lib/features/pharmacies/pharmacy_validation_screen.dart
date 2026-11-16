@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
@@ -20,6 +21,16 @@ class _PharmacyValidationScreenState extends State<PharmacyValidationScreen> {
   bool _loading = true;
   String _statusFilter = 'tous';
   String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
+
+  // Pagination côté serveur
+  int _currentPage = 1;
+  int _lastPage = 1;
+  int _totalPharmacies = 0;
+  int _from = 0;
+  int _to = 0;
+  int _perPage = 10;
 
   @override
   void initState() {
@@ -27,16 +38,30 @@ class _PharmacyValidationScreenState extends State<PharmacyValidationScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final list = await ApiService.getPharmacies(
+      final res = await ApiService.getPaginatedPharmacies(
         status: _statusFilter,
-        search: _searchQuery,
+        search: _searchQuery.trim().isNotEmpty ? _searchQuery.trim() : null,
+        page: _currentPage,
+        perPage: _perPage,
       );
       if (mounted) {
         setState(() {
-          _pharmacies = list;
+          _pharmacies = res.data;
+          _currentPage = res.currentPage;
+          _lastPage = res.lastPage;
+          _totalPharmacies = res.total;
+          _from = res.from;
+          _to = res.to;
           _loading = false;
         });
       }
@@ -51,6 +76,12 @@ class _PharmacyValidationScreenState extends State<PharmacyValidationScreen> {
         }
       }
     }
+  }
+
+  void _goToPage(int page) {
+    if (page < 1 || page > _lastPage || page == _currentPage || _loading) return;
+    setState(() => _currentPage = page);
+    _load();
   }
 
   Future<void> _verify(PharmacyModel p) async {
@@ -182,9 +213,24 @@ class _PharmacyValidationScreenState extends State<PharmacyValidationScreen> {
                   width: 300,
                   height: 40,
                   child: TextField(
+                    controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Rechercher officine, titulaire, réf...',
                       prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              onPressed: () {
+                                _searchController.clear();
+                                _searchDebounce?.cancel();
+                                setState(() {
+                                  _searchQuery = '';
+                                  _currentPage = 1;
+                                });
+                                _load();
+                              },
+                            )
+                          : null,
                       contentPadding: EdgeInsets.zero,
                       filled: true,
                       fillColor: AppColors.surface,
@@ -192,8 +238,14 @@ class _PharmacyValidationScreenState extends State<PharmacyValidationScreen> {
                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
                     ),
                     onChanged: (val) {
-                      _searchQuery = val;
-                      _load();
+                      _searchDebounce?.cancel();
+                      _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+                        setState(() {
+                          _searchQuery = val;
+                          _currentPage = 1;
+                        });
+                        _load();
+                      });
                     },
                   ),
                 ),
@@ -242,10 +294,191 @@ class _PharmacyValidationScreenState extends State<PharmacyValidationScreen> {
                           ),
                         ),
             ),
+            if (!_loading && _pharmacies.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildPaginationFooter(),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildPaginationFooter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 750;
+
+          // Infos et sélecteur par page
+          final leftSection = Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 16,
+            runSpacing: 8,
+            children: [
+              Text(
+                'Affichage de $_from à $_to sur $_totalPharmacies officine${_totalPharmacies > 1 ? 's' : ''}',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Par page :', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _perPage,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        icon: const Icon(Icons.arrow_drop_down_rounded, size: 18),
+                        items: const [
+                          DropdownMenuItem(value: 5, child: Text('5')),
+                          DropdownMenuItem(value: 10, child: Text('10')),
+                          DropdownMenuItem(value: 15, child: Text('15')),
+                          DropdownMenuItem(value: 25, child: Text('25')),
+                          DropdownMenuItem(value: 50, child: Text('50')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null && val != _perPage) {
+                            setState(() {
+                              _perPage = val;
+                              _currentPage = 1;
+                            });
+                            _load();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+
+          // Contrôles de navigation (Précédent / Numéros / Suivant)
+          final controls = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.chevron_left_rounded, size: 16),
+                label: const Text('Précédent', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _currentPage > 1 ? AppColors.textPrimary : AppColors.textMuted,
+                  side: BorderSide(color: _currentPage > 1 ? AppColors.border : AppColors.border.withValues(alpha: 0.5)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: _currentPage > 1 && !_loading ? () => _goToPage(_currentPage - 1) : null,
+              ),
+              const SizedBox(width: 8),
+              ..._buildPageNumberButtons(),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.chevron_right_rounded, size: 16),
+                label: const Text('Suivant', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _currentPage < _lastPage ? AppColors.textPrimary : AppColors.textMuted,
+                  side: BorderSide(color: _currentPage < _lastPage ? AppColors.border : AppColors.border.withValues(alpha: 0.5)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: _currentPage < _lastPage && !_loading ? () => _goToPage(_currentPage + 1) : null,
+              ),
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(child: leftSection),
+                const SizedBox(height: 10),
+                Center(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: controls)),
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              leftSection,
+              controls,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  List<Widget> _buildPageNumberButtons() {
+    final List<Widget> widgets = [];
+    final maxPages = _lastPage < 1 ? 1 : _lastPage;
+
+    final Set<int> pagesToShow = {};
+    pagesToShow.add(1);
+    pagesToShow.add(maxPages);
+    for (int i = _currentPage - 1; i <= _currentPage + 1; i++) {
+      if (i >= 1 && i <= maxPages) {
+        pagesToShow.add(i);
+      }
+    }
+
+    final sortedPages = pagesToShow.toList()..sort();
+    int? prevPage;
+
+    for (final page in sortedPages) {
+      if (prevPage != null && page - prevPage > 1) {
+        widgets.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text('...', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          ),
+        );
+      }
+
+      final isCurrent = page == _currentPage;
+      widgets.add(
+        InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: isCurrent || _loading ? null : () => _goToPage(page),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isCurrent ? AppColors.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: isCurrent ? AppColors.primary : AppColors.border,
+              ),
+            ),
+            child: Text(
+              '$page',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                color: isCurrent ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+      );
+      prevPage = page;
+    }
+
+    return widgets;
   }
 
   Widget _buildFilterChip(String label, String value) {
@@ -254,8 +487,11 @@ class _PharmacyValidationScreenState extends State<PharmacyValidationScreen> {
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) {
-        if (selected) {
-          setState(() => _statusFilter = value);
+        if (selected && _statusFilter != value) {
+          setState(() {
+            _statusFilter = value;
+            _currentPage = 1;
+          });
           _load();
         }
       },
