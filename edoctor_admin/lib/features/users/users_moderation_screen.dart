@@ -21,6 +21,42 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
   String _statusFilter = 'tous';
   String _searchQuery = '';
 
+  List<UserModel> get _filteredUsers {
+    return _users.where((u) {
+      // 1. Filtrage par rôle
+      if (_roleFilter != 'tous') {
+        final r = u.role.toLowerCase().trim();
+        final target = _roleFilter.toLowerCase().trim();
+        if (target == 'admin') {
+          if (!u.isSuperAdmin && !u.isHospitalAdmin && r != 'admin' && r != 'superadmin' && r != 'hospital_admin') {
+            return false;
+          }
+        } else if (r != target) {
+          return false;
+        }
+      }
+
+      // 2. Filtrage par statut
+      if (_statusFilter == 'actif' && u.isSuspended) return false;
+      if (_statusFilter == 'suspendu' && !u.isSuspended) return false;
+
+      // 3. Filtrage par recherche
+      if (_searchQuery.trim().isNotEmpty) {
+        final q = _searchQuery.toLowerCase().trim();
+        final name = u.name.toLowerCase();
+        final email = u.email.toLowerCase();
+        final phone = (u.phone ?? '').toLowerCase();
+        final hospital = (u.hospitalName ?? '').toLowerCase();
+        final pharmacy = (u.pharmacyName ?? '').toLowerCase();
+        if (!name.contains(q) && !email.contains(q) && !phone.contains(q) && !hospital.contains(q) && !pharmacy.contains(q)) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -178,8 +214,7 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
                     ),
                     onChanged: (val) {
-                      _searchQuery = val;
-                      _load();
+                      setState(() => _searchQuery = val);
                     },
                   ),
                 ),
@@ -191,7 +226,7 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                  : _users.isEmpty
+                  : _filteredUsers.isEmpty
                       ? const EmptyState(
                           icon: Icons.person_off_outlined,
                           title: 'Aucun utilisateur trouvé',
@@ -214,10 +249,10 @@ class _UsersModerationScreenState extends State<UsersModerationScreen> {
                                   child: SizedBox(
                                     width: tableWidth,
                                     child: ListView.separated(
-                                      itemCount: _users.length,
+                                      itemCount: _filteredUsers.length,
                                       separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.border),
                                       itemBuilder: (context, index) {
-                                        final u = _users[index];
+                                        final u = _filteredUsers[index];
                                         return _buildUserRow(u);
                                       },
                                     ),

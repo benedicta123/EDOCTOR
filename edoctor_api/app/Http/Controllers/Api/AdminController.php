@@ -449,10 +449,15 @@ class AdminController extends Controller
         $query = User::with(['hospital:id,name', 'pharmacy:id,name,owner_id']);
 
         if ($request->filled('role') && $request->role !== 'tous') {
-            $query->where('role', $request->role);
+            $role = strtolower(trim($request->role));
+            if ($role === 'admin') {
+                $query->whereIn(DB::raw('LOWER(role)'), ['admin', 'superadmin', 'hospital_admin']);
+            } else {
+                $query->whereRaw('LOWER(role) = ?', [$role]);
+            }
         }
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->status !== 'tous') {
             if ($request->status === 'suspendu') {
                 $query->where('is_suspended', true);
             } elseif ($request->status === 'actif') {
@@ -461,16 +466,16 @@ class AdminController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = strtolower(trim($request->search));
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('license_number', 'like', "%{$search}%");
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(license_number) LIKE ?', ["%{$search}%"]);
             });
         }
 
-        $users = $query->latest()->paginate($request->input('per_page', 50));
+        $users = $query->latest()->paginate($request->input('per_page', 100));
 
         return response()->json($users);
     }
