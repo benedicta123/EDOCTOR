@@ -6,8 +6,7 @@ import 'storage_service.dart';
 
 /// Service de gestion du verrouillage automatique après inactivité.
 /// Protège les données de santé du patient en exigeant une authentification
-/// biométrique (empreinte digitale, Face ID) ou le code PIN du téléphone
-/// après 30 minutes d'inactivité.
+/// par empreinte digitale ou par le code PIN du téléphone après 30 minutes d'inactivité.
 class SessionInactivityService {
   SessionInactivityService._();
 
@@ -56,7 +55,8 @@ class SessionInactivityService {
 
   /// Déclenché lorsque l'application revient au premier plan
   static Future<void> onAppResumed() async {
-    await checkInactivity(triggerBiometricImmediately: true);
+    // L'écran s'affiche pour laisser le patient choisir entre Empreinte et Code PIN
+    await checkInactivity(triggerBiometricImmediately: false);
   }
 
   /// Vérifie si l'inactivité a dépassé 30 minutes
@@ -89,7 +89,7 @@ class SessionInactivityService {
         }
 
         if (triggerBiometricImmediately) {
-          await authenticateAndUnlock();
+          await authenticateWithBiometrics();
         }
       }
     } catch (e) {
@@ -97,14 +97,14 @@ class SessionInactivityService {
     }
   }
 
-  /// Déclenche l'invite système native (Empreinte digitale / Face ID / Code PIN du téléphone)
-  static Future<bool> authenticateAndUnlock() async {
+  /// Déverrouillage par Empreinte digitale (Biométrie stricte)
+  static Future<bool> authenticateWithBiometrics() async {
     if (_isAuthenticating) return false;
     _isAuthenticating = true;
     try {
-      final authenticated = await BiometricService.authenticate(
+      final authenticated = await BiometricService.authenticateBiometricsOnly(
         localizedReason:
-            'Votre session a été verrouillée après 30 minutes d\'inactivité. Veuillez confirmer votre empreinte digitale ou votre code PIN.',
+            'Session suspendue après 30 min d\'inactivité. Veuillez poser votre doigt sur le capteur d\'empreinte pour déverrouiller votre session eDoctor.',
       );
 
       if (authenticated) {
@@ -116,6 +116,32 @@ class SessionInactivityService {
     } finally {
       _isAuthenticating = false;
     }
+  }
+
+  /// Déverrouillage par Code PIN / Schéma du téléphone
+  static Future<bool> authenticateWithPin() async {
+    if (_isAuthenticating) return false;
+    _isAuthenticating = true;
+    try {
+      final authenticated = await BiometricService.authenticateDevicePin(
+        localizedReason:
+            'Session suspendue après 30 min d\'inactivité. Veuillez entrer le code PIN ou schéma de votre téléphone pour déverrouiller votre session eDoctor.',
+      );
+
+      if (authenticated) {
+        isLockedNotifier.value = false;
+        await recordActivity();
+        return true;
+      }
+      return false;
+    } finally {
+      _isAuthenticating = false;
+    }
+  }
+
+  /// Déclenche l'authentification native par défaut (pour compatibilité)
+  static Future<bool> authenticateAndUnlock() async {
+    return authenticateWithBiometrics();
   }
 
   /// Déverrouillage manuel (par exemple après reconnexion explicite)
