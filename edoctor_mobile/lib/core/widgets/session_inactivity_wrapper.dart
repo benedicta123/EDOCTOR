@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../navigation/app_router.dart';
-import '../services/api_service.dart';
 import '../services/session_inactivity_service.dart';
+import '../services/storage_service.dart';
 import 'app_logo.dart';
 import 'custom_button.dart';
 
@@ -53,7 +53,7 @@ class _SessionInactivityWrapperState extends State<SessionInactivityWrapper>
     setState(() => _isLoggingOut = true);
     try {
       await SessionInactivityService.reset();
-      await ApiService.logout();
+      await StorageService.clearSession();
     } catch (_) {} finally {
       if (mounted) {
         setState(() => _isLoggingOut = false);
@@ -138,7 +138,7 @@ class _SessionInactivityWrapperState extends State<SessionInactivityWrapper>
                             // Bouton d'authentification native (Empreinte / Code PIN)
                             CustomButton(
                               text: 'Déverrouiller avec empreinte ou PIN',
-                              leadingIcon: Icons.lock_open_rounded,
+                              icon: Icons.lock_open_rounded,
                               onPressed: () =>
                                   SessionInactivityService.authenticateAndUnlock(),
                             ),
