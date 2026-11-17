@@ -56,6 +56,18 @@ class HospitalRegistrationController extends Controller
 
             // Option dev/testing
             'auto_verify' => ['nullable', 'boolean'],
+        ], [
+            'admin_name.required' => "Le nom de l'administrateur est obligatoire.",
+            'admin_email.required' => "L'adresse email de l'administrateur est obligatoire.",
+            'admin_email.unique' => 'Cette adresse email est déjà associée à un compte existant.',
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.letters' => 'Le mot de passe doit contenir au moins une lettre.',
+            'password.mixed' => 'Le mot de passe doit contenir au moins une majuscule et une minuscule.',
+            'password.numbers' => 'Le mot de passe doit contenir au moins un chiffre.',
+            'password.symbols' => 'Le mot de passe doit contenir au moins un caractère spécial (@, #, $, !, %, etc.).',
+            'password.uncompromised' => 'Ce mot de passe est trop vulnérable ou a été compromis dans une fuite connue. Veuillez en choisir un autre.',
         ]);
 
         $coordinates = $this->resolveCoordinates($validated, $geocoding);

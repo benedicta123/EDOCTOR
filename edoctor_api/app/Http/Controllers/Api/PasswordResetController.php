@@ -180,6 +180,15 @@ class PasswordResetController extends Controller
             'email' => ['required', 'string', 'email'],
             'reset_token' => ['required', 'string'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()],
+        ], [
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.letters' => 'Le mot de passe doit contenir au moins une lettre.',
+            'password.mixed' => 'Le mot de passe doit contenir au moins une majuscule et une minuscule.',
+            'password.numbers' => 'Le mot de passe doit contenir au moins un chiffre.',
+            'password.symbols' => 'Le mot de passe doit contenir au moins un caractère spécial (@, #, $, !, %, etc.).',
+            'password.uncompromised' => 'Ce mot de passe est trop vulnérable ou a été compromis dans une fuite connue. Veuillez en choisir un autre.',
         ]);
 
         $email = strtolower(trim($validated['email']));

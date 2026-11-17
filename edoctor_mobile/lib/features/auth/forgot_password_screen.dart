@@ -3,6 +3,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/custom_button.dart';
 import '../../core/widgets/custom_text_field.dart';
+import '../../core/widgets/password_requirements_widget.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   final String? initialEmail;
@@ -140,8 +141,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final pwd = _passwordController.text;
     final pwdConfirm = _passwordConfirmController.text;
 
-    if (pwd.length < 8) {
-      _showError('Le mot de passe doit contenir au moins 8 caractères.');
+    final validationError = PasswordSecurityHelper.validate(pwd);
+    if (validationError != null) {
+      _showError(validationError);
       return;
     }
     if (pwd != pwdConfirm) {
@@ -392,6 +394,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           controller: _passwordController,
           isPassword: true,
           prefixIcon: Icons.lock_outline_rounded,
+        ),
+        PasswordRequirementsWidget(
+          controller: _passwordController,
         ),
         const SizedBox(height: 16),
         CustomTextField(

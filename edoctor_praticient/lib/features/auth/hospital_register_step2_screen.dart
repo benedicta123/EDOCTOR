@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
+import '../../core/widgets/password_requirements_widget.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../hospital/hospital_dashboard.dart';
 
@@ -73,6 +74,14 @@ class _HospitalRegisterStep2ScreenState
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!PasswordSecurityHelper.isCompliant(_password.text)) {
+      showMsg(
+        context,
+        'Veuillez respecter tous les critères de sécurité du mot de passe.',
+        error: true,
+      );
+      return;
+    }
     setState(() => _loading = true);
     try {
       await ApiService.registerHospital(
@@ -346,16 +355,22 @@ class _HospitalRegisterStep2ScreenState
                           const SizedBox(height: 12),
 
                           _ResponsivePair(
-                            first: _PasswordField(
-                              controller: _password,
-                              label: 'Mot de passe',
-                              hint: 'Minimum 8 caractères',
-                              obscure: _obscure1,
-                              onToggle: () =>
-                                  setState(() => _obscure1 = !_obscure1),
-                              validator: (v) => v == null || v.length < 8
-                                  ? '8 caractères minimum'
-                                  : null,
+                            first: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _PasswordField(
+                                  controller: _password,
+                                  label: 'Mot de passe',
+                                  hint: 'Minimum 8 caractères',
+                                  obscure: _obscure1,
+                                  onToggle: () =>
+                                      setState(() => _obscure1 = !_obscure1),
+                                  validator: PasswordSecurityHelper.validate,
+                                ),
+                                PasswordRequirementsWidget(
+                                  controller: _password,
+                                ),
+                              ],
                             ),
                             second: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,

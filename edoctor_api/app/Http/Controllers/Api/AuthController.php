@@ -36,6 +36,19 @@ class AuthController extends Controller
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'address' => ['nullable', 'string', 'max:255'],
             'medical_history_summary' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'name.required' => 'Le nom complet est obligatoire.',
+            'email.required' => "L'adresse email est obligatoire.",
+            'email.email' => "Le format de l'adresse email est invalide.",
+            'email.unique' => 'Cette adresse email est déjà utilisée par un autre compte.',
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.letters' => 'Le mot de passe doit contenir au moins une lettre.',
+            'password.mixed' => 'Le mot de passe doit contenir au moins une majuscule et une minuscule.',
+            'password.numbers' => 'Le mot de passe doit contenir au moins un chiffre.',
+            'password.symbols' => 'Le mot de passe doit contenir au moins un caractère spécial (@, #, $, !, %, etc.).',
+            'password.uncompromised' => 'Ce mot de passe est trop vulnérable ou a été compromis dans une fuite connue. Veuillez en choisir un autre.',
         ]);
 
         // Règle stricte d'unicité : un seul compte autorisé par numéro de téléphone

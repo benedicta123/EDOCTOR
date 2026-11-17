@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/custom_button.dart';
 import '../../core/widgets/custom_text_field.dart';
+import '../../core/widgets/password_requirements_widget.dart';
 import '../../core/widgets/step_progress_bar.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/togo_flag_widget.dart';
@@ -44,20 +45,32 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
   }
 
   void _goToStep2() {
-    if (_formKey.currentState?.validate() ?? false) {
-      final fullPhone = '$_selectedCountryCode ${_phoneController.text.trim()}';
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => RegisterStep2Screen(
-            name: _nameController.text.trim(),
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-            passwordConfirmation: _confirmPasswordController.text,
-            phone: fullPhone,
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+    if (!PasswordSecurityHelper.isCompliant(_passwordController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Veuillez respecter tous les critères de sécurité du mot de passe avant de continuer.',
           ),
+          backgroundColor: AppColors.error,
         ),
       );
+      return;
     }
+    final fullPhone = '$_selectedCountryCode ${_phoneController.text.trim()}';
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RegisterStep2Screen(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          passwordConfirmation: _confirmPasswordController.text,
+          phone: fullPhone,
+        ),
+      ),
+    );
   }
 
   @override
@@ -213,9 +226,12 @@ class _RegisterStep1ScreenState extends State<RegisterStep1Screen> {
                         controller: _passwordController,
                         isPassword: true,
                         prefixIcon: Icons.lock_outline_rounded,
-                        validator: (v) => (v == null || v.length < 8)
-                            ? 'Le mot de passe doit faire au moins 8 caractères'
-                            : null,
+                        validator: PasswordSecurityHelper.validate,
+                      ),
+
+                      // Watcher dynamique / Checklist des critères en temps réel
+                      PasswordRequirementsWidget(
+                        controller: _passwordController,
                       ),
 
                       const SizedBox(height: 14),

@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/widgets/password_requirements_widget.dart';
 import 'verification_pending_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -102,6 +103,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _currentStep = 1);
     } else if (_currentStep == 1) {
       if (!_formKeyStep2.currentState!.validate()) return;
+      if (!PasswordSecurityHelper.isCompliant(_passwordController.text)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Veuillez respecter tous les critères du mot de passe.'),
+            backgroundColor: AppColors.outOfStock,
+          ),
+        );
+        return;
+      }
       if (_passwordController.text != _confirmPasswordController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -673,7 +683,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                         ),
                       ),
-                      validator: (v) => (v == null || v.length < 8) ? 'Minimum 8 caractères' : null,
+                      validator: PasswordSecurityHelper.validate,
+                    ),
+                    PasswordRequirementsWidget(
+                      controller: _passwordController,
                     ),
                   ],
                 ),
