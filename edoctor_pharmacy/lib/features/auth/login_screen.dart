@@ -803,82 +803,105 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Logo officiel eDoctor
-                          Center(
-                            child: Image.asset(
-                              'assets/images/logo.png',
-                        height: 52,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.local_pharmacy_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
+                          if (!_requires2fa) ...[
+                            // Logo officiel eDoctor
+                            Center(
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                width: 230,
+                                height: 72,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Icon(
+                                    Icons.local_pharmacy_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 18),
 
-                    // Titres de la carte
-                    const Text(
-                      'Portail Pharmacie',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Dispensation & Gestion des Stocks Sécurisée',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
+                            // Titres de la carte
+                            const Text(
+                              'Portail Pharmacie',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 21,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Dispensation & Gestion des Stocks Sécurisée',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                          ],
 
-                    if (_requires2fa) ...[
-                      Center(
-                        child: Container(
-                          width: 58,
-                          height: 58,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.25), width: 2),
-                          ),
-                          child: const Icon(Icons.shield_rounded, color: AppColors.primary, size: 28),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'Validation 2FA requise',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Un code de sécurité à 6 chiffres a été envoyé par email à :',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12.5, color: AppColors.textMuted),
-                      ),
-                      const SizedBox(height: 10),
+                          if (_requires2fa) ...[
+                            // Vrai Logo Officiel eDoctor pour la page 2FA
+                            Center(
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                width: 230,
+                                height: 72,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Icon(
+                                    Icons.local_pharmacy_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Double Authentification (2FA)',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 21,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Portail Pharmacie • Accès Sécurisé',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Un code de sécurité à 6 chiffres a été envoyé par email à :',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                            ),
+                            const SizedBox(height: 10),
                       Center(
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),

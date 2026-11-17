@@ -602,23 +602,25 @@ class _TwoFactorCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Icone de sécurité 2FA
+          // Vrai Logo Officiel eDoctor
           Center(
-            child: Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.25),
-                  width: 2,
+            child: Image.asset(
+              'assets/images/edoctor_logo.png',
+              width: 230,
+              height: 72,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-              ),
-              child: const Icon(
-                Icons.shield_rounded,
-                color: AppColors.primary,
-                size: 32,
+                child: const Icon(
+                  Icons.local_hospital_rounded,
+                  color: Colors.white,
+                  size: 30,
+                ),
               ),
             ),
           ),

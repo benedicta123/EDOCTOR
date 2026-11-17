@@ -143,43 +143,47 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo Officiel eDoctor
-                  Center(
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      height: 52,
-                      errorBuilder: (_, _, _) => Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(16),
+                  if (!_requires2fa) ...[
+                    // Logo Officiel eDoctor
+                    Center(
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 230,
+                        height: 72,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.local_hospital_rounded, color: Colors.white, size: 30),
                         ),
-                        child: const Icon(Icons.local_hospital_rounded, color: Colors.white, size: 30),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Console Super-Admin',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -0.5,
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Console Super-Admin',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Console Opérations & Accréditation Partenaires',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Console Opérations & Accréditation Partenaires',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 28),
+                  ],
 
                   if (_errorMessage != null) ...[
                     Container(
@@ -206,38 +210,46 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
 
                   if (_requires2fa) ...[
-                    // Icone de sécurité 2FA
+                    // Vrai Logo Officiel eDoctor pour la page 2FA
                     Center(
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.25),
-                            width: 2,
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 230,
+                        height: 72,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        ),
-                        child: const Icon(
-                          Icons.shield_rounded,
-                          color: AppColors.primary,
-                          size: 30,
+                          child: const Icon(Icons.local_hospital_rounded, color: Colors.white, size: 30),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     const Text(
                       'Double Authentification (2FA)',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
                         letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 6),
+                    const Text(
+                      'Console Super-Admin • Accès Sécurisé',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     const Text(
                       'Saisissez le code de sécurité à 6 chiffres transmis à votre adresse email :',
                       textAlign: TextAlign.center,
