@@ -44,6 +44,17 @@ class BiometricService {
     }
   }
 
+  /// Vérifie si l'appareil dispose d'au moins un mécanisme de verrouillage configuré (empreinte ou code PIN/schéma Android)
+  static Future<bool> hasAnyDeviceLock() async {
+    try {
+      final isSupported = await _auth.isDeviceSupported();
+      final hasBiometrics = await hasEnrolledBiometrics();
+      return isSupported || hasBiometrics;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Vérifie si l'utilisateur a activé le verrouillage biométrique dans ses préférences
   static Future<bool> isBiometricEnabled() async {
     final prefs = await SharedPreferences.getInstance();
