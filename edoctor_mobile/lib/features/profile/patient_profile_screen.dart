@@ -398,6 +398,26 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         }
                       : null,
                 ),
+                const Divider(height: 1, indent: 64),
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.successLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.timer_outlined, color: AppColors.success, size: 22),
+                  ),
+                  title: const Text(
+                    'Protection automatique d\'inactivité',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  ),
+                  subtitle: const Text(
+                    'Actif • Verrouillage par empreinte ou code PIN après 30 min d\'inactivité',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ),
               ],
             ),
 

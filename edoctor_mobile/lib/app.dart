@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/navigation/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/session_inactivity_wrapper.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/register_step1_screen.dart';
@@ -24,6 +25,11 @@ class EDoctorApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       navigatorKey: appNavigatorKey,
+      builder: (context, child) {
+        return SessionInactivityWrapper(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const SplashScreen(),
       routes: {
         '/splash': (_) => const SplashScreen(),

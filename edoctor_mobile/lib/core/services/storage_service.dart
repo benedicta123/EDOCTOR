@@ -22,9 +22,10 @@ class StorageService {
     await _secureStorage.write(key: _keyToken, value: token);
     await _secureStorage.write(key: _keyUser, value: jsonEncode(user.toJson()));
 
-    // Nettoyage de l'ancien stockage non chiffré si présent
+    // Nettoyage de l'ancien stockage non chiffré si présent et initialisation de l'activité
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('session_last_activity_time', DateTime.now().millisecondsSinceEpoch);
       await prefs.remove(_keyToken);
       await prefs.remove(_keyUser);
     } catch (_) {}
@@ -95,5 +96,6 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyToken);
     await prefs.remove(_keyUser);
+    await prefs.remove('session_last_activity_time');
   }
 }
