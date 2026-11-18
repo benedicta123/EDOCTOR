@@ -221,7 +221,7 @@ class FedaPayPaymentController extends Controller
 
         if (!empty($webhookSecret)) {
             $signature = $request->header('X-FedaPay-Signature') ?? $request->header('X-Webhook-Secret');
-            if (!$signature || !hash_equals($webhookSecret, (string) $signature)) {
+            if (!$signature || !$this->isValidWebhookSignature($request->getContent(), (string) $signature, $webhookSecret)) {
                 Log::warning('[FedaPay Webhook] Tentative d\'accès non autorisée : signature invalide.');
                 return response()->json(['error' => 'Signature invalide.'], 401);
             }
@@ -304,5 +304,58 @@ class FedaPayPaymentController extends Controller
         }
 
         return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * Vérifie la signature cryptographique FedaPay (format officiel HMAC-SHA256 `t=...,s=...` ou `v1=...`,
+     * ainsi que la correspondance directe du secret pour compatibilité tests internes).
+     */
+    private function isValidWebhookSignature(string $rawPayload, string $signatureHeader, string $secret): bool
+    {
+        $signatureHeader = trim($signatureHeader);
+        if ($signatureHeader === '' || $secret === '') {
+            return false;
+        }
+
+        // Format officiel FedaPay : "t=1700000000,s=abcdef..." (ou "t=...,v1=...")
+        if (str_contains($signatureHeader, 't=')) {
+            $timestamp = null;
+            $signatures = [];
+
+            foreach (explode(',', $signatureHeader) as $part) {
+                $pair = explode('=', trim($part), 2);
+                if (count($pair) !== 2) {
+                    continue;
+                }
+                [$key, $value] = $pair;
+                if ($key === 't' && ctype_digit($value)) {
+                    $timestamp = (int) $value;
+                } elseif (in_array($key, ['s', 'v1'], true) && $value !== '') {
+                    $signatures[] = $value;
+                }
+            }
+
+            if ($timestamp === null || empty($signatures)) {
+                return false;
+            }
+
+            // Protection anti-rejeu (tolérance de 10 minutes)
+            if (abs(time() - $timestamp) > 600) {
+                Log::warning('[FedaPay Webhook] Signature expirée (timestamp hors tolérance).');
+                return false;
+            }
+
+            $expected = hash_hmac('sha256', $timestamp . '.' . $rawPayload, $secret);
+            foreach ($signatures as $sig) {
+                if (hash_equals($expected, $sig)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Compatibilité en-tête secret direct (tests internes / X-Webhook-Secret)
+        return hash_equals($secret, $signatureHeader);
     }
 }

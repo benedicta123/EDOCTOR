@@ -265,4 +265,81 @@ class FedaPayPaymentTest extends TestCase
             'payment_status' => 'en_attente',
         ]);
     }
+
+    public function test_fedapay_webhook_accepts_official_hmac_signature_header(): void
+    {
+        $patient = User::factory()->create(['role' => 'patient']);
+        $doctor = User::factory()->create(['role' => 'doctor']);
+
+        $consultation = Consultation::create([
+            'doctor_id' => $doctor->id,
+            'patient_id' => $patient->id,
+            'status' => 'en_attente',
+            'scheduled_at' => now(),
+            'reference_code' => 'CNS-FEDA-HMAC',
+            'consultation_fee' => 4000.0,
+            'edoctor_fee' => 400.0,
+            'total_amount' => 4400.0,
+            'payment_status' => 'en_attente',
+        ]);
+
+        Payment::create([
+            'consultation_id' => $consultation->id,
+            'method' => 'mobile_money',
+            'amount' => 4400.0,
+            'partner_share' => 4000.0,
+            'edoctor_fee' => 400.0,
+            'status' => 'en_attente',
+            'transaction_ref' => 'FP-77777',
+        ]);
+
+        Http::fake([
+            'https://sandbox-api.fedapay.com/v1/transactions/77777' => Http::response([
+                'v1/transaction' => [
+                    'id' => 77777,
+                    'reference' => 'FP-HMAC-77777',
+                    'status' => 'approved',
+                    'amount' => 4400,
+                ],
+            ], 200),
+        ]);
+
+        $secret = 'wh_live_edoctor_test_secret_2026';
+        config(['services.fedapay.webhook_secret' => $secret]);
+
+        $payload = json_encode([
+            'name' => 'transaction.approved',
+            'entity' => [
+                'id' => 77777,
+                'reference' => 'FP-HMAC-77777',
+                'status' => 'approved',
+                'amount' => 4400,
+                'custom_metadata' => ['consultation_id' => $consultation->id],
+            ],
+        ]);
+
+        $timestamp = time();
+        $hmac = hash_hmac('sha256', $timestamp . '.' . $payload, $secret);
+        $sigHeader = "t={$timestamp},s={$hmac}";
+
+        $res = $this->call(
+            'POST',
+            '/api/webhooks/fedapay',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+                'HTTP_X_FEDAPAY_SIGNATURE' => $sigHeader,
+            ],
+            $payload
+        );
+
+        $res->assertOk();
+        $this->assertDatabaseHas('consultations', [
+            'id' => $consultation->id,
+            'payment_status' => 'paye',
+        ]);
+    }
 }
