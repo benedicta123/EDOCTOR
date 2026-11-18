@@ -40,14 +40,12 @@ class _HospitalRegisterStep1ScreenState
 
   Future<void> _pickLicenseDocument() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final picked = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
-        withData: true,
       );
-      if (result != null && result.files.isNotEmpty) {
-        final picked = result.files.first;
-        final sizeBytes = picked.size;
+      if (picked != null) {
+        final sizeBytes = await picked.length() ?? 0;
         if (sizeBytes > 10 * 1024 * 1024) {
           if (mounted) {
             showMsg(
@@ -867,7 +865,7 @@ class _LicenseUploadCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasFile = file != null;
-    final byteLen = file?.size;
+    final byteLen = file?.lengthSync();
     final sizeLabel = hasFile
         ? (byteLen != null
             ? '${(byteLen / 1024).toStringAsFixed(0)} Ko'

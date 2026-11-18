@@ -99,7 +99,7 @@ class PasswordRequirementsWidget extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isAllValid
-                ? AppColors.inStockBg
+                ? AppColors.inStockLight
                 : (pwd.isNotEmpty
                     ? const Color(0xFFF8FAFC)
                     : const Color(0xFFF1F5F9).withValues(alpha: 0.6)),

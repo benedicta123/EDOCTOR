@@ -57,14 +57,12 @@ class _HospitalProfileScreenState extends State<HospitalProfileScreen> {
 
   Future<void> _uploadLicenseDocument() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final picked = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
-        withData: true,
       );
-      if (result == null || result.files.isEmpty) return;
-      final picked = result.files.first;
-      final sizeBytes = picked.size;
+      if (picked == null) return;
+      final sizeBytes = await picked.length() ?? 0;
       if (sizeBytes > 10 * 1024 * 1024) {
         if (mounted) {
           showMsg(
