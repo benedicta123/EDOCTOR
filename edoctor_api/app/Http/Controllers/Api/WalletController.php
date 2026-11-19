@@ -83,6 +83,49 @@ class WalletController extends Controller
             $stats['personal_doctor_revenue'] = (float) $totalGenerated;
         }
 
+        // Si pharmacien, ajouter la ventilation Médicaments vs Rémunération à payer par livreur (coursier)
+        if ($user->isPharmacist()) {
+            $pharmacy = Pharmacy::where('owner_id', $user->id)->first();
+            if ($pharmacy) {
+                $medicationsRevenue = (float) DB::table('orders')
+                    ->where('pharmacy_id', $pharmacy->id)
+                    ->where('status', 'collectee')
+                    ->sum('items_amount');
+
+                $couriersRows = DB::table('deliveries')
+                    ->join('orders', 'deliveries.order_id', '=', 'orders.id')
+                    ->where('orders.pharmacy_id', $pharmacy->id)
+                    ->where('deliveries.status', 'livree')
+                    ->selectRaw("
+                        COALESCE(NULLIF(TRIM(deliveries.courier_name), ''), 'Livreur non renseigné') as courier_name,
+                        COUNT(deliveries.id) as deliveries_count,
+                        COALESCE(SUM(deliveries.distance_km), 0) as total_distance_km,
+                        COALESCE(SUM(deliveries.delivery_fee), 0) as total_delivery_fee,
+                        COALESCE(SUM(deliveries.courier_share), 0) as total_due,
+                        MAX(deliveries.updated_at) as last_delivery_at
+                    ")
+                    ->groupByRaw("COALESCE(NULLIF(TRIM(deliveries.courier_name), ''), 'Livreur non renseigné')")
+                    ->orderByDesc('total_due')
+                    ->get()
+                    ->map(fn ($row) => [
+                        'courier_name' => (string) $row->courier_name,
+                        'deliveries_count' => (int) $row->deliveries_count,
+                        'total_distance_km' => round((float) $row->total_distance_km, 2),
+                        'total_delivery_fee' => round((float) $row->total_delivery_fee, 2),
+                        'total_due' => round((float) $row->total_due, 2),
+                        'last_delivery_at' => $row->last_delivery_at ? (string) $row->last_delivery_at : null,
+                    ])
+                    ->values()
+                    ->all();
+
+                $couriersTotalDue = (float) array_sum(array_column($couriersRows, 'total_due'));
+
+                $stats['pharmacy_medications_revenue'] = round($medicationsRevenue, 2);
+                $stats['pharmacy_couriers_total_due'] = round($couriersTotalDue, 2);
+                $stats['couriers_breakdown'] = $couriersRows;
+            }
+        }
+
         return response()->json([
             'success' => true,
             'wallet' => [

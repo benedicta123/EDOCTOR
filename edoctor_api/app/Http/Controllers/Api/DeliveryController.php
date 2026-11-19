@@ -171,7 +171,9 @@ class DeliveryController extends Controller
                 'collected_at' => now(),
             ]);
 
-            // 1. Crédit automatique du portefeuille de la pharmacie pour les médicaments vendus
+            // 1. Crédit automatique du portefeuille de la pharmacie :
+            //    a) 100% du montant des médicaments vendus
+            //    b) 75% des frais de livraison (part coursier tracée par livreur pour reversement par l'officine)
             if ($pharmacy) {
                 $wallet = $pharmacy->getOrCreateWallet();
                 $itemsAmount = (float) $order->items_amount;
@@ -181,6 +183,28 @@ class DeliveryController extends Controller
                         "Encaissement vente de médicaments livrés à domicile — Commande #{$order->id}",
                         'order',
                         $order->id
+                    );
+                }
+
+                $courierShare = (float) $delivery->courier_share;
+                if ($courierShare > 0) {
+                    $courierName = trim((string) ($delivery->courier_name ?? '')) !== ''
+                        ? trim((string) $delivery->courier_name)
+                        : 'Livreur non renseigné';
+                    $distanceKm = (float) $delivery->distance_km;
+
+                    $wallet->credit(
+                        $courierShare,
+                        "Frais de course à reverser au livreur {$courierName} ({$distanceKm} km) — Commande #{$order->id}",
+                        'delivery',
+                        $delivery->id,
+                        [
+                            'courier_name' => $courierName,
+                            'distance_km' => $distanceKm,
+                            'delivery_fee' => (float) $delivery->delivery_fee,
+                            'courier_share' => $courierShare,
+                            'order_id' => $order->id,
+                        ]
                     );
                 }
             }
@@ -206,7 +230,7 @@ class DeliveryController extends Controller
             NotificationService::send(
                 $order->pharmacy->owner,
                 'order_collected',
-                "La livraison à domicile de la commande #{$order->id} est confirmée. Le montant des médicaments a été versé sur votre solde disponible."
+                "La livraison à domicile de la commande #{$order->id} est confirmée. Le montant des médicaments et la part livreur ont été crédités sur votre portefeuille."
             );
         }
 

@@ -24,8 +24,12 @@ class WalletTransactionModel {
   bool get isCredit => type == 'credit' || type == 'release';
   bool get isDebit => type == 'debit';
   bool get isHold => type == 'hold';
+  bool get isCourierShare => sourceType == 'delivery';
 
   String get typeLabel {
+    if (sourceType == 'delivery') {
+      return 'Course livreur (75%)';
+    }
     switch (type) {
       case 'credit':
         return 'Encaissement vente';
@@ -133,6 +137,35 @@ class PayoutRequestModel {
   }
 }
 
+class CourierPayoutSummaryModel {
+  final String courierName;
+  final int deliveriesCount;
+  final double totalDistanceKm;
+  final double totalDeliveryFee;
+  final double totalDue;
+  final String? lastDeliveryAt;
+
+  const CourierPayoutSummaryModel({
+    required this.courierName,
+    required this.deliveriesCount,
+    required this.totalDistanceKm,
+    required this.totalDeliveryFee,
+    required this.totalDue,
+    this.lastDeliveryAt,
+  });
+
+  factory CourierPayoutSummaryModel.fromJson(Map<String, dynamic> json) {
+    return CourierPayoutSummaryModel(
+      courierName: json['courier_name'] as String? ?? 'Livreur non renseigné',
+      deliveriesCount: int.tryParse(json['deliveries_count']?.toString() ?? '0') ?? 0,
+      totalDistanceKm: double.tryParse(json['total_distance_km']?.toString() ?? '0') ?? 0.0,
+      totalDeliveryFee: double.tryParse(json['total_delivery_fee']?.toString() ?? '0') ?? 0.0,
+      totalDue: double.tryParse(json['total_due']?.toString() ?? '0') ?? 0.0,
+      lastDeliveryAt: json['last_delivery_at'] as String?,
+    );
+  }
+}
+
 class WalletModel {
   final int id;
   final String holderType;
@@ -146,6 +179,9 @@ class WalletModel {
   final String? payoutAccountName;
   final bool isActive;
   final List<WalletTransactionModel> recentTransactions;
+  final double medicationsRevenue;
+  final double couriersTotalDue;
+  final List<CourierPayoutSummaryModel> couriersBreakdown;
 
   const WalletModel({
     required this.id,
@@ -160,6 +196,9 @@ class WalletModel {
     this.payoutAccountName,
     required this.isActive,
     this.recentTransactions = const [],
+    this.medicationsRevenue = 0.0,
+    this.couriersTotalDue = 0.0,
+    this.couriersBreakdown = const [],
   });
 
   String get payoutChannelLabel {
@@ -178,6 +217,10 @@ class WalletModel {
   factory WalletModel.fromJson(Map<String, dynamic> json) {
     final w = json['wallet'] as Map<String, dynamic>? ?? json;
     final txList = (json['recent_transactions'] as List?) ?? [];
+    final stats = (json['stats'] is Map)
+        ? Map<String, dynamic>.from(json['stats'] as Map)
+        : <String, dynamic>{};
+    final couriersRaw = (stats['couriers_breakdown'] as List?) ?? [];
 
     return WalletModel(
       id: w['id'] as int? ?? 0,
@@ -193,6 +236,13 @@ class WalletModel {
       isActive: w['is_active'] as bool? ?? true,
       recentTransactions: txList
           .map((t) => WalletTransactionModel.fromJson(t as Map<String, dynamic>))
+          .toList(),
+      medicationsRevenue:
+          double.tryParse(stats['pharmacy_medications_revenue']?.toString() ?? '0') ?? 0.0,
+      couriersTotalDue:
+          double.tryParse(stats['pharmacy_couriers_total_due']?.toString() ?? '0') ?? 0.0,
+      couriersBreakdown: couriersRaw
+          .map((c) => CourierPayoutSummaryModel.fromJson(c as Map<String, dynamic>))
           .toList(),
     );
   }

@@ -62,7 +62,10 @@ class _PharmacyWalletScreenState extends State<PharmacyWalletScreen> {
 
   List<WalletTransactionModel> get _filteredTransactions {
     if (_txFilter == 'credits') {
-      return _transactions.where((t) => t.isCredit).toList();
+      return _transactions.where((t) => t.isCredit && !t.isCourierShare).toList();
+    }
+    if (_txFilter == 'coursiers') {
+      return _transactions.where((t) => t.isCourierShare).toList();
     }
     if (_txFilter == 'debits') {
       return _transactions.where((t) => t.isDebit).toList();
@@ -550,6 +553,10 @@ class _PharmacyWalletScreenState extends State<PharmacyWalletScreen> {
                   ),
                   const SizedBox(height: 28),
 
+                  // Section Rémunération des Livreurs (Coursiers de l'officine)
+                  _buildCouriersPayoutSection(),
+                  const SizedBox(height: 28),
+
                   // Historique des Transactions
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -562,7 +569,8 @@ class _PharmacyWalletScreenState extends State<PharmacyWalletScreen> {
                         spacing: 8,
                         children: [
                           _txFilterChip('toutes', 'Toutes (${_transactions.length})'),
-                          _txFilterChip('credits', 'Encaissements'),
+                          _txFilterChip('credits', 'Ventes Médicaments'),
+                          _txFilterChip('coursiers', 'Parts Livreurs (75%)'),
                           _txFilterChip('debits', 'Retraits'),
                         ],
                       ),
@@ -719,6 +727,170 @@ class _PharmacyWalletScreenState extends State<PharmacyWalletScreen> {
       ),
       side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
       onSelected: (_) => setState(() => _txFilter = key),
+    );
+  }
+
+  Widget _buildCouriersPayoutSection() {
+    final couriers = _wallet?.couriersBreakdown ?? const [];
+    final totalCouriersDue = _wallet?.couriersTotalDue ?? 0.0;
+    final medicationsRev = _wallet?.medicationsRevenue ?? 0.0;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: AppColors.orderReadyLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.two_wheeler_rounded,
+                    color: AppColors.orderReady,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rémunération des Livreurs (Coursiers de l\'officine)',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'Les 75 % des frais de livraison sont crédités sur le portefeuille de la pharmacie et ventilés ci-dessous par livreur selon les courses livrées.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.inStockLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Chiffre d\'affaires Médicaments (100 % Officine) : ${Formatters.currency(medicationsRev)}',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.inStock,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.orderPendingLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Total cumulé à payer aux livreurs (75 % courses) : ${Formatters.currency(totalCouriersDue)}',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.orderPending,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (couriers.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDim,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Aucune livraison à domicile terminée pour le moment. Dès qu\'une livraison est confirmée avec le code secret du patient, le montant dû au livreur assigné s\'affiche ici.',
+                  style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: couriers.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, idx) {
+                  final c = couriers[idx];
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.primaryContainer,
+                      foregroundColor: AppColors.primary,
+                      child: const Icon(Icons.delivery_dining_rounded, size: 20),
+                    ),
+                    title: Text(
+                      c.courierName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${c.deliveriesCount} livraison(s) effectuée(s) • ${c.totalDistanceKm.toStringAsFixed(1)} km parcourus'
+                      '${c.lastDeliveryAt != null ? " • Dernière : ${Formatters.dateTime(c.lastDeliveryAt!)}" : ""}',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'À payer : ${Formatters.currency(c.totalDue)}',
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.orderReady,
+                          ),
+                        ),
+                        Text(
+                          'sur ${Formatters.currency(c.totalDeliveryFee)} de frais livraison',
+                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
