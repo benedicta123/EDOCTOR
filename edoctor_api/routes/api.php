@@ -227,6 +227,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Gestion des portefeuilles et reversements (Super-Admin)
         Route::get('/wallets', [AdminWalletController::class, 'indexWallets']);
+        Route::get('/transactions', [AdminWalletController::class, 'indexTransactions']);
         Route::get('/payout-requests', [AdminWalletController::class, 'indexPayouts']);
         Route::post('/payout-requests/{payoutRequest}/approve', [AdminWalletController::class, 'approvePayout']);
         Route::post('/payout-requests/{payoutRequest}/reject', [AdminWalletController::class, 'rejectPayout']);

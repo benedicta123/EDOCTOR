@@ -616,6 +616,23 @@ class ApiService {
     };
   }
 
+  static Future<List<AdminGlobalTransactionModel>> getGlobalTransactions() async {
+    final token = await _getRequiredToken();
+    final uri = Uri.parse('$baseUrl${ApiConstants.adminTransactions}');
+    final response = await http.get(uri, headers: _headers(token));
+    final data = _processResponse(
+      response,
+      defaultErrorMessage: 'Erreur lors du chargement de l\'historique des transactions.',
+    );
+
+    final list = (data is Map && data['transactions'] != null)
+        ? data['transactions'] as List
+        : (data is List ? data : const []);
+    return list
+        .map((e) => AdminGlobalTransactionModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   static Future<List<AdminPayoutRequestModel>> getPayoutRequests({String? status}) async {
     final token = await _getRequiredToken();
     final queryParams = <String, String>{};

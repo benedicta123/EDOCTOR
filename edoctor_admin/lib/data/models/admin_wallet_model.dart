@@ -198,3 +198,114 @@ class AdminPayoutRequestModel {
     return full;
   }
 }
+
+class AdminGlobalTransactionModel {
+  final String uid;
+  final int id;
+  final String recordKind; // 'wallet_transaction' | 'payment'
+  final String category; // 'patient_payment' | 'credit' | 'hold' | 'courier_share' | 'debit' | 'refund'
+  final String type;
+  final String actorName;
+  final String actorType;
+  final double amount;
+  final double? balanceBefore;
+  final double? balanceAfter;
+  final double? partnerShare;
+  final double? edoctorFee;
+  final double? courierShare;
+  final String status;
+  final String reference;
+  final String description;
+  final String createdAt;
+
+  const AdminGlobalTransactionModel({
+    required this.uid,
+    required this.id,
+    required this.recordKind,
+    required this.category,
+    required this.type,
+    required this.actorName,
+    required this.actorType,
+    required this.amount,
+    this.balanceBefore,
+    this.balanceAfter,
+    this.partnerShare,
+    this.edoctorFee,
+    this.courierShare,
+    required this.status,
+    required this.reference,
+    required this.description,
+    required this.createdAt,
+  });
+
+  bool get isPatientPayment => category == 'patient_payment';
+  bool get isCourierShare => category == 'courier_share';
+  bool get isDebit => category == 'debit';
+  bool get isHold => category == 'hold';
+
+  String get actorTypeLabel {
+    switch (actorType) {
+      case 'Patient':
+        return 'Patient';
+      case 'Pharmacy':
+        return 'Pharmacie';
+      case 'Hospital':
+        return 'Hôpital';
+      case 'User':
+        return 'Praticien';
+      case 'Courier':
+        return 'Pharmacie / Livreur';
+      default:
+        return actorType;
+    }
+  }
+
+  String get categoryLabel {
+    switch (category) {
+      case 'patient_payment':
+        return 'Paiement Patient';
+      case 'courier_share':
+        return 'Part Livreur (75%)';
+      case 'hold':
+        return 'Séquestre';
+      case 'debit':
+        return 'Retrait / Reversement';
+      case 'refund':
+        return 'Restitution';
+      default:
+        return type == 'release' ? 'Libération Séquestre' : 'Crédit Portefeuille';
+    }
+  }
+
+  factory AdminGlobalTransactionModel.fromJson(Map<String, dynamic> json) {
+    return AdminGlobalTransactionModel(
+      uid: json['uid'] as String? ?? '',
+      id: json['id'] as int? ?? 0,
+      recordKind: json['record_kind'] as String? ?? 'wallet_transaction',
+      category: json['category'] as String? ?? 'credit',
+      type: json['type'] as String? ?? 'credit',
+      actorName: json['actor_name'] as String? ?? 'Utilisateur eDoctor',
+      actorType: json['actor_type'] as String? ?? 'User',
+      amount: double.tryParse(json['amount']?.toString() ?? '0') ?? 0.0,
+      balanceBefore: json['balance_before'] != null
+          ? double.tryParse(json['balance_before'].toString())
+          : null,
+      balanceAfter: json['balance_after'] != null
+          ? double.tryParse(json['balance_after'].toString())
+          : null,
+      partnerShare: json['partner_share'] != null
+          ? double.tryParse(json['partner_share'].toString())
+          : null,
+      edoctorFee: json['edoctor_fee'] != null
+          ? double.tryParse(json['edoctor_fee'].toString())
+          : null,
+      courierShare: json['courier_share'] != null
+          ? double.tryParse(json['courier_share'].toString())
+          : null,
+      status: json['status'] as String? ?? 'confirme',
+      reference: json['reference'] as String? ?? '',
+      description: json['description'] as String? ?? 'Transaction',
+      createdAt: json['created_at'] as String? ?? '',
+    );
+  }
+}

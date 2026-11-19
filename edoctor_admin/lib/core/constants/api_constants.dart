@@ -43,6 +43,7 @@ class ApiConstants {
 
   // Portefeuilles & Demandes de Reversement (Payouts)
   static const String adminWallets = '/admin/wallets';
+  static const String adminTransactions = '/admin/transactions';
   static const String adminPayoutRequests = '/admin/payout-requests';
   static String adminPayoutApprove(int id) => '/admin/payout-requests/$id/approve';
   static String adminPayoutReject(int id) => '/admin/payout-requests/$id/reject';

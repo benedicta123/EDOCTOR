@@ -21,14 +21,17 @@ class _FinancePayoutsScreenState extends State<FinancePayoutsScreen> with Single
   AdminWalletSummaryModel? _summary;
   List<AdminWalletItemModel> _wallets = [];
   List<AdminPayoutRequestModel> _payouts = [];
+  List<AdminGlobalTransactionModel> _transactions = [];
   bool _loading = true;
   String _payoutStatusFilter = 'tous';
   String _walletSearch = '';
+  String _txCategoryFilter = 'tous';
+  String _txSearch = '';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _load();
   }
 
@@ -43,12 +46,14 @@ class _FinancePayoutsScreenState extends State<FinancePayoutsScreen> with Single
     try {
       final walletsData = await ApiService.getWalletsData();
       final payoutsData = await ApiService.getPayoutRequests();
+      final txsData = await ApiService.getGlobalTransactions();
 
       if (mounted) {
         setState(() {
           _summary = walletsData['summary'] as AdminWalletSummaryModel?;
           _wallets = (walletsData['wallets'] as List<AdminWalletItemModel>?) ?? [];
           _payouts = payoutsData;
+          _transactions = txsData;
           _loading = false;
         });
       }
@@ -77,6 +82,22 @@ class _FinancePayoutsScreenState extends State<FinancePayoutsScreen> with Single
       return w.holderName.toLowerCase().contains(q) ||
           w.holderTypeLabel.toLowerCase().contains(q) ||
           (w.payoutAccount ?? '').contains(q);
+    }).toList();
+  }
+
+  List<AdminGlobalTransactionModel> get _filteredTransactions {
+    return _transactions.where((tx) {
+      if (_txCategoryFilter != 'tous' && tx.category != _txCategoryFilter) {
+        return false;
+      }
+      if (_txSearch.trim().isNotEmpty) {
+        final q = _txSearch.trim().toLowerCase();
+        return tx.actorName.toLowerCase().contains(q) ||
+            tx.description.toLowerCase().contains(q) ||
+            tx.reference.toLowerCase().contains(q) ||
+            tx.actorTypeLabel.toLowerCase().contains(q);
+      }
+      return true;
     }).toList();
   }
 
@@ -508,6 +529,16 @@ class _FinancePayoutsScreenState extends State<FinancePayoutsScreen> with Single
                             ],
                           ),
                         ),
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.receipt_long_rounded, size: 18),
+                              const SizedBox(width: 8),
+                              Text('Historique Global (${_transactions.length})', style: const TextStyle(fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -515,12 +546,13 @@ class _FinancePayoutsScreenState extends State<FinancePayoutsScreen> with Single
 
                   // Contenu des onglets
                   SizedBox(
-                    height: 600,
+                    height: 620,
                     child: TabBarView(
                       controller: _tabController,
                       children: [
                         _buildPayoutsTab(),
                         _buildWalletsTab(),
+                        _buildTransactionsTab(),
                       ],
                     ),
                   ),
@@ -781,6 +813,210 @@ class _FinancePayoutsScreenState extends State<FinancePayoutsScreen> with Single
       ),
       side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
       onSelected: (_) => setState(() => _payoutStatusFilter = key),
+    );
+  }
+
+  Widget _txCategoryChip(String key, String label) {
+    final selected = _txCategoryFilter == key;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      selectedColor: AppColors.primaryContainer,
+      labelStyle: TextStyle(
+        color: selected ? AppColors.primary : AppColors.textSecondary,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        fontSize: 12.5,
+      ),
+      side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
+      onSelected: (_) => setState(() => _txCategoryFilter = key),
+    );
+  }
+
+  Widget _buildTransactionsTab() {
+    final list = _filteredTransactions;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          decoration: const InputDecoration(
+            hintText: 'Rechercher par patient, hôpital, pharmacie, livreur, référence FedaPay ou description...',
+            prefixIcon: Icon(Icons.search_rounded),
+          ),
+          onChanged: (val) => setState(() => _txSearch = val),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _txCategoryChip('tous', 'Toutes (${_transactions.length})'),
+            _txCategoryChip(
+              'patient_payment',
+              'Paiements Patients (${_transactions.where((t) => t.isPatientPayment).length})',
+            ),
+            _txCategoryChip(
+              'credit',
+              'Crédits & Libérations (${_transactions.where((t) => t.category == "credit").length})',
+            ),
+            _txCategoryChip(
+              'hold',
+              'Séquestres (${_transactions.where((t) => t.isHold).length})',
+            ),
+            _txCategoryChip(
+              'courier_share',
+              'Parts Livreurs (${_transactions.where((t) => t.isCourierShare).length})',
+            ),
+            _txCategoryChip(
+              'debit',
+              'Retraits (${_transactions.where((t) => t.isDebit).length})',
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Expanded(
+          child: list.isEmpty
+              ? const EmptyState(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'Aucune transaction trouvée',
+                  message: 'Aucun mouvement financier ne correspond aux filtres sélectionnés.',
+                )
+              : Card(
+                  child: ListView.separated(
+                    itemCount: list.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, idx) {
+                      final tx = list[idx];
+                      final Color badgeColor = tx.isDebit
+                          ? AppColors.rejected
+                          : (tx.isHold
+                              ? AppColors.pending
+                              : (tx.isPatientPayment || tx.isCourierShare
+                                  ? AppColors.primary
+                                  : AppColors.verified));
+                      final Color badgeBg = tx.isDebit
+                          ? AppColors.rejectedBg
+                          : (tx.isHold
+                              ? AppColors.pendingBg
+                              : (tx.isPatientPayment || tx.isCourierShare
+                                  ? AppColors.primaryContainer
+                                  : AppColors.verifiedBg));
+                      final IconData leadingIcon = tx.isPatientPayment
+                          ? Icons.payments_rounded
+                          : (tx.isCourierShare
+                              ? Icons.two_wheeler_rounded
+                              : (tx.isDebit
+                                  ? Icons.arrow_upward_rounded
+                                  : (tx.isHold
+                                      ? Icons.hourglass_top_rounded
+                                      : Icons.arrow_downward_rounded)));
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: badgeBg,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(leadingIcon, color: badgeColor, size: 20),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          tx.actorName,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surfaceDim,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: AppColors.border),
+                                        ),
+                                        child: Text(
+                                          tx.actorTypeLabel,
+                                          style: const TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      BadgeChip(
+                                        label: tx.categoryLabel,
+                                        textColor: badgeColor,
+                                        backgroundColor: badgeBg,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    tx.description,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Réf : ${tx.reference} • Date : ${Formatters.formatDate(DateTime.tryParse(tx.createdAt))}',
+                                    style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${tx.isDebit ? "-" : "+"}${Formatters.formatCurrency(tx.amount)}',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: badgeColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                if (tx.balanceAfter != null)
+                                  Text(
+                                    'Solde : ${Formatters.formatCurrency(tx.balanceBefore ?? 0)} → ${Formatters.formatCurrency(tx.balanceAfter!)}',
+                                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                  )
+                                else if (tx.edoctorFee != null)
+                                  Text(
+                                    'Commission eDoctor : ${Formatters.formatCurrency(tx.edoctorFee!)}'
+                                    '${(tx.courierShare ?? 0) > 0 ? " • Livreur : ${Formatters.formatCurrency(tx.courierShare!)}" : ""}',
+                                    style: const TextStyle(fontSize: 11, color: AppColors.verified, fontWeight: FontWeight.w600),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }
