@@ -33,7 +33,7 @@ class DossierConsultation {
     return DossierConsultation(
       id: (json['id'] as num?)?.toInt() ?? 0,
       referenceCode: (json['reference_code'] as String? ?? '').trim(),
-      status: json['status']?.toString() ?? '—',
+      status: json['status']?.toString() ?? '-',
       scheduledAt: json['scheduled_at']?.toString() ?? json['created_at']?.toString(),
       startedAt: json['started_at']?.toString(),
       endedAt: json['ended_at']?.toString(),
@@ -87,7 +87,7 @@ class DossierPrescriptionItem {
     return DossierPrescriptionItem(
       medicationName: med?['name']?.toString() ??
           json['medication_name']?.toString() ??
-          'Médicament #${json['medication_id'] ?? '—'}',
+          'Médicament #${json['medication_id'] ?? '-'}',
       dosage: json['dosage_instructions']?.toString() ?? json['dosage']?.toString(),
       quantity: (json['quantity'] as num?)?.toInt(),
     );
@@ -117,7 +117,7 @@ class DossierPrescription {
     return DossierPrescription(
       id: (json['id'] as num?)?.toInt() ?? 0,
       consultationId: (json['consultation_id'] as num?)?.toInt(),
-      status: json['status']?.toString() ?? '—',
+      status: json['status']?.toString() ?? '-',
       createdAt: json['created_at']?.toString(),
       doctorName: doctor?['name']?.toString() ?? 'Médecin eDoctor',
       items: rawItems

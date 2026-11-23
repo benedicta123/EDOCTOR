@@ -76,7 +76,7 @@ class LabOrderPdfService {
                 child: pw.Column(
                   children: [
                     pw.Text(
-                      'ORDONNANCE D’EXAMENS COMPLÉMENTAIRES',
+                      "ORDONNANCE D'EXAMENS COMPLÉMENTAIRES",
                       style: pw.TextStyle(
                         fontSize: 15,
                         fontWeight: pw.FontWeight.bold,
@@ -350,7 +350,7 @@ class LabOrderPdfService {
                         style: pw.TextStyle(fontSize: 8, color: textMuted),
                       ),
                       pw.Text(
-                        'Valable dans tout laboratoire d’analyses médicales ou centre d’imagerie agréé.',
+                        "Valable dans tout laboratoire d'analyses médicales ou centre d'imagerie agréé.",
                         style: pw.TextStyle(fontSize: 8, color: textMuted),
                       ),
                     ],

@@ -3,7 +3,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../data/models/patient_dossier_model.dart';
 
-/// Génère un vrai PDF A4 du dossier patient — contenu strictement dérivé
+/// Génère un vrai PDF A4 du dossier patient - contenu strictement dérivé
 /// du dossier API (aucune donnée inventée).
 class DossierPdfService {
   static const _brandGreen = PdfColor.fromInt(0xFF529927);
@@ -11,8 +11,26 @@ class DossierPdfService {
   static const _muted = PdfColor.fromInt(0xFF64748B);
   static const _line = PdfColor.fromInt(0xFFE2E8F0);
 
+  /// Normalise les caractères spéciaux hors Latin-1 (tirets longs, puces,
+  /// apostrophes typographiques) pour éviter l'affichage de carrés barrés [X]
+  /// avec la police PDF standard Helvetica.
+  static String _clean(String? input) {
+    if (input == null || input.isEmpty) return '';
+    return input
+        .replaceAll('\u2014', '-') // tiret cadratin (—)
+        .replaceAll('\u2013', '-') // tiret demi-cadratin (–)
+        .replaceAll('\u2212', '-') // signe moins (−)
+        .replaceAll('\u2022', '-') // puce (•)
+        .replaceAll('\u2019', "'") // apostrophe courbe (’)
+        .replaceAll('\u2018', "'") // apostrophe ouvrante (‘)
+        .replaceAll('\u2026', '...') // points de suspension (…)
+        .replaceAll('\u0153', 'oe') // ligature œ
+        .replaceAll('\u0152', 'OE') // ligature Œ
+        .replaceAll('\u00A0', ' '); // espace insécable
+  }
+
   static String _age(String? iso) {
-    if (iso == null || iso.isEmpty) return '—';
+    if (iso == null || iso.isEmpty) return '-';
     try {
       final dob = DateTime.parse(iso);
       final now = DateTime.now();
@@ -25,7 +43,7 @@ class DossierPdfService {
       final m = dob.month.toString().padLeft(2, '0');
       return '$d/$m/${dob.year} ($age ans)';
     } catch (_) {
-      return iso;
+      return _clean(iso);
     }
   }
 
@@ -39,7 +57,7 @@ class DossierPdfService {
     pw.Widget sectionTitle(String text) => pw.Padding(
           padding: const pw.EdgeInsets.only(top: 14, bottom: 6),
           child: pw.Text(
-            text,
+            _clean(text),
             style: pw.TextStyle(
               fontSize: 13,
               fontWeight: pw.FontWeight.bold,
@@ -62,7 +80,7 @@ class DossierPdfService {
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
             pw.Text(
-              'eDoctor — Dossier médical',
+              'eDoctor - Dossier médical',
               style: pw.TextStyle(
                 fontSize: 11,
                 fontWeight: pw.FontWeight.bold,
@@ -81,7 +99,7 @@ class DossierPdfService {
             divider(),
             pw.Text(
               'Document généré depuis les données eDoctor (consultations tenues + ordonnances validées). '
-              'Réf $ref — Page ${ctx.pageNumber}/${ctx.pagesCount}. Confidentiel, réservé au patient et aux soignants autorisés.',
+              'Réf $ref - Page ${ctx.pageNumber}/${ctx.pagesCount}. Confidentiel, réservé au patient et aux soignants autorisés.',
               style: const pw.TextStyle(fontSize: 8, color: _muted),
             ),
           ],
@@ -97,7 +115,9 @@ class DossierPdfService {
           ),
           pw.SizedBox(height: 2),
           pw.Text(
-            patient.name.isNotEmpty ? patient.name : 'Patient #${patient.id}',
+            patient.name.isNotEmpty
+                ? _clean(patient.name)
+                : 'Patient #${patient.id}',
             style: const pw.TextStyle(fontSize: 12, color: _muted),
           ),
           pw.SizedBox(height: 10),
@@ -113,13 +133,13 @@ class DossierPdfService {
                 pw.Text('Naissance : ${_age(patient.dateOfBirth)}',
                     style: const pw.TextStyle(fontSize: 10)),
                 pw.Text(
-                    'Adresse : ${(patient.address?.isNotEmpty == true) ? patient.address! : 'Non renseignée'}',
+                    'Adresse : ${(patient.address?.isNotEmpty == true) ? _clean(patient.address!) : 'Non renseignée'}',
                     style: const pw.TextStyle(fontSize: 10)),
                 pw.Text(
-                    'Téléphone : ${(patient.phone?.isNotEmpty == true) ? patient.phone! : 'Non renseigné'}',
+                    'Téléphone : ${(patient.phone?.isNotEmpty == true) ? _clean(patient.phone!) : 'Non renseigné'}',
                     style: const pw.TextStyle(fontSize: 10)),
                 pw.Text(
-                    'Antécédents déclarés : ${(patient.medicalHistorySummary?.isNotEmpty == true) ? patient.medicalHistorySummary! : 'Non renseignés'}',
+                    'Antécédents déclarés : ${(patient.medicalHistorySummary?.isNotEmpty == true) ? _clean(patient.medicalHistorySummary!) : 'Non renseignés'}',
                     style: const pw.TextStyle(fontSize: 10)),
               ],
             ),
@@ -137,8 +157,10 @@ class DossierPdfService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      '${c.displayCode} — ${c.doctorName}'
-                      '${c.doctorSpecialty?.isNotEmpty == true ? ' (${c.doctorSpecialty})' : ''} — ${c.displayDate} — ${c.status}',
+                      _clean(
+                        '${c.displayCode} - ${c.doctorName}'
+                        '${c.doctorSpecialty?.isNotEmpty == true ? ' (${c.doctorSpecialty})' : ''} - ${c.displayDate} - ${c.status}',
+                      ),
                       style: pw.TextStyle(
                           fontSize: 10, fontWeight: pw.FontWeight.bold),
                     ),
@@ -159,7 +181,8 @@ class DossierPdfService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      'Ordonnance #${p.id} — ${p.doctorName} — ${p.status}',
+                      _clean(
+                          'Ordonnance #${p.id} - ${p.doctorName} - ${p.status}'),
                       style: pw.TextStyle(
                           fontSize: 10, fontWeight: pw.FontWeight.bold),
                     ),
@@ -169,9 +192,11 @@ class DossierPdfService {
                     else
                       ...p.items.map(
                         (it) => pw.Text(
-                          '• ${it.medicationName}'
-                          '${it.dosage?.isNotEmpty == true ? ' — ${it.dosage}' : ''}'
-                          '${it.quantity != null ? ' (x${it.quantity})' : ''}',
+                          _clean(
+                            '- ${it.medicationName}'
+                            '${it.dosage?.isNotEmpty == true ? ' - ${it.dosage}' : ''}'
+                            '${it.quantity != null ? ' (x${it.quantity})' : ''}',
+                          ),
                           style: const pw.TextStyle(fontSize: 9),
                         ),
                       ),

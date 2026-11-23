@@ -324,7 +324,7 @@ class PrescriptionPdfService {
                   child: pw.Row(
                     children: [
                       pw.Text(
-                        'ℹ️ Soins infirmiers à domicile recommandés pour cette ordonnance.',
+                        'Soins infirmiers à domicile recommandés pour cette ordonnance.',
                         style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: greenColor),
                       ),
                     ],
