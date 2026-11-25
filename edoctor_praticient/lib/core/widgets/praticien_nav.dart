@@ -5,6 +5,7 @@ import '../../features/doctor/doctor_dashboard.dart';
 import '../../features/doctor/consultations_screen.dart';
 import '../../features/doctor/patients_screen.dart';
 import '../../features/doctor/prescriptions_screen.dart';
+import '../../features/doctor/lab_requests_screen.dart';
 import '../../features/doctor/messages_screen.dart';
 import '../../features/hospital/hospital_dashboard.dart';
 import '../../features/hospital/hospital_profile_screen.dart';
@@ -21,6 +22,7 @@ enum NavSection {
   consultations,
   patients,
   prescriptions,
+  labRequests,
   messages,
   wallet,
   hospitalProfile,
@@ -86,6 +88,8 @@ Widget? navSectionScreen(PraticienNav nav, NavSection section) {
         return const DoctorPatientsScreen();
       case NavSection.prescriptions:
         return const PrescriptionsScreen();
+      case NavSection.labRequests:
+        return const LabRequestsScreen();
       case NavSection.messages:
         return const DoctorMessagesScreen();
       case NavSection.wallet:
@@ -117,6 +121,7 @@ Widget? navSectionScreen(PraticienNav nav, NavSection section) {
     case NavSection.consultations:
     case NavSection.patients:
     case NavSection.prescriptions:
+    case NavSection.labRequests:
     case NavSection.messages:
       return null;
   }
@@ -136,6 +141,7 @@ final _doctorItems = <_NavItemSpec>[
       'Consultations', (nav) => nav.consultationsPending),
   _NavItemSpec(NavSection.patients, Icons.people_alt_rounded, 'Patients'),
   _NavItemSpec(NavSection.prescriptions, Icons.receipt_long_rounded, 'Ordonnances'),
+  _NavItemSpec(NavSection.labRequests, Icons.biotech_rounded, 'Analyses & Résultats'),
   _NavItemSpec(NavSection.messages, Icons.chat_bubble_outline_rounded, 'Messagerie'),
   _NavItemSpec(NavSection.wallet, Icons.account_balance_wallet_rounded, 'Mon Portefeuille'),
   _NavItemSpec(NavSection.profile, Icons.person_rounded, 'Mon profil'),

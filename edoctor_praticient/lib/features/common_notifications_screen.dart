@@ -5,6 +5,7 @@ import '../core/services/api_service.dart';
 import '../core/widgets/ui_kit.dart';
 import '../core/widgets/praticien_nav.dart';
 import '../data/models/nurse_visit_model.dart';
+import 'doctor/lab_requests_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final PraticienNav? nav;
@@ -49,6 +50,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (type.contains('consultation')) {
       return Icons.calendar_month_rounded;
     }
+    if (type.contains('lab')) {
+      return Icons.biotech_rounded;
+    }
     if (type.contains('prescription') || type.contains('ordonnance')) {
       return Icons.receipt_long_rounded;
     }
@@ -79,6 +83,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return 'Consultation terminée';
       case 'prescription_created':
         return 'Nouvelle ordonnance';
+      case 'lab_results_uploaded':
+        return 'Résultats d’analyses reçus';
+      case 'lab_request_created':
+        return 'Nouveau bilan prescrit';
       case 'nurse_visit_requested':
         return 'Demande de soins infirmiers';
       case 'nurse_visit_accepted':
@@ -147,6 +155,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ),
                       ),
                       child: ListTile(
+                        onTap: (widget.nav?.isDoctor == true &&
+                                notification.type.contains('lab'))
+                            ? () {
+                                Navigator.of(context).pushReplacement(
+                                  PageRouteBuilder(
+                                    pageBuilder: (_, _, _) =>
+                                        const LabRequestsScreen(),
+                                    transitionDuration: Duration.zero,
+                                  ),
+                                );
+                              }
+                            : null,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
                         shape: RoundedRectangleBorder(

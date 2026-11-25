@@ -1,9 +1,33 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/utils/url_opener_helper.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/models/consultation_model.dart';
 import '../../../data/models/lab_request_model.dart';
+
+/// Ouvre le visualiseur de document/image d'un résultat d'analyse.
+void showLabResultViewer(BuildContext context, LabRequestResultModel result) {
+  showDialog(
+    context: context,
+    builder: (ctx) => _ResultViewerDialog(result: result),
+  );
+}
+
+/// Ouvre le formulaire de validation médicale d'un bilan d'analyse.
+void showLabReviewDialog(
+  BuildContext context, {
+  required LabRequestModel labRequest,
+  required VoidCallback onSuccess,
+}) {
+  showDialog(
+    context: context,
+    builder: (ctx) => _ReviewLabDialog(
+      labRequest: labRequest,
+      onSuccess: onSuccess,
+    ),
+  );
+}
 
 /// Modal et vue dédiée aux Prescriptions de bilans de laboratoire & examens complémentaires.
 class LabRequestsSection extends StatefulWidget {
@@ -1047,6 +1071,15 @@ class _ResultViewerDialog extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (result.filePath.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () => UrlOpenerHelper.openInNewTab(result.filePath),
+                      icon: const Icon(Icons.open_in_new_rounded, color: Colors.white, size: 17),
+                      label: const Text(
+                        'Ouvrir / Télécharger',
+                        style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
@@ -1055,56 +1088,96 @@ class _ResultViewerDialog extends StatelessWidget {
               ),
             ),
             const Divider(height: 1, color: Colors.white24),
-            // Vue de l'image avec zoom interactif
+            // Vue du document (PDF ou image avec zoom interactif)
             Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
                 child: Container(
                   color: Colors.black87,
-                  child: InteractiveViewer(
-                    minScale: 0.5,
-                    maxScale: 4.0,
-                    child: Center(
-                      child: Image.network(
-                        result.filePath,
-                        fit: BoxFit.contain,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              color: Colors.white,
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Padding(
+                  child: result.isPdf
+                      ? Center(
+                          child: Padding(
                             padding: const EdgeInsets.all(24),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.broken_image_rounded, size: 48, color: Colors.white54),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'Aperçu non disponible directement',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 6),
+                                const Icon(Icons.picture_as_pdf_rounded, size: 64, color: Color(0xFF38BDF8)),
+                                const SizedBox(height: 14),
                                 Text(
-                                  result.filePath,
-                                  style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                  result.fileName,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
                                   textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Document PDF sécurisé prêt à être consulté.',
+                                  style: TextStyle(color: Colors.white70, fontSize: 12.5),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 18),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0284C7),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  onPressed: () => UrlOpenerHelper.openInNewTab(result.filePath),
+                                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                                  label: const Text('Ouvrir le PDF', style: TextStyle(fontWeight: FontWeight.w700)),
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                          ),
+                        )
+                      : InteractiveViewer(
+                          minScale: 0.5,
+                          maxScale: 4.0,
+                          child: Center(
+                            child: Image.network(
+                              result.filePath,
+                              fit: BoxFit.contain,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    color: Colors.white,
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.broken_image_rounded, size: 48, color: Colors.white54),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        'Aperçu direct indisponible',
+                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF0284C7),
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        onPressed: () => UrlOpenerHelper.openInNewTab(result.filePath),
+                                        icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                                        label: const Text('Ouvrir dans un nouvel onglet'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ),
