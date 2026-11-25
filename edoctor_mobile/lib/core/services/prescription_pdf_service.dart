@@ -378,18 +378,11 @@ class PrescriptionPdfService {
                       ),
                       pw.SizedBox(height: 8),
                       pw.Container(
-                        width: 140,
-                        height: 50,
+                        width: 150,
+                        height: 55,
                         decoration: pw.BoxDecoration(
                           border: pw.Border.all(color: borderColor, style: pw.BorderStyle.dashed),
                           borderRadius: pw.BorderRadius.circular(6),
-                        ),
-                        child: pw.Center(
-                          child: pw.Text(
-                            'Dr. ${prescription.doctorName}\nSigné électroniquement',
-                            textAlign: pw.TextAlign.center,
-                            style: pw.TextStyle(fontSize: 8, color: primaryColor, fontStyle: pw.FontStyle.italic),
-                          ),
                         ),
                       ),
                     ],
