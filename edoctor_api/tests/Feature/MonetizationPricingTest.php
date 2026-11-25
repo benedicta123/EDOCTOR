@@ -61,21 +61,22 @@ class MonetizationPricingTest extends TestCase
 
     public function test_monetization_service_order_pricing(): void
     {
-        // Commande avec retrait sur place (sans livraison) : Médicaments 3000 F + eDoctor 150 F = 3150 F
+        // Commande avec retrait sur place (sans livraison) : Médicaments 3000 F + eDoctor 10% (300 F) = 3300 F
         $noDelivery = MonetizationService::calculateOrderPricing(3000.0, false, 0.0);
         $this->assertEquals(3000.0, $noDelivery['items_amount']);
         $this->assertEquals(3000.0, $noDelivery['pharmacy_share']);
-        $this->assertEquals(150.0, $noDelivery['edoctor_fee']);
+        $this->assertEquals(300.0, $noDelivery['edoctor_fee']);
         $this->assertEquals(0.0, $noDelivery['delivery_fee']);
-        $this->assertEquals(3150.0, $noDelivery['total_amount']);
+        $this->assertEquals(3300.0, $noDelivery['total_amount']);
 
-        // Commande avec livraison 5 km (frais livraison 950 F) : Total 3000 + 150 + 950 = 4100 F
+        // Commande avec livraison 5 km (frais livraison 950 F) : Total 3000 + 300 (10%) + 950 = 4250 F
         $withDelivery = MonetizationService::calculateOrderPricing(3000.0, true, 5.0);
         $this->assertEquals(3000.0, $withDelivery['items_amount']);
         $this->assertEquals(3000.0, $withDelivery['pharmacy_share']);
-        $this->assertEquals(150.0, $withDelivery['edoctor_order_fee']);
+        $this->assertEquals(300.0, $withDelivery['edoctor_order_fee']);
         $this->assertEquals(950.0, $withDelivery['delivery_fee']);
-        $this->assertEquals(4100.0, $withDelivery['total_amount']);
+        $this->assertEquals(537.0, $withDelivery['edoctor_total_revenue']); // 300 F (10%) + 237 F (25% livraison)
+        $this->assertEquals(4250.0, $withDelivery['total_amount']);
     }
 
     public function test_order_quote_api_endpoint(): void
@@ -124,9 +125,9 @@ class MonetizationPricingTest extends TestCase
         $response->assertJson([
             'items_amount' => 2400.0,
             'pharmacy_share' => 2400.0,
-            'edoctor_order_fee' => 150.0,
+            'edoctor_order_fee' => 240.0,
             'delivery_fee' => 800.0,
-            'total_amount' => 3350.0,
+            'total_amount' => 3440.0,
         ]);
     }
 
@@ -261,9 +262,9 @@ class MonetizationPricingTest extends TestCase
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
             'items_amount' => 2000.0,
-            'edoctor_fee' => 150.0,
+            'edoctor_fee' => 200.0,
             'delivery_fee' => 650.0,
-            'total_amount' => 2800.0, // 2000 + 150 + 650
+            'total_amount' => 2850.0, // 2000 + 200 (10%) + 650
         ]);
 
         $this->assertDatabaseHas('deliveries', [
@@ -276,9 +277,9 @@ class MonetizationPricingTest extends TestCase
 
         $this->assertDatabaseHas('payments', [
             'order_id' => $orderId,
-            'amount' => 2800.0,
+            'amount' => 2850.0,
             'partner_share' => 2000.0, // 100% to pharmacy
-            'edoctor_fee' => 312.0,   // 150 F order fee + 162 F delivery margin
+            'edoctor_fee' => 362.0,   // 200 F (10%) order fee + 162 F delivery margin
             'courier_share' => 488.0, // 75% delivery to courier
             'status' => 'en_attente',
         ]);

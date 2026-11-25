@@ -1308,7 +1308,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Service eDoctor', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                  const Text('Service eDoctor (10%)', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                                   Text(
                                     '${quote!['edoctor_fee']} FCFA',
                                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
@@ -1328,7 +1328,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                                   ],
                                 ),
                                 Text(
-                                  'Livreur : ${quote!['delivery_courier_share']} F • Service : ${quote!['delivery_edoctor_share']} F',
+                                  'Livreur : ${quote!['courier_share'] ?? quote!['delivery_courier_share'] ?? 0} F • Service : ${quote!['edoctor_delivery_share'] ?? quote!['delivery_edoctor_share'] ?? 0} F',
                                   style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
                                 ),
                               ],

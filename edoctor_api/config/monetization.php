@@ -18,9 +18,10 @@ return [
         'platform_fee' => (float) env('EDOCTOR_CONSULTATION_PLATFORM_FEE', 600.0), // Ancien forfait fixe conservé comme fallback
     ],
 
-    // Frais plateforme de géolocalisation d'officine avec stock garanti en direct
+    // Frais plateforme sur chaque commande en pharmacie (payés par le patient, 10% du prix des médicaments)
     'pharmacy' => [
-        'finder_fee' => (float) env('EDOCTOR_PHARMACY_FINDER_FEE', 150.0),
+        'platform_fee_rate' => (float) env('EDOCTOR_PHARMACY_PLATFORM_RATE', 0.10), // 10% du prix de la commande (absorbe frais Mobile Money)
+        'finder_fee' => (float) env('EDOCTOR_PHARMACY_FINDER_FEE', 150.0), // Ancien forfait fixe conservé en référence
     ],
 
     // Barème kilométrique de livraison à domicile

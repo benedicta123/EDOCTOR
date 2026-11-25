@@ -66,26 +66,29 @@ class MonetizationService
 
     /**
      * Calcule le montant total et le split pour une commande de pharmacie.
-     * Règle DG : 100% du prix médicament à la pharmacie, 150 FCFA frais recherche stock eDoctor,
+     * Règle DG : 100% du prix médicament à la pharmacie, + 10% du prix des médicaments pour eDoctor
+     * (absorbe les frais agrégateur Mobile Money comme pour les consultations),
      * et livraison calculée au kilomètre si demandée.
      */
     public static function calculateOrderPricing(float $itemsTotal, bool $withDelivery = false, float $distanceKm = 0.0): array
     {
-        $finderFee = (float) config('monetization.pharmacy.finder_fee', 150.0);
+        $platformRate = (float) config('monetization.pharmacy.platform_fee_rate', 0.10);
+        $orderFee = round($itemsTotal * $platformRate, 2);
         $deliveryPricing = $withDelivery ? self::calculateDeliveryPricing($distanceKm) : null;
 
         $deliveryFee = $deliveryPricing ? $deliveryPricing['delivery_fee'] : 0.0;
         $courierShare = $deliveryPricing ? $deliveryPricing['courier_share'] : 0.0;
         $edoctorDeliveryShare = $deliveryPricing ? $deliveryPricing['edoctor_share'] : 0.0;
 
-        $totalAmount = $itemsTotal + $finderFee + $deliveryFee;
-        $edoctorTotalRevenue = $finderFee + $edoctorDeliveryShare;
+        $totalAmount = $itemsTotal + $orderFee + $deliveryFee;
+        $edoctorTotalRevenue = $orderFee + $edoctorDeliveryShare;
 
         return [
             'items_amount' => $itemsTotal,
             'pharmacy_share' => $itemsTotal, // 100% reversé à l'officine
-            'edoctor_fee' => $finderFee,     // 150 FCFA frais de mise en relation & stock direct
-            'edoctor_order_fee' => $finderFee,
+            'edoctor_fee' => $orderFee,      // 10% du prix des médicaments (absorbe frais Mobile Money)
+            'edoctor_order_fee' => $orderFee,
+            'platform_fee_rate' => $platformRate,
             'with_delivery' => $withDelivery,
             'delivery_fee' => $deliveryFee,
             'distance_km' => $distanceKm,

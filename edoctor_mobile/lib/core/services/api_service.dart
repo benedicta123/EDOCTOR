@@ -638,7 +638,7 @@ class ApiService {
     return data.map((e) => e as Map<String, dynamic>).toList();
   }
 
-  /// Obtenir le devis d'une commande en pharmacie (médicaments + 150 F + livraison optionnelle)
+  /// Obtenir le devis d'une commande en pharmacie (médicaments + 10% service eDoctor + livraison optionnelle)
   /// POST /api/orders/quote
   static Future<Map<String, dynamic>> getOrderQuote({
     required int pharmacyId,

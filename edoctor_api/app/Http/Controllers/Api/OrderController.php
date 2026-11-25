@@ -64,7 +64,7 @@ class OrderController extends Controller
 
     /**
      * POST /api/orders/quote
-     * Calcule le devis avant validation de commande (médicaments + 150 F + livraison éventuelle).
+     * Calcule le devis avant validation de commande (médicaments + 10% service eDoctor + livraison éventuelle).
      */
     public function quote(Request $request)
     {
@@ -276,7 +276,7 @@ class OrderController extends Controller
                 'method' => $validated['payment_method'],
                 'amount' => $pricing['total_amount'],
                 'partner_share' => $pricing['pharmacy_share'], // 100% reversé à l'officine
-                'edoctor_fee' => $pricing['edoctor_total_revenue'], // 150 F + marge livraison
+                'edoctor_fee' => $pricing['edoctor_total_revenue'], // 10% commande + marge livraison
                 'courier_share' => $pricing['courier_share'], // ~75% reversé au coursier
                 'status' => 'en_attente',
             ]);
