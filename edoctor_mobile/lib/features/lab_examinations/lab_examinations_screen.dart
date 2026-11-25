@@ -1,4 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:printing/printing.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/lab_order_pdf_service.dart';
@@ -659,9 +665,11 @@ class _UploadLabResultsSheetState extends State<_UploadLabResultsSheet> {
   final _notesCtrl = TextEditingController();
   bool _submitting = false;
 
-  // Document simulé ou sélectionné
+  // Fichier réellement sélectionné par le patient
   String? _selectedDocumentName;
   String? _selectedDocumentBase64;
+  File? _selectedImageFile; // pour l'aperçu local d'une photo
+  bool _isPdf = false;
 
   @override
   void dispose() {
@@ -669,15 +677,101 @@ class _UploadLabResultsSheetState extends State<_UploadLabResultsSheet> {
     super.dispose();
   }
 
-  void _selectDocument(String name, String type) {
-    // Échantillon de document d'analyses encodé (1px transparent ou badge standard)
-    const mockImageBase64 =
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  /// Ouvre la caméra pour prendre une photo
+  Future<void> _pickFromCamera() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 2048,
+        maxHeight: 2048,
+      );
+      if (photo == null) return; // patient a annulé → aucun document n'est ajouté
+      final bytes = await photo.readAsBytes();
+      setState(() {
+        _selectedDocumentName = 'Photo_Resultats_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        _selectedDocumentBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        _selectedImageFile = File(photo.path);
+        _isPdf = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('Impossible d\'accéder à la caméra : $e'),
+        ),
+      );
+    }
+  }
 
-    setState(() {
-      _selectedDocumentName = name;
-      _selectedDocumentBase64 = mockImageBase64;
-    });
+  /// Ouvre la galerie du téléphone pour sélectionner une photo existante
+  Future<void> _pickFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 2048,
+        maxHeight: 2048,
+      );
+      if (photo == null) return; // patient a annulé → aucun document n'est ajouté
+      final bytes = await photo.readAsBytes();
+      final rawExt = photo.path.split('.').lastOrNull?.toLowerCase() ?? 'jpg';
+      final ext = (rawExt == 'png' || rawExt == 'webp' || rawExt == 'jpeg') ? rawExt : 'jpg';
+      final mime = ext == 'png' ? 'image/png' : (ext == 'webp' ? 'image/webp' : 'image/jpeg');
+      setState(() {
+        _selectedDocumentName = photo.name.isNotEmpty
+            ? photo.name
+            : 'Photo_Resultats_${DateTime.now().millisecondsSinceEpoch}.$ext';
+        _selectedDocumentBase64 = 'data:$mime;base64,${base64Encode(bytes)}';
+        _selectedImageFile = File(photo.path);
+        _isPdf = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('Impossible d\'accéder à la galerie : $e'),
+        ),
+      );
+    }
+  }
+
+  /// Ouvre le sélecteur de fichier (PDF / scan)
+  Future<void> _pickFromFiles() async {
+    try {
+      final picked = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp'],
+      );
+      if (picked == null) return; // patient a annulé
+      final bytes = await picked.readAsBytes();
+      if (bytes.isEmpty) return;
+      final rawExt = picked.name.split('.').lastOrNull?.toLowerCase() ?? 'pdf';
+      final isPdf = rawExt == 'pdf';
+      final mime = isPdf
+          ? 'application/pdf'
+          : (rawExt == 'png'
+              ? 'image/png'
+              : (rawExt == 'webp' ? 'image/webp' : 'image/jpeg'));
+      setState(() {
+        _selectedDocumentName = picked.name;
+        _selectedDocumentBase64 = 'data:$mime;base64,${base64Encode(bytes)}';
+        _selectedImageFile = (!isPdf && picked.path != null) ? File(picked.path!) : null;
+        _isPdf = isPdf;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text('Impossible d\'ouvrir les fichiers : $e'),
+        ),
+      );
+    }
   }
 
   Future<void> _submit() async {
@@ -782,16 +876,24 @@ class _UploadLabResultsSheetState extends State<_UploadLabResultsSheet> {
                       Expanded(
                         child: _buildSourceButton(
                           icon: Icons.camera_alt_rounded,
-                          label: 'Prendre une photo\nde la feuille',
-                          onTap: () => _selectDocument('Photo_Resultats_${DateTime.now().millisecondsSinceEpoch}.jpg', 'photo'),
+                          label: 'Prendre\nune photo',
+                          onTap: _pickFromCamera,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildSourceButton(
+                          icon: Icons.photo_library_rounded,
+                          label: 'Galerie\nphotos',
+                          onTap: _pickFromGallery,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _buildSourceButton(
                           icon: Icons.picture_as_pdf_rounded,
-                          label: 'Joindre un scan\nou fichier PDF',
-                          onTap: () => _selectDocument('Compte_Rendu_Labo_${DateTime.now().millisecondsSinceEpoch}.pdf', 'pdf'),
+                          label: 'Scan ou\nfichier PDF',
+                          onTap: _pickFromFiles,
                         ),
                       ),
                     ],
@@ -805,32 +907,74 @@ class _UploadLabResultsSheetState extends State<_UploadLabResultsSheet> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 22),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _selectedDocumentName!,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 22),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selectedDocumentName!,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const Text(
+                                      'Document prêt pour l\'envoi sécurisé',
+                                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                    ),
+                                  ],
                                 ),
-                                const Text(
-                                  'Document prêt pour l’envoi sécurisé',
-                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                ),
-                              ],
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                                onPressed: () => setState(() {
+                                  _selectedDocumentName = null;
+                                  _selectedDocumentBase64 = null;
+                                  _selectedImageFile = null;
+                                  _isPdf = false;
+                                }),
+                              ),
+                            ],
+                          ),
+                          if (!_isPdf && _selectedImageFile != null) ...[
+                            const SizedBox(height: 10),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                _selectedImageFile!,
+                                height: 160,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
-                            onPressed: () => setState(() {
-                              _selectedDocumentName = null;
-                              _selectedDocumentBase64 = null;
-                            }),
-                          ),
+                          ],
+                          if (_isPdf) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF1F0),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFFFCDD2)),
+                              ),
+                              child: const Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.picture_as_pdf_rounded, size: 32, color: Color(0xFFD32F2F)),
+                                    SizedBox(width: 10),
+                                    Text('Fichier PDF sélectionné', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFD32F2F))),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -904,7 +1048,7 @@ class _UploadLabResultsSheetState extends State<_UploadLabResultsSheet> {
   }
 }
 
-/// Aperçu d'un résultat en plein écran
+/// Aperçu d'un résultat en plein écran (PDF ou Image)
 class _ResultPreviewDialog extends StatelessWidget {
   final LabRequestResultModel result;
 
@@ -912,31 +1056,91 @@ class _ResultPreviewDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(16),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+        width: double.infinity,
+        constraints: BoxConstraints(
+          maxWidth: 700,
+          maxHeight: screenSize.height * 0.85,
+        ),
         decoration: BoxDecoration(
-          color: const Color(0xFF132A45),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFF132A45),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
               child: Row(
                 children: [
-                  const Icon(Icons.description_rounded, color: Colors.white, size: 20),
-                  const SizedBox(width: 8),
+                  Icon(
+                    result.isPdf ? Icons.picture_as_pdf_rounded : Icons.image_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      result.fileName,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          result.fileName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (result.patientNotes != null && result.patientNotes!.isNotEmpty)
+                          Text(
+                            'Note : ${result.patientNotes}',
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
                     ),
                   ),
+                  if (result.isPdf)
+                    IconButton(
+                      tooltip: 'Imprimer / Partager',
+                      icon: const Icon(Icons.print_rounded, color: Colors.white, size: 20),
+                      onPressed: () async {
+                        try {
+                          final uri = Uri.parse(result.filePath);
+                          final res = await http.get(uri);
+                          if (res.statusCode == 200) {
+                            await Printing.layoutPdf(
+                              onLayout: (_) async => res.bodyBytes,
+                              name: result.fileName,
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Erreur: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
@@ -947,28 +1151,82 @@ class _ResultPreviewDialog extends StatelessWidget {
             Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-                child: Container(
-                  color: Colors.black87,
-                  child: InteractiveViewer(
-                    child: Center(
-                      child: Image.network(
-                        result.filePath,
-                        fit: BoxFit.contain,
-                        errorBuilder: (ctx, err, stack) => const Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.picture_as_pdf_rounded, size: 54, color: Colors.white70),
-                              SizedBox(height: 12),
-                              Text('Document PDF / Archive d’analyse', style: TextStyle(color: Colors.white)),
-                            ],
+                child: result.isPdf
+                    ? PdfPreview(
+                        build: (format) async {
+                          final uri = Uri.parse(result.filePath);
+                          final res = await http.get(uri);
+                          if (res.statusCode == 200) {
+                            return res.bodyBytes;
+                          }
+                          throw Exception('Impossible de charger le document (${res.statusCode})');
+                        },
+                        canChangeOrientation: false,
+                        canChangePageFormat: false,
+                        canDebug: false,
+                        dynamicLayout: false,
+                        scrollViewDecoration: const BoxDecoration(color: Color(0xFFF1F5F9)),
+                        previewPageMargin: const EdgeInsets.all(8),
+                        loadingWidget: const Center(
+                          child: CircularProgressIndicator(color: AppColors.primary),
+                        ),
+                        onError: (context, error) => Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.picture_as_pdf_rounded, size: 48, color: AppColors.error),
+                                const SizedBox(height: 12),
+                                Text(
+                                  result.fileName,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '$error',
+                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: const Color(0xFF0F172A),
+                        child: InteractiveViewer(
+                          maxScale: 5.0,
+                          child: Center(
+                            child: Image.network(
+                              result.filePath,
+                              fit: BoxFit.contain,
+                              loadingBuilder: (ctx, child, progress) {
+                                if (progress == null) return child;
+                                return const Center(
+                                  child: CircularProgressIndicator(color: Colors.white),
+                                );
+                              },
+                              errorBuilder: (ctx, err, stack) => Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.broken_image_rounded, size: 54, color: Colors.white70),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Impossible d\'afficher l\'aperçu de ${result.fileName}',
+                                      style: const TextStyle(color: Colors.white),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
               ),
             ),
           ],
