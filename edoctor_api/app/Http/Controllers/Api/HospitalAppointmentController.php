@@ -242,7 +242,7 @@ class HospitalAppointmentController extends Controller
         $status = $request->query('status'); // 'reserve', 'en_attente', 'en_consultation', 'termine'
 
         $query = HospitalAppointment::with([
-            'patient:id,name,phone,email,birth_date,blood_group',
+            'patient:id,name,phone,email,date_of_birth',
             'doctor:id,name,specialty',
             'assignedBy:id,name',
         ])

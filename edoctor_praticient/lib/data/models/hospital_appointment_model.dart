@@ -87,7 +87,7 @@ class HospitalAppointmentModel {
       patientName: patient?['name'] as String? ?? 'Patient #${json['patient_id']}',
       patientPhone: patient?['phone'] as String?,
       patientEmail: patient?['email'] as String?,
-      patientBirthDate: patient?['birth_date'] as String?,
+      patientBirthDate: (patient?['date_of_birth'] ?? patient?['birth_date']) as String?,
       patientBloodGroup: patient?['blood_group'] as String?,
       doctorName: doctor?['name'] as String?,
       doctorSpecialty: doctor?['specialty'] as String?,
