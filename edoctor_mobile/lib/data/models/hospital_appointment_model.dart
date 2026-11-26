@@ -20,7 +20,7 @@ class HospitalModel {
         name: json['name'] as String? ?? 'Hôpital',
         address: json['address'] as String?,
         phone: json['phone'] as String?,
-        consultationFee: (json['consultation_fee'] as num?)?.toDouble() ?? 3000,
+        consultationFee: double.tryParse(json['consultation_fee']?.toString() ?? '') ?? 3000,
       );
 }
 
@@ -125,7 +125,7 @@ class HospitalAppointmentModel {
       queueNumber: (json['queue_number'] as num?)?.toInt() ?? 0,
       reason: json['reason'] as String?,
       status: json['status'] as String? ?? 'reserve',
-      consultationFee: (json['consultation_fee'] as num?)?.toDouble() ?? 3000,
+      consultationFee: double.tryParse(json['consultation_fee']?.toString() ?? '') ?? 3000,
       doctorNotes: json['doctor_notes'] as String?,
       checkedInAt: json['checked_in_at'] != null ? DateTime.tryParse(json['checked_in_at'] as String) : null,
       calledAt: json['called_at'] != null ? DateTime.tryParse(json['called_at'] as String) : null,

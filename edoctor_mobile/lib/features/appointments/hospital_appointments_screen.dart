@@ -860,7 +860,7 @@ class _BookingFlowState extends State<_BookingFlow> {
               ],
               const Divider(height: 20),
               _summaryRow(Icons.payments_outlined, 'Frais de consultation',
-                  '${(_selectedHospital?['consultation_fee'] as num?)?.toInt() ?? 3000} FCFA'),
+                  '${num.tryParse(_selectedHospital?['consultation_fee']?.toString() ?? '')?.toInt() ?? 3000} FCFA'),
             ],
           ),
         ),
@@ -904,17 +904,19 @@ class _BookingFlowState extends State<_BookingFlow> {
             _backButton(),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _loading ? null : _book,
-                icon: _loading
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.check_circle_outline_rounded),
-                label: const Text('Confirmer la réservation'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              child: SizedBox(
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: _loading ? null : _book,
+                  icon: _loading
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.check_circle_outline_rounded),
+                  label: const Text('Confirmer la réservation'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
                 ),
               ),
             ),
@@ -929,10 +931,12 @@ class _BookingFlowState extends State<_BookingFlow> {
       children: [
         Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: 10),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-        ]),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+          ]),
+        ),
       ],
     );
   }
