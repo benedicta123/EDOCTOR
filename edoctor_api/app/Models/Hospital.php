@@ -78,6 +78,11 @@ class Hospital extends Model
         return $this->hasMany(User::class);
     }
 
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(HospitalAppointment::class);
+    }
+
     public function wallet(): \Illuminate\Database\Eloquent\Relations\MorphOne
     {
         return $this->morphOne(Wallet::class, 'holder');

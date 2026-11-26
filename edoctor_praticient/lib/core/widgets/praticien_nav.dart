@@ -14,12 +14,14 @@ import '../../features/hospital/nurse_visits_screen.dart';
 import '../../features/hospital/activity_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/wallet/praticien_wallet_screen.dart';
+import '../../features/common/hospital_appointments_screen.dart';
 
 /// Sections de navigation praticien — une seule source de vérité
 /// pour le menu latéral (docteur comme admin d'hôpital).
 enum NavSection {
   dashboard,
   consultations,
+  hospitalAppointments,
   patients,
   prescriptions,
   labRequests,
@@ -84,6 +86,8 @@ Widget? navSectionScreen(PraticienNav nav, NavSection section) {
         return const DoctorDashboard();
       case NavSection.consultations:
         return const DoctorConsultationsScreen();
+      case NavSection.hospitalAppointments:
+        return const HospitalAppointmentsScreen();
       case NavSection.patients:
         return const DoctorPatientsScreen();
       case NavSection.prescriptions:
@@ -106,6 +110,8 @@ Widget? navSectionScreen(PraticienNav nav, NavSection section) {
   switch (section) {
     case NavSection.dashboard:
       return const HospitalDashboard();
+    case NavSection.hospitalAppointments:
+      return const HospitalAppointmentsScreen();
     case NavSection.hospitalProfile:
       return const HospitalProfileScreen();
     case NavSection.staff:
@@ -139,6 +145,7 @@ final _doctorItems = <_NavItemSpec>[
   _NavItemSpec(NavSection.dashboard, Icons.dashboard_rounded, 'Tableau de bord'),
   _NavItemSpec(NavSection.consultations, Icons.calendar_month_rounded,
       'Consultations', (nav) => nav.consultationsPending),
+  _NavItemSpec(NavSection.hospitalAppointments, Icons.meeting_room_rounded, 'Patients sur place'),
   _NavItemSpec(NavSection.patients, Icons.people_alt_rounded, 'Patients'),
   _NavItemSpec(NavSection.prescriptions, Icons.receipt_long_rounded, 'Ordonnances'),
   _NavItemSpec(NavSection.labRequests, Icons.biotech_rounded, 'Analyses & Résultats'),
@@ -149,6 +156,7 @@ final _doctorItems = <_NavItemSpec>[
 
 const _hospitalItems = <_NavItemSpec>[
   _NavItemSpec(NavSection.dashboard, Icons.dashboard_rounded, 'Tableau de bord'),
+  _NavItemSpec(NavSection.hospitalAppointments, Icons.how_to_reg_rounded, 'Accueil & File d’attente'),
   _NavItemSpec(NavSection.hospitalProfile, Icons.apartment_rounded, 'Mon hôpital'),
   _NavItemSpec(NavSection.staff, Icons.medical_services_rounded, 'Personnel soignant'),
   _NavItemSpec(NavSection.nurseVisits, Icons.home_repair_service_rounded, 'Soins à domicile'),

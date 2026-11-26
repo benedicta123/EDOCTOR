@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\DoctorDashboardController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\FedaPayPaymentController;
 use App\Http\Controllers\Api\HeartbeatController;
+use App\Http\Controllers\Api\HospitalAppointmentController;
 use App\Http\Controllers\Api\HospitalRegistrationController;
 use App\Http\Controllers\Api\HospitalStaffController;
 use App\Http\Controllers\Api\HospitalDashboardController;
@@ -123,6 +124,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/lab-requests/{labRequest}/review', [LabRequestController::class, 'review']);
     Route::get('/consultations/{consultation}/lab-requests', [LabRequestController::class, 'indexConsultation']);
     Route::post('/consultations/{consultation}/lab-requests', [LabRequestController::class, 'store']);
+
+    // Réservations de créneaux à l'Hôpital (Consultations sur place)
+    Route::get('/hospitals', [HospitalAppointmentController::class, 'hospitals']);
+    Route::get('/hospitals/{hospital}/slots', [HospitalAppointmentController::class, 'getSlots']);
+    Route::post('/hospital-appointments', [HospitalAppointmentController::class, 'store']);
+    Route::get('/my-hospital-appointments', [HospitalAppointmentController::class, 'myAppointments']);
+    Route::get('/hospital-appointments/queue', [HospitalAppointmentController::class, 'queue']);
+    Route::post('/hospital-appointments/{appointment}/check-in', [HospitalAppointmentController::class, 'checkIn']);
+    Route::post('/hospital-appointments/{appointment}/call-in', [HospitalAppointmentController::class, 'callIn']);
+    Route::post('/hospital-appointments/{appointment}/complete', [HospitalAppointmentController::class, 'complete']);
+    Route::post('/hospital-appointments/{appointment}/cancel', [HospitalAppointmentController::class, 'cancel']);
 
     // Dossier médical patient
     Route::get('/patients/{patient}/dossier', [PatientDossierController::class, 'show']);

@@ -109,6 +109,16 @@ class User extends Authenticatable
         return $this->hasMany(Consultation::class, 'patient_id');
     }
 
+    public function patientHospitalAppointments(): HasMany
+    {
+        return $this->hasMany(HospitalAppointment::class, 'patient_id');
+    }
+
+    public function doctorHospitalAppointments(): HasMany
+    {
+        return $this->hasMany(HospitalAppointment::class, 'doctor_id');
+    }
+
     public function nurseVisits(): HasMany
     {
         return $this->hasMany(NurseVisit::class, 'nurse_id');

@@ -3,6 +3,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/utils/format.dart';
 import '../../data/models/consultation_model.dart';
+import '../appointments/hospital_appointments_screen.dart';
 
 /// Notifications du patient — 100 % données API.
 class PatientNotificationsScreen extends StatefulWidget {
@@ -63,6 +64,12 @@ class _PatientNotificationsScreenState
       } catch (_) {}
       if (mounted) _load();
     }
+    if (!mounted) return;
+    if (n.type.startsWith('hospital_')) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const HospitalAppointmentsScreen()),
+      );
+    }
   }
 
   IconData _iconFor(String type) {
@@ -79,6 +86,10 @@ class _PatientNotificationsScreenState
         return Icons.receipt_long_rounded;
       case 'new_message':
         return Icons.chat_bubble_rounded;
+      case 'hospital_checkin_confirmed':
+      case 'hospital_patient_called':
+      case 'hospital_appointment_completed':
+        return Icons.event_available_rounded;
       default:
         return Icons.notifications_rounded;
     }

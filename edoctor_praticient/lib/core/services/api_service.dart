@@ -13,6 +13,7 @@ import '../../data/models/consultation_model.dart';
 import '../../data/models/prescription_model.dart';
 import '../../data/models/lab_request_model.dart';
 import '../../data/models/nurse_visit_model.dart';
+import '../../data/models/hospital_appointment_model.dart';
 import '../../data/models/video_meeting_config.dart';
 import '../../data/models/wallet_model.dart';
 import 'storage_service.dart';
@@ -1062,5 +1063,114 @@ class ApiService {
       return WalletModel.fromJson(data);
     }
     throw Exception(_msg(r, 'Impossible de mettre à jour le compte de versement'));
+  }
+
+  // =========================================================================
+  // GESTION DES RENDEZ-VOUS SUR PLACE & FILE D'ATTENTE DE L'HÔPITAL
+  // =========================================================================
+
+  /// Récupère la file d'attente et registre des consultations présentielles de l'hôpital
+  static Future<Map<String, dynamic>> getHospitalQueue({
+    String? date,
+    String? department,
+    String? status,
+    bool onlyMine = false,
+  }) async {
+    final token = await StorageService.getToken();
+    final query = <String, String>{};
+    if (date != null && date.isNotEmpty) query['date'] = date;
+    if (department != null && department.isNotEmpty) query['department'] = department;
+    if (status != null && status.isNotEmpty) query['status'] = status;
+    if (onlyMine) query['only_mine'] = '1';
+
+    final uri = Uri.parse('$baseUrl/api/hospital-appointments/queue').replace(queryParameters: query.isEmpty ? null : query);
+    final r = await http.get(uri, headers: _headers(token));
+
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      final list = (data['appointments'] as List<dynamic>? ?? [])
+          .map((e) => HospitalAppointmentModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return {
+        'date': data['date'] ?? '',
+        'summary': data['summary'] as Map<String, dynamic>? ?? {},
+        'doctors': data['doctors'] as List<dynamic>? ?? [],
+        'appointments': list,
+      };
+    }
+    throw Exception(_msg(r, 'Impossible de charger la file d\'attente hospitalière'));
+  }
+
+  /// Accueil / Réception : Valide l'arrivée du patient et l'affecte au médecin
+  static Future<HospitalAppointmentModel> checkInHospitalAppointment(
+    int appointmentId, {
+    int? doctorId,
+  }) async {
+    final token = await StorageService.getToken();
+    final body = <String, dynamic>{};
+    if (doctorId != null) body['doctor_id'] = doctorId;
+
+    final r = await http.post(
+      Uri.parse('$baseUrl/api/hospital-appointments/$appointmentId/check-in'),
+      headers: _headers(token, json: true),
+      body: jsonEncode(body),
+    );
+
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      return HospitalAppointmentModel.fromJson(data['appointment'] as Map<String, dynamic>);
+    }
+    throw Exception(_msg(r, 'Échec de la validation de l\'arrivée du patient'));
+  }
+
+  /// Le médecin appelle le patient dans son bureau de consultation
+  static Future<HospitalAppointmentModel> callInHospitalAppointment(int appointmentId) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl/api/hospital-appointments/$appointmentId/call-in'),
+      headers: _headers(token, json: true),
+    );
+
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      return HospitalAppointmentModel.fromJson(data['appointment'] as Map<String, dynamic>);
+    }
+    throw Exception(_msg(r, 'Impossible d\'appeler le patient'));
+  }
+
+  /// Clôture de la consultation physique par le médecin
+  static Future<HospitalAppointmentModel> completeHospitalAppointment(
+    int appointmentId, {
+    String? doctorNotes,
+  }) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl/api/hospital-appointments/$appointmentId/complete'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({
+        if (doctorNotes != null && doctorNotes.isNotEmpty) 'doctor_notes': doctorNotes,
+      }),
+    );
+
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      return HospitalAppointmentModel.fromJson(data['appointment'] as Map<String, dynamic>);
+    }
+    throw Exception(_msg(r, 'Impossible de clôturer la consultation'));
+  }
+
+  /// Annulation du rendez-vous
+  static Future<HospitalAppointmentModel> cancelHospitalAppointment(int appointmentId) async {
+    final token = await StorageService.getToken();
+    final r = await http.post(
+      Uri.parse('$baseUrl/api/hospital-appointments/$appointmentId/cancel'),
+      headers: _headers(token, json: true),
+    );
+
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      return HospitalAppointmentModel.fromJson(data['appointment'] as Map<String, dynamic>);
+    }
+    throw Exception(_msg(r, 'Impossible d\'annuler le rendez-vous'));
   }
 }

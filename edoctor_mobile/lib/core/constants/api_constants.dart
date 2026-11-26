@@ -36,4 +36,10 @@ class ApiConstants {
       '/consultations/$consultationId/lab-requests';
   static String labRequestDetails(int id) => '/lab-requests/$id';
   static String labRequestResults(int id) => '/lab-requests/$id/results';
+
+  // Réservations de créneaux à l'hôpital
+  static String hospitalSlots(int hospitalId) => '/hospitals/$hospitalId/slots';
+  static const String hospitalAppointments = '/hospital-appointments';
+  static const String myHospitalAppointments = '/my-hospital-appointments';
+  static String hospitalAppointmentCancel(int id) => '/hospital-appointments/$id/cancel';
 }

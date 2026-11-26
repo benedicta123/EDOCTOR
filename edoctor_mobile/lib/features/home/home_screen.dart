@@ -20,6 +20,7 @@ import '../dossier/patient_dossier_screen.dart';
 import '../profile/patient_profile_screen.dart';
 import '../lab_examinations/lab_examinations_screen.dart';
 import '../claims/claims_screen.dart';
+import '../appointments/hospital_appointments_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel? user;
@@ -494,6 +495,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ClaimsScreen()),
+                    );
+                  },
+                ),
+                _buildBentoItem(
+                  icon: Icons.event_available_rounded,
+                  title: 'RDV Hôpital',
+                  subtitle: 'Réserver un créneau',
+                  accentColor: const Color(0xFF7C3AED),
+                  bgColor: const Color(0xFFEDE9FE),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const HospitalAppointmentsScreen()),
                     );
                   },
                 ),

@@ -794,6 +794,84 @@ class ApiService {
     return LabRequestModel.fromJson(labData);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RÉSERVATIONS DE CRÉNEAUX À L'HÔPITAL
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Récupère la liste des hôpitaux (en réutilisant /doctors/available pour obtenir les hôpitaux distincts)
+  static Future<List<Map<String, dynamic>>> getHospitals() async {
+    try {
+      final response = await _consultationRequest('/hospitals');
+      final data = jsonDecode(response.body);
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+      if (data is Map && data['hospitals'] != null) {
+        return (data['hospitals'] as List).cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Créneaux disponibles + infos hôpital + médecins
+  static Future<Map<String, dynamic>> getHospitalSlots(
+    int hospitalId, {
+    String? date,
+    String? department,
+  }) async {
+    var path = ApiConstants.hospitalSlots(hospitalId);
+    final params = <String, String>{};
+    if (date != null) params['date'] = date;
+    if (department != null) params['department'] = department;
+    if (params.isNotEmpty) {
+      path += '?${params.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
+    }
+    final response = await _consultationRequest(path);
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Réserver un créneau à l'hôpital
+  static Future<Map<String, dynamic>> bookHospitalAppointment({
+    required int hospitalId,
+    required String department,
+    required String appointmentDate,
+    required String timeSlot,
+    int? doctorId,
+    String? reason,
+  }) async {
+    final body = <String, dynamic>{
+      'hospital_id': hospitalId,
+      'department': department,
+      'appointment_date': appointmentDate,
+      'time_slot': timeSlot,
+      'doctor_id': ?doctorId,
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    };
+    final response = await _consultationRequest(
+      ApiConstants.hospitalAppointments,
+      post: true,
+      body: body,
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Liste des réservations du patient connecté
+  static Future<List<Map<String, dynamic>>> getMyHospitalAppointments() async {
+    final response = await _consultationRequest(ApiConstants.myHospitalAppointments);
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return (data['appointments'] as List? ?? []).cast<Map<String, dynamic>>();
+  }
+
+  /// Annuler une réservation
+  static Future<void> cancelHospitalAppointment(int appointmentId) async {
+    await _consultationRequest(
+      ApiConstants.hospitalAppointmentCancel(appointmentId),
+      post: true,
+    );
+  }
+
   static Future<http.Response> _consultationRequest(
     String path, {
     bool post = false,
