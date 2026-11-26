@@ -1083,7 +1083,7 @@ class ApiService {
     if (status != null && status.isNotEmpty) query['status'] = status;
     if (onlyMine) query['only_mine'] = '1';
 
-    final uri = Uri.parse('$baseUrl/api/hospital-appointments/queue').replace(queryParameters: query.isEmpty ? null : query);
+    final uri = Uri.parse('$baseUrl/hospital-appointments/queue').replace(queryParameters: query.isEmpty ? null : query);
     final r = await http.get(uri, headers: _headers(token));
 
     if (r.statusCode == 200) {
@@ -1111,7 +1111,7 @@ class ApiService {
     if (doctorId != null) body['doctor_id'] = doctorId;
 
     final r = await http.post(
-      Uri.parse('$baseUrl/api/hospital-appointments/$appointmentId/check-in'),
+      Uri.parse('$baseUrl/hospital-appointments/$appointmentId/check-in'),
       headers: _headers(token, json: true),
       body: jsonEncode(body),
     );
@@ -1127,7 +1127,7 @@ class ApiService {
   static Future<HospitalAppointmentModel> callInHospitalAppointment(int appointmentId) async {
     final token = await StorageService.getToken();
     final r = await http.post(
-      Uri.parse('$baseUrl/api/hospital-appointments/$appointmentId/call-in'),
+      Uri.parse('$baseUrl/hospital-appointments/$appointmentId/call-in'),
       headers: _headers(token, json: true),
     );
 
@@ -1145,7 +1145,7 @@ class ApiService {
   }) async {
     final token = await StorageService.getToken();
     final r = await http.post(
-      Uri.parse('$baseUrl/api/hospital-appointments/$appointmentId/complete'),
+      Uri.parse('$baseUrl/hospital-appointments/$appointmentId/complete'),
       headers: _headers(token, json: true),
       body: jsonEncode({
         if (doctorNotes != null && doctorNotes.isNotEmpty) 'doctor_notes': doctorNotes,
@@ -1163,7 +1163,7 @@ class ApiService {
   static Future<HospitalAppointmentModel> cancelHospitalAppointment(int appointmentId) async {
     final token = await StorageService.getToken();
     final r = await http.post(
-      Uri.parse('$baseUrl/api/hospital-appointments/$appointmentId/cancel'),
+      Uri.parse('$baseUrl/hospital-appointments/$appointmentId/cancel'),
       headers: _headers(token, json: true),
     );
 
