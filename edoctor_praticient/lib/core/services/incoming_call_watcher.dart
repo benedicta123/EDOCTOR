@@ -3,6 +3,7 @@ import 'dart:async';
 import '../navigation/app_router.dart';
 import '../../features/doctor/widgets/incoming_call_modal.dart';
 import 'api_service.dart';
+import 'ringtone/ringtone_player.dart';
 import 'storage_service.dart';
 
 /// Surveille en arrière-plan (polling réactif toutes les 2,5 secondes)
@@ -19,7 +20,9 @@ class IncomingCallWatcher {
   bool get isRunning => _timer != null;
 
   void start() {
+    IncomingCallAudio.warmUp();
     if (_timer != null) return;
+    _tick();
     _timer = Timer.periodic(const Duration(milliseconds: 2000), (_) => _tick());
   }
 

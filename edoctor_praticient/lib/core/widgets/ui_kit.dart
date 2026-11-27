@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
+import '../services/incoming_call_watcher.dart';
 import 'praticien_nav.dart';
 
 class CustomButton extends StatelessWidget {
@@ -606,6 +607,9 @@ class ResponsiveShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nav = this.nav;
+    if (nav != null && nav.isDoctor) {
+      IncomingCallWatcher.instance.start();
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: LayoutBuilder(

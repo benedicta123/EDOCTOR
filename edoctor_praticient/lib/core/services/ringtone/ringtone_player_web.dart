@@ -6,30 +6,33 @@ import 'ringtone_player_interface.dart';
 RingtonePlayer getRingtonePlayer() => RingtonePlayerWeb();
 
 class RingtonePlayerWeb implements RingtonePlayer {
-  web.AudioContext? _ctx;
+  static web.AudioContext? _sharedCtx;
   Timer? _timer;
   bool _isPlaying = false;
-  static bool _unlocked = false;
+  static bool _listenersBound = false;
 
   RingtonePlayerWeb() {
     _bindUnlockListeners();
   }
 
-  /// Déverrouille préventivement l'AudioContext dès la première interaction utilisateur sur la page
+  /// Déverrouille préventivement l'AudioContext partagé dès la première interaction utilisateur sur la page
   static void _bindUnlockListeners() {
-    if (_unlocked) return;
+    if (_listenersBound) return;
+    _listenersBound = true;
     try {
       void unlock(web.Event _) {
-        _unlocked = true;
         try {
-          final tempCtx = web.AudioContext();
-          tempCtx.resume();
+          _sharedCtx ??= web.AudioContext();
+          if (_sharedCtx!.state == 'suspended') {
+            _sharedCtx!.resume();
+          }
         } catch (_) {}
       }
 
       web.window.addEventListener('click', unlock.toJS);
       web.window.addEventListener('keydown', unlock.toJS);
       web.window.addEventListener('pointerdown', unlock.toJS);
+      web.window.addEventListener('touchstart', unlock.toJS);
     } catch (_) {}
   }
 
@@ -47,8 +50,8 @@ class RingtonePlayerWeb implements RingtonePlayer {
 
   Future<void> _playChime() async {
     try {
-      _ctx ??= web.AudioContext();
-      final ctx = _ctx!;
+      _sharedCtx ??= web.AudioContext();
+      final ctx = _sharedCtx!;
       if (ctx.state == 'suspended') {
         try {
           await ctx.resume().toDart;
@@ -96,9 +99,5 @@ class RingtonePlayerWeb implements RingtonePlayer {
     _isPlaying = false;
     _timer?.cancel();
     _timer = null;
-    try {
-      _ctx?.close();
-      _ctx = null;
-    } catch (_) {}
   }
 }

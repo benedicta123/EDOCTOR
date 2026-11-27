@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
@@ -140,7 +141,10 @@ class _ConsultationPaymentScreenState extends State<ConsultationPaymentScreen> {
         }
 
         if (!mounted) return;
-        final confirmed = await _showVerificationDialog(transactionId);
+        final confirmed = await _showVerificationDialog(
+          consultation.id,
+          transactionId,
+        );
 
         if (confirmed == true) {
           final verifyRes = await ApiService.verifyFedaPayConsultation(
@@ -223,72 +227,113 @@ class _ConsultationPaymentScreenState extends State<ConsultationPaymentScreen> {
     );
   }
 
-  Future<bool?> _showVerificationDialog(int? transactionId) {
+  Future<bool?> _showVerificationDialog(
+    int consultationId,
+    int? transactionId,
+  ) {
+    Timer? pollTimer;
+    bool checking = false;
+    bool closed = false;
+
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.phone_android_rounded, color: AppColors.primary),
-            SizedBox(width: 10),
-            Text(
-              'Paiement Mobile Money',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      builder: (ctx) {
+        pollTimer ??= Timer.periodic(const Duration(seconds: 3), (t) async {
+          if (closed || checking) return;
+          checking = true;
+          try {
+            final res = await ApiService.verifyFedaPayConsultation(
+              consultationId,
+              transactionId: transactionId,
+            );
+            if ((res['is_approved'] == true || res['status'] == 'paye') &&
+                !closed &&
+                ctx.mounted) {
+              closed = true;
+              t.cancel();
+              Navigator.of(ctx).pop(true);
+            }
+          } catch (_) {
+          } finally {
+            checking = false;
+          }
+        });
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.phone_android_rounded, color: AppColors.primary),
+              SizedBox(width: 10),
+              Text(
+                'Paiement Mobile Money',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'La page de paiement FedaPay a été ouverte pour régler ${_doctor.totalAmount.toInt()} FCFA.',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Validation automatique en cours... Dès que vous aurez saisi votre code secret Mobile Money, l\'appel démarrera automatiquement (ou cliquez sur le bouton ci-dessous).',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                closed = true;
+                pollTimer?.cancel();
+                Navigator.of(ctx).pop(false);
+              },
+              child: const Text(
+                'Annuler',
+                style: TextStyle(color: AppColors.textMuted),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                closed = true;
+                pollTimer?.cancel();
+                Navigator.of(ctx).pop(true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'J\'ai validé mon paiement',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'La page de paiement FedaPay a été ouverte pour régler ${_doctor.totalAmount.toInt()} FCFA.',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Une fois votre paiement validé avec votre code secret Mobile Money, cliquez sur "J\'ai validé mon paiement" ci-dessous pour lancer l\'appel.',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
-              'Annuler',
-              style: TextStyle(color: AppColors.textMuted),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'J\'ai validé mon paiement',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+        );
+      },
+    ).whenComplete(() {
+      closed = true;
+      pollTimer?.cancel();
+    });
   }
 
   Future<bool?> _showSimulationPaymentDialog() {
